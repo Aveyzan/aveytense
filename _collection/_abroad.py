@@ -161,7 +161,7 @@ class _AbroadUnknownInitializer(_extensions.Generic[_T]):
         # objects as returned results. this notation is also here due to
         # refraining from using base class as a role of constructor - type
         # hinted will be object of base class, what might not be a good idea
-        return type(self)(self.__l + [e for e in other], 0, 0, 0) 
+        return type(self)(self.__l + list(other), 0, 0, 0) 
     
     def __radd__(self, other: _extensions.Union[_extensions.AVT_Iterable[_T], _extensions.Self]):
         """
@@ -174,7 +174,7 @@ class _AbroadUnknownInitializer(_extensions.Generic[_T]):
         if (isinstance(other, type(self)) and len(list(other)) == 0) or (isinstance(other, _extensions.Iterable) and len(other) == 0):
             return self
         
-        return type(self)([e for e in other] + self.__l, 0, 0, 0)
+        return type(self)(list(other) + self.__l, 0, 0, 0)
     
     def __mul__(self, other: int):
         """

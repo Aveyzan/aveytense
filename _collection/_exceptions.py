@@ -145,7 +145,7 @@ def _replacement(type: _extensions.AVT_Type[BaseException], value: BaseException
             
             traceback.print_tb(tb, 1)
         
-# sys.excepthook = _replacement
+sys.excepthook = _replacement
 
 class _ErrorHandler:
     """

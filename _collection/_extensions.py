@@ -120,10 +120,10 @@ from collections.abc import (
     MappingView as MappingView,
     MutableMapping as MutableMapping,
     MutableSequence as MutableSequence,
-    MutableSet as MutableUniqual,
+    MutableSet as MutableSet, # reverted 0.3.73 from MutableUniqual
     Reversible as Reversible,
     Sequence as Sequence,
-    Set as Uniqual, # Naming to this to prevent ambiguity with typing.Set alias
+    Set as AbstractSet, # reverted 0.3.73 from Uniqual
     Sized as Sized,
     ValuesView as ValuesView
 )
@@ -699,10 +699,10 @@ if _sys.version_info >= (3, 9):
         MappingView as AVT_MappingView,
         MutableMapping as AVT_MutableMapping,
         MutableSequence as AVT_MutableSequence,
-        MutableSet as AVT_MutableUniqual,
+        MutableSet as AVT_MutableSet,
         Reversible as AVT_Reversible,
         Sequence as AVT_Sequence,
-        Set as AVT_Uniqual,
+        Set as AVT_AbstractSet,
         ValuesView as AVT_ValuesView
     )
     from contextlib import (
@@ -752,10 +752,10 @@ else:
         MappingView as AVT_MappingView,
         MutableMapping as AVT_MutableMapping,
         MutableSequence as AVT_MutableSequence,
-        MutableSet as AVT_MutableUniqual,
+        MutableSet as AVT_MutableSet,
         Reversible as AVT_Reversible,
         Sequence as AVT_Sequence,
-        AbstractSet as AVT_Uniqual,
+        AbstractSet as AVT_AbstractSet,
         ValuesView as AVT_ValuesView,
         # contextlib, 0.3.53
         ContextManager as AVT_ContextManager, # >=Py3.5.4
@@ -1076,20 +1076,30 @@ else:
         Protocol as Protocol,
         runtime_checkable as runtime,
         runtime_checkable as runtime_checkable,
-        # 0.3.37
-        is_protocol as is_protocol,
-        # 0.3.54
-        is_protocol as isProtocol # pyright: ignore[reportUnusedImport]
     )
         
     if TypingExtensionsVersionInfo >= (4, 7): # Py3.7+
         
         from typing_extensions import (
             # 0.3.37
+            is_protocol as is_protocol,
+            # 0.3.54
+            is_protocol as isProtocol, # pyright: ignore[reportUnusedImport]
+            # 0.3.37
             get_protocol_members as get_protocol_members,
             # 0.3.54
             get_protocol_members as getProtocolMembers # pyright: ignore[reportUnusedImport]
         )
+        
+    else:
+        
+        def is_protocol(tp: type):
+            return isinstance(tp, type) and getattr(tp, "_is_protocol", False) and tp != Protocol
+        
+        def get_protocol_members(tp: type) -> AVT_FrozenSet[str]:
+            if not is_protocol(tp):
+                raise TypeError(f"{tp!r} is not a Protocol")
+            return frozenset(getattr(tp, "__protocol_attrs__", []))
         
     if TypingExtensionsVersionInfo >= (4, 9): # Py3.8+
         from typing_extensions import ReadOnly as ReadOnly # 0.3.26rc1
@@ -1256,11 +1266,12 @@ _prevent_unused_imports(
     KT2, VT2, KT2_cov, KT2_con, VT2_con, VT2_cov
 ) # ~._typeparams, 0.3.72
 
-_prevent_unused_imports(AsyncContextManager, ContextManager, MutableUniqual, Uniqual)
+_prevent_unused_imports(AsyncContextManager, ContextManager, MutableSet, AbstractSet)
 _prevent_unused_imports(assertNever, dataclassTransform, getArgs, getOrigin, getTypeHints, importModule, isTypedDict, lruCache, noTypeCheck, revealType, singleDispatch, newClass, prepareClass)
 
 import _collections_abc, abc as _abc, _hashlib, hashlib, hmac as _hmac, typing as _typing, typing_extensions as _typing_ext # not for export
 
+# all abstract prefixed decorators: before 0.3.73 in 'aveytense.util'
 if hasattr(_abc, "abstractproperty"):
     from abc import abstractproperty as abstractproperty # deprecated since 3.3
     
@@ -2140,7 +2151,7 @@ _prevent_unused_imports(
     AVT_MemoryView,
     AVT_MutableMapping,
     AVT_MutableSequence,
-    AVT_MutableUniqual,
+    AVT_MutableSet,
     AVT_OrderedDict,
     AVT_Pairwise,
     AVT_PathLike,
@@ -2157,7 +2168,7 @@ _prevent_unused_imports(
     AVT_Tuple,
     AVT_Type,
     AVT_UnionType,
-    AVT_Uniqual,
+    AVT_AbstractSet,
     AVT_ValuesView,
     AVT_Zip,
     AVT_ZipLongest
@@ -2402,7 +2413,7 @@ class ItemsProvider(Protocol[KT_cov, VT_cov]):
     - first equals key
     - second equals value
     """
-    def items(self) -> AVT_Uniqual[AVT_Tuple[KT_cov, VT_cov]]: ...
+    def items(self) -> AVT_AbstractSet[AVT_Tuple[KT_cov, VT_cov]]: ...
     
 @runtime
 class Buffer(Protocol):
@@ -3632,7 +3643,9 @@ class TimeClockInfo(Protocol):
     """
     Availability: >= 0.3.71
     
-    Stub file only protocol class `time._ClockInfo`
+    A runtime protocol class equivalent to stub protocol class `time._ClockInfo`
+    
+    Attributes included: `adjustable` (boolean), `implementation` (string), `monotonic` (boolean), `resolution` (float)
     """
     adjustable: bool
     implementation: str
@@ -3692,6 +3705,33 @@ class VersionInfo(Protocol):
     def releaselevel(self) -> Literal["alpha", "beta", "candidate", "final"]: ...
     @property
     def serial(self) -> int: ...
+    
+@runtime
+class Clearable(Protocol):
+    """
+    Availability: >= 0.3.73
+    """
+    
+    def clear(self) -> None: ...
+    
+@runtime
+class Viewable(Protocol[T_cov]):
+    """
+    Availability: >= 0.3.73 // `_typeshed.Viewable`
+    """
+    
+    def __len__(self) -> int: ...
+    def __iter__(self) -> Iterator[T_cov]: ...
+
+@runtime
+class ViewableItemGetter(Protocol[KT, VT_cov]):
+    """
+    Availability: >= 0.3.73 // `_typeshed.SupportsGetItemViewable`
+    """
+    
+    def __len__(self) -> int: ...
+    def __iter__(self) -> Iterator[KT]: ...
+    def __getitem__(self, key: KT, /) -> VT_cov: ...
 
 ### Array Typecode & Memoryview Format Types ###
 
@@ -3911,7 +3951,7 @@ PatternType: TypeAlias = Union[AnyStr, AVT_Pattern[AnyStr]] # >= 0.3.60 // type 
 ReadableBuffer: TypeAlias = _Buffer # >= 0.3.44 // _typeshed.ReadableBuffer
 ReadOnlyBuffer: TypeAlias = _Buffer # >= 0.3.44 // _typeshed.ReadOnlyBuffer
 RichComparable: TypeAlias = Union[LeastComparable[Any], GreaterComparable[Any]] # >= ?
-SequenceLike: TypeAlias = Union[AVT_Sequence[T], AVT_Uniqual[T], AVT_ValuesView[T]]
+SequenceLike: TypeAlias = Union[AVT_Sequence[T], AVT_AbstractSet[T], AVT_ValuesView[T]]
 """Availability: >= 0.3.54 // Renamed 0.3.69 from `TrueSequence` // https://aveyzan.xyz/aveytense#aveytense.extensions.SequenceLike"""
 Sizeable: TypeAlias = Sized # >= 0.3.26rc3
 Text: TypeAlias = str # >= 0.3.58
@@ -3922,6 +3962,9 @@ WriteableBuffer: TypeAlias = _Buffer # >= 0.3.44 // _typeshed.WriteableBuffer
 
 # *** lowercased
 cached_property = cachedproperty
+dict_keys = type({}.keys()) # >= 0.3.73
+dict_items = type({}.items()) # >= 0.3.73
+dict_values = type({}.values()) # >= 0.3.73
 
 del _collections_abc, _abc, _enum, _hashlib, hashlib, _hmac, _time, _typing, _typing_ext # not for export!
 
@@ -4098,7 +4141,7 @@ def bt_removesuffix(b, suffix, /):
     
     if _sys.version_info >= (3, 9):
         return b.removesuffix(suffix)
-    else:
+    else: # patch 0.3.73
         if not isinstance(suffix, ReadableBuffer):
             error = TypeError("expected 'suffix' parameter to have a string value")
             raise error
@@ -4108,7 +4151,7 @@ def aiter(i: _AsyncIterOperable[_T_anext_cov], /):
     """
     Availability: >= 0.3.60
     
-    Backport of `aiter()` inbuilt function (allow use before Python 3.10)
+    Backported version of the `aiter()` (Python 3.10+) inbuilt function.
     """
     
     if _sys.version_info >= (3, 10):
@@ -4121,7 +4164,7 @@ def aiter(i: _AsyncIterOperable[_T_anext_cov], /):
 class _NoDefault: ... # >= 0.3.72
 
 @overload
-def anext(i: AsyncNextOperable[T], /) -> T: ...
+def anext(i: AsyncNextOperable[T], /) -> AVT_Awaitable[T]: ...
 @overload
 async def anext(i: AsyncNextOperable[T1], default: T2, /) -> Union[T1, T2]: ...
 
@@ -4129,13 +4172,16 @@ def anext(i: AsyncNextOperable[T1], default: T2 = _NoDefault, /):
     """
     Availability: >= 0.3.60
     
-    Backport of `anext()` inbuilt function (allow use before Python 3.10)
+    Backported version of the `anext()` (Python 3.10+) inbuilt function.
+    
+    When `default` is given, no `StopAsyncIteration` exception is raised and `default` is returned instead (coroutine object value).
     """
     
     if _sys.version_info >= (3, 10):
         
         import builtins
         
+        # 0.3.73
         if default is _NoDefault:
             return builtins.anext(i)
         else:
@@ -4143,19 +4189,51 @@ def anext(i: AsyncNextOperable[T1], default: T2 = _NoDefault, /):
         
     else: # 0.3.72
     
-        import asyncio
+        try:
+            return i.__anext__()
+        except StopAsyncIteration:
+            if default is not _NoDefault:
+                async def _re_anext(default: T2, /):
+                    return default
+                return _re_anext(default)
+            raise StopAsyncIteration
+    
+@overload
+def anext2(i: AsyncNextOperable[T], /) -> T: ...
+@overload
+def anext2(i: AsyncNextOperable[T1], default: T2, /) -> Union[T1, T2]: ...
+    
+def anext2(i: AsyncNextOperable[T1], default: T2 = _NoDefault, /):
+    """
+    Availability: >= 0.3.73
+    
+    Backported version of the `anext()` (Python 3.10+) inbuilt function, except it extracts actual value from an awaitable object.
+    
+    When `default` is given, no `StopAsyncIteration` exception is raised and `default` is returned instead.
+    """
+    
+    import asyncio # for asyncio.run() >= Py3.7
+    
+    async def _re_anext(i: AsyncNextOperable[T1], default: T2, /):
         
-        async def _re_anext(i: AsyncNextOperable[T1], default: T2, /):
+        if _sys.version_info >= (3, 10):
             
-            # redo 0.3.72
+            import builtins
+            
+            if default is _NoDefault:
+                return await builtins.anext(i)
+            else:
+                return await builtins.anext(i, default)
+        
+        else:
             try:
                 return await i.__anext__()
             except StopAsyncIteration:
-                if default is not NoDefault:
+                if default is not _NoDefault:
                     return default
                 raise StopAsyncIteration
-            
-        return asyncio.run(_re_anext(i, default))
+    
+    return asyncio.run(_re_anext(i, default))
         
 # Re-declaring eval() and exec() with every argument except 'source' as universal arguments before 3.13. Yet I don't know how to re-declare exec() with 'closure' parameter before Python 3.11
 def eval(
@@ -4167,7 +4245,7 @@ def eval(
     """
     Availability: >= 0.3.60
     
-    `eval()` inbuilt function with backported update concerning `globals` and `locals` parameters prior to Python 3.13 (both were positional-only)
+    Equivalent to the `eval()` inbuilt function, just with changed signature: parameters `globals` and `locals` were positional-only prior to Python 3.13
     """
         
     import builtins
@@ -4186,7 +4264,9 @@ if _sys.version_info >= (3, 11):
         """
         Availability: >= 0.3.60
 
-        `exec()` inbuilt function with backported update concerning `globals` and `locals` parameters prior to Python 3.13 (both were positional-only)
+        Equivalent to the `exec()` inbuilt function, just with changed signature: parameters `globals` and `locals` were positional-only prior to Python 3.13
+        
+        Keyword-only parameter `closure` exists since Python 3.11
         """
             
         import builtins
@@ -4203,7 +4283,9 @@ else:
         """
         Availability: >= 0.3.60
 
-        `exec()` inbuilt function with backported update concerning `globals` and `locals` parameters prior to Python 3.13 (both were positional-only)
+        Equivalent to the `exec()` inbuilt function, just with changed signature: parameters `globals` and `locals` were positional-only prior to Python 3.13
+        
+        Keyword-only parameter `closure` exists since Python 3.11
         """
             
         import builtins

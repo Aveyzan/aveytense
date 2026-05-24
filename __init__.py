@@ -14,7 +14,6 @@ Submodules:
 - `aveytense.extensions` - extensions (types, functions etc.)
 - `aveytense.functions` - transforms certain methods from `Tense` and `Math` into functions
 - `aveytense.constants` - constants collection
-- `aveytense.operators` - extension of `operator` library
 - `aveytense.util` - utility declarations
 """
 
@@ -33,7 +32,6 @@ import os as _os
 import platform as _platform
 import random as _random
 import re as _re
-import socket as _socket
 import time as _time
 import types as _types
 import uuid as _uuid
@@ -161,7 +159,7 @@ class _ColorAdvancedStyling(extensions.Enum):
 @extensions.runtime
 class _ClearableAbc(extensions.Protocol[extensions.T]):
     """
-    @since 0.3.42
+    Available: 0.3.42
     
     An internal runtime protocol class providing a `clear()` method. Used in `~.Tense.clear()`
     """
@@ -185,7 +183,7 @@ class AbroadType(metaclass = _AbroadType):
 
 # local type aliases
 _Bits = extensions.Literal[3, 4, 8, 24]
-_Clearable = extensions.Union[str, Color, _ClearableAbc[_Any], util.MutableString, extensions.AVT_MutableMapping[_Any, _Any], extensions.AVT_MutableSequence[_Any], extensions.AVT_MutableUniqual[_Any], extensions.IO[_Any], extensions.FrameType] # 0.3.42
+_Clearable = extensions.Union[str, Color, _ClearableAbc[_Any], util.MutableString, extensions.AVT_MutableMapping[_Any, _Any], extensions.AVT_MutableSequence[_Any], extensions.AVT_MutableSet[_Any], extensions.IO[_Any], extensions.FrameType] # 0.3.42
 _Color = extensions.Union[extensions.ColorType, RGB]
 _Mode = extensions.Union[bool, _cl.ModeSelection, extensions.Literal["and", "or"]] # 0.3.36
 _Pattern = extensions.PatternType # 0.3.42
@@ -209,7 +207,7 @@ _ProbabilityType = extensions.Union[
 ] # change 0.3.36, 0.3.46
     
 _ReckonNGT = _ab_mod.ReckonNGT
-_SequenceLikeTypes = (extensions.Sequence, extensions.Uniqual, extensions.ValuesView)
+_SequenceLikeTypes = (extensions.Sequence, extensions.AbstractSet, extensions.ValuesView)
 
 if _sys.version_info >= (3, 10):
     _UnionTypes = (extensions.TypingUnionType, extensions.UnionType)
@@ -568,10 +566,7 @@ def _is_sequence_helper(v, /, type = ()): # 0.3.36
         
         # Since 'typing.Any' cannot be used with isinstance(), as it throws an error (but it should normally return 'True'),
         # the only way to determine if we are dealing with 'typing.Any' is inspecting variable with the 'is' keyword
-        if type is _Any:
-            return True
-        
-        return False
+        return type is _Any
     
     # END 0.3.35
     
@@ -730,8 +725,12 @@ def _inspect_numerics(*v, mode = "b", OR = False): # 0.3.38
             
         return _placeholder
     
-def _used_mode(v): # 0.3.71
-    return all if v in ("and", _MODE_AND) else any
+def _used_mode(OR): # 0.3.71
+    
+    if OR in ("or", _MODE_OR, True): # 0.3.73
+        return any
+    else:
+        return all
 
 class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     """
@@ -740,6 +739,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     https://aveyzan.xyz/aveytense#aveytense.Tense
     
     Root of AveyTense. Subclassing since 0.3.26b3
+    
+    If you want to use the class methods as functions, consider importing `aveytense.functions`
     """
     
     constants = _constants # 0.3.39
@@ -1137,11 +1138,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def isTuple(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.Any], extensions.AVT_Tuple[()]] = _Any) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.Any, ...]]: ...
+    def isTuple(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.T, ...]]: ...
     
     @classmethod
     @extensions.overload
-    def isTuple(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]]) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.T, ...]]: ...
+    def isTuple(cls, v: extensions.Any, /, type: extensions.AVT_Tuple[()]) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.Any, ...]]: ...
     
     @classmethod
     def isTuple(cls, v, /, type = _Any):
@@ -1153,15 +1154,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         - 0.3.34: Added new parameter `type`, allowing to restrict the tuple type. Default value is `Any`.
         - 0.3.35: Overload; `type` now can be a tuple of types, code will count them as union type to match against. Hence the experiments concerning `types` parameter are over (parameter isn't included).
-        - 0.3.36: Generic types are now allowed. Warning: extensions.this feature is experimental
+        - 0.3.36: Generic types are now allowed. Warning: this feature is experimental
         - 0.3.69: Tuple support is replaced with more excessive support (sequence-like objects) in parameter `type`
         - 0.3.73: Corrected type hinting when an empty tuple or `Any` is passed
         """
         return _is_sequence_helper(v, type = type) if _Type(v) is tuple else False
-    
-    @classmethod
-    @extensions.overload
-    def isTuple2(cls, v1: extensions.AVT_Tuple[_Any, ...], v2: extensions.Union[extensions.AVT_Tuple[extensions.AVT_Type[extensions.Any]], extensions.AVT_Tuple[()]], /) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.Any, ...]]: ...
     
     @classmethod
     @extensions.overload
@@ -1175,6 +1172,10 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         v2: extensions.SequenceLike[extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.Union[extensions.AVT_Type[extensions.T]]]]],
         /
     ) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.T, ...]]: ...
+    
+    @classmethod
+    @extensions.overload
+    def isTuple2(cls, v1: extensions.AVT_Tuple[_Any, ...], v2: extensions.Union[extensions.AVT_Tuple[extensions.AVT_Tuple[()]], extensions.AVT_Tuple[()]], /) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.Any, ...]]: ...
     
     @classmethod
     def isTuple2(cls, v1, v2, /):
@@ -1241,11 +1242,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def isList(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.Any], extensions.AVT_Tuple[()]] = _Any) -> extensions.TypeIs[extensions.AVT_List[extensions.Any]]: ...
+    def isList(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any) -> extensions.TypeIs[extensions.AVT_List[extensions.T]]: ...
     
     @classmethod
     @extensions.overload
-    def isList(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]]) -> extensions.TypeIs[extensions.AVT_List[extensions.T]]: ...
+    def isList(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Tuple[()]]) -> extensions.TypeIs[extensions.AVT_List[extensions.Any]]: ...
             
     @classmethod
     def isList(cls, v, /, type = _Any):
@@ -1257,7 +1258,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         - 0.3.34: Added new parameter `type`, allowing to restrict the list type. Default value is `Any`
         - 0.3.35: Overload; `type` now can be a tuple of types, code will count them as union type to match against
-        - 0.3.36: Generic types are now allowed. Warning: extensions.this feature is experimental
+        - 0.3.36: Generic types are now allowed. Warning: this feature is experimental
         - 0.3.69: Tuple support is replaced with more excessive support (sequence-like objects) in parameter `type`
         """
         return _is_sequence_helper(v, type = type) if _Type(v) is list else False
@@ -1268,9 +1269,9 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         cls,
         v: extensions.Any,
         /,
-        ktype: extensions.Union[extensions.AVT_Type[extensions.Any], extensions.AVT_Tuple[()]] = _Any,
-        vtype: extensions.Union[extensions.AVT_Type[extensions.Any], extensions.AVT_Tuple[()]] = _Any
-    ) -> extensions.TypeIs[extensions.AVT_Dict[extensions.Any, extensions.Any]]: ...
+        ktype: extensions.Union[extensions.AVT_Type[extensions.KT], extensions.SequenceLike[extensions.AVT_Type[extensions.KT]]] = _Any,
+        vtype: extensions.Union[extensions.AVT_Type[extensions.VT], extensions.SequenceLike[extensions.AVT_Type[extensions.VT]]] = _Any
+    ) -> extensions.TypeIs[extensions.AVT_Dict[extensions.KT, extensions.VT]]: ...
     
     @classmethod
     @extensions.overload
@@ -1278,18 +1279,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         cls,
         v: extensions.Any,
         /,
-        ktype: extensions.Union[extensions.AVT_Type[extensions.KT], extensions.SequenceLike[extensions.AVT_Type[extensions.KT]]],
-        vtype: extensions.Union[extensions.AVT_Type[extensions.Any], extensions.AVT_Tuple[()]] = _Any
-    ) -> extensions.TypeIs[extensions.AVT_Dict[extensions.KT, extensions.Any]]: ...
-    
-    @classmethod
-    @extensions.overload
-    def isDict(
-        cls,
-        v: extensions.Any,
-        /,
-        ktype: extensions.Union[extensions.AVT_Type[extensions.Any], extensions.AVT_Tuple[()]],
-        vtype: extensions.Union[extensions.AVT_Type[extensions.VT], extensions.SequenceLike[extensions.AVT_Type[extensions.VT]]]
+        ktype: extensions.AVT_Tuple[()],
+        vtype: extensions.Union[extensions.AVT_Type[extensions.VT], extensions.SequenceLike[extensions.AVT_Type[extensions.VT]]] = _Any
     ) -> extensions.TypeIs[extensions.AVT_Dict[extensions.Any, extensions.VT]]: ...
     
     @classmethod
@@ -1299,8 +1290,18 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         v: extensions.Any,
         /,
         ktype: extensions.Union[extensions.AVT_Type[extensions.KT], extensions.SequenceLike[extensions.AVT_Type[extensions.KT]]],
-        vtype: extensions.Union[extensions.AVT_Type[extensions.VT], extensions.SequenceLike[extensions.AVT_Type[extensions.VT]]]
-    ) -> extensions.TypeIs[extensions.AVT_Dict[extensions.KT, extensions.VT]]: ...
+        vtype: extensions.AVT_Tuple[()]
+    ) -> extensions.TypeIs[extensions.AVT_Dict[extensions.KT, extensions.Any]]: ...
+    
+    @classmethod
+    @extensions.overload
+    def isDict(
+        cls,
+        v: extensions.Any,
+        /,
+        ktype: extensions.AVT_Tuple[()],
+        vtype: extensions.AVT_Tuple[()]
+    ) -> extensions.TypeIs[extensions.AVT_Dict[extensions.Any, extensions.Any]]: ...
         
     @classmethod
     def isDict(
@@ -1318,7 +1319,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         - 0.3.34: Added 2 parameters `ktype` and `vtype`, restricting types for, respectively, keys and values. Both have default values `Any`.
         - 0.3.35: Overload; `ktype` and `vtype` now can be tuples of types, code will count them as union type to match against, respectively, keys and values.
-        - 0.3.36: Generic types are now allowed. Warning: extensions.this feature is experimental
+        - 0.3.36: Generic types are now allowed. Warning: this feature is experimental
         - 0.3.69: Tuple support is replaced with more excessive support (sequence-like objects) in parameters `ktype` and `vtype`
         """
         
@@ -1329,14 +1330,14 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             
         else:
             return False
-        
-    @classmethod
-    @extensions.overload
-    def isSet(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.Any], extensions.AVT_Tuple[()]] = _Any) -> extensions.TypeIs[extensions.AVT_Set[extensions.Any]]: ...
     
     @classmethod
     @extensions.overload
-    def isSet(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]]) -> extensions.TypeIs[extensions.AVT_Set[extensions.T]]: ...
+    def isSet(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any) -> extensions.TypeIs[extensions.AVT_Set[extensions.T]]: ...
+    
+    @classmethod
+    @extensions.overload
+    def isSet(cls, v: extensions.Any, /, type: extensions.AVT_Tuple[()]) -> extensions.TypeIs[extensions.AVT_Set[extensions.Any]]: ...
     
     @classmethod
     def isSet(cls, v, /, type = _Any):
@@ -1348,18 +1349,18 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         Parameter `type` allows to restrict the set type.
         
-        - 0.3.36: Generic types are now allowed. Warning: extensions.this feature is experimental
+        - 0.3.36: Generic types are now allowed. Warning: this feature is experimental
         - 0.3.69: Tuple support is replaced with more excessive support (sequence-like objects) in parameter `type`
         """
         return _is_sequence_helper(v, type = type) if _Type(v) is set else False
     
     @classmethod
     @extensions.overload
-    def isFrozenSet(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.Any], extensions.AVT_Tuple[()]] = _Any) -> extensions.TypeIs[extensions.AVT_FrozenSet[extensions.Any]]: ...
+    def isFrozenSet(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any) -> extensions.TypeIs[extensions.AVT_FrozenSet[extensions.T]]: ...
     
     @classmethod
     @extensions.overload
-    def isFrozenSet(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]]) -> extensions.TypeIs[extensions.AVT_FrozenSet[extensions.T]]: ...
+    def isFrozenSet(cls, v: extensions.Any, /, type: extensions.AVT_Tuple[()]) -> extensions.TypeIs[extensions.AVT_FrozenSet[extensions.Any]]: ...
     
     @classmethod
     def isFrozenSet(cls, v, /, type = _Any):
@@ -1371,18 +1372,18 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         Parameter `type` allows to restrict the frozenset type.
         
-        - 0.3.36: Generic types are now allowed. Warning: extensions.this feature is experimental
+        - 0.3.36: Generic types are now allowed. Warning: this feature is experimental
         - 0.3.69: Tuple support is replaced with more excessive support (sequence-like objects) in parameter `type`
         """
         return _is_sequence_helper(v, type = type) if _Type(v) is frozenset else False
     
     @classmethod
     @extensions.overload
-    def isDeque(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.Any], extensions.AVT_Tuple[()]] = _Any) -> extensions.TypeIs[extensions.AVT_Deque[extensions.Any]]: ...
+    def isDeque(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any) -> extensions.TypeIs[extensions.AVT_Deque[extensions.T]]: ...
     
     @classmethod
     @extensions.overload
-    def isDeque(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]]) -> extensions.TypeIs[extensions.AVT_Deque[extensions.T]]: ...
+    def isDeque(cls, v: extensions.Any, /, type: extensions.AVT_Tuple[()]) -> extensions.TypeIs[extensions.AVT_Deque[extensions.Any]]: ...
     
     @classmethod
     def isDeque(cls, v, /, type = _Any):
@@ -1522,6 +1523,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         Equivalent to `inspect.isclass()`.
         Determine whether a value is a class.
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         return _inspect_many(*v, type = type, OR = OR)
     
@@ -1541,6 +1544,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         Equivalent to `inspect.isfunction()`.
         Determine whether a value is a function.
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         return _inspect_many(*v, type = _types.FunctionType, OR = OR)
     
@@ -1552,6 +1557,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         Returns `True`, if value is a number in binary notation in a string.
         Many values can be inspected at once as well. Prefix `0b` is ignored.
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         return _inspect_numerics(*v, mode = "b", OR = OR)
     
@@ -1563,6 +1570,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         Returns `True`, if value is a number in octal notation in a string.
         Many values can be inspected at once as well. Prefix `0o` is ignored.
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         return _inspect_numerics(*v, mode = "o", OR = OR)
     
@@ -1576,6 +1585,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         Many values can be inspected at once as well. 0.3.43: Renamed from `isDecimal2`
         
         In reality returned is `True` when `re.match(r"\\d", value)` is satisfied.
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         return _inspect_numerics(*v, mode = "d", OR = OR)
     
@@ -1587,6 +1598,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         Returns `True`, if value is a number in hexadecimal notation in a string.
         Many values can be inspected at once as well. Prefix `0x` is ignored.
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         return _inspect_numerics(*v, mode = "h", OR = OR)
     
@@ -1616,22 +1629,23 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def isProperty(cls, v: _Any, /) -> extensions.TypeIs[property]: ...
+    def isProperty(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[property]: ...
     
     @classmethod
     @extensions.overload
-    def isProperty(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
+    def isProperty(cls, *v: extensions.Any, OR: extensions.Literal[True]) -> bool: ...
     
     @classmethod
-    def isProperty(cls, v, /, *_, mode = _MODE_AND):
+    def isProperty(cls, *v, OR = False):
         """
         Availability: >= 0.3.41 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isProperty
         
         Determine whether a value is a property in a class. It can be done only, if property is accessed via reference.
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
-        _many = (v,) + _
-        return _inspect_many(*_many, type = property, OR = mode)
+        return _inspect_many(*v, type = property, OR = OR)
     
     @classmethod
     @extensions.overload
@@ -1672,6 +1686,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         Returns `True`, if a property is final. It can be done only, if property is accessed via reference.
         
         See `~.util.finalproperty` decorator for more details.
+        
+        Deprecated since 0.3.71, this class method will no longer receive updates
         """
         
         _many = (v,) + _
@@ -1716,17 +1732,9 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                     return False
             
         return _placeholder
-            
-    @classmethod
-    @extensions.overload
-    def isFinalClass(cls, v: _Any, /) -> bool: ...
     
     @classmethod
-    @extensions.overload
-    def isFinalClass(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
-    
-    @classmethod
-    def isFinalClass(cls, v, /, *_, mode = _MODE_AND):
+    def isFinalClass(cls, *v: extensions.Any, OR: bool = False):
         """
         Availability: >= 0.3.41 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isFinalClass
@@ -1734,6 +1742,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         Returns `True`, if provided class is final (cannot be subclassed).
         
         It is true when class inherits from `~.util.Final`.
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         
         def _check_if_final(value):
@@ -1756,25 +1766,15 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             else:
                 return False
         
-        if reckon(_) == 0:
-            
-            return _check_if_final(v)
+        if reckon(v) == 0:
+            return False
             
         else:
             
-            _many = (v,) + _
-            
-            if mode in (cls.AND, "and"):
-                
-                return all([_check_if_final(e) for e in _many])
-            
-            elif mode in (cls.OR, "or"):
-                
-                return any([_check_if_final(e) for e in _many])
-            
+            if not OR:
+                return all([_check_if_final(e) for e in v])
             else:
-                
-                return False
+                return any([_check_if_final(e) for e in v])
             
     @classmethod
     @extensions.deprecated("Deprecated since 0.3.69")
@@ -1849,182 +1849,174 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def isLambda(cls, v: _Any, /) -> extensions.TypeIs[extensions.FunctionType]: ...
+    def isLambda(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.FunctionType]: ...
     
     @classmethod
     @extensions.overload
-    def isLambda(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
+    def isLambda(cls, *v: extensions.Any, OR: extensions.Literal[True]) -> bool: ...
     
     @classmethod
-    def isLambda(cls, v, /, *_, mode = _MODE_AND):
+    def isLambda(cls, *v, OR = False):
         """
         Availability: >= 0.3.52 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isLambda
         
         Check if value is a lambda expression
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         
-        _all_ = (v,) + _
-        
-        return _used_mode(mode)([isinstance(e, extensions.LambdaType) for e in _all_])
+        return _used_mode(OR)([isinstance(e, extensions.LambdaType) for e in v])
     
     @classmethod
     @extensions.overload
-    def isIterable(cls, v: _Any, /) -> extensions.TypeIs[extensions.AVT_Iterable[_Any]]: ...
+    def isIterable(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_Iterable[_Any]]: ...
     
     @classmethod
     @extensions.overload
-    def isIterable(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
+    def isIterable(cls, *v: extensions.Any, OR: extensions.Literal[True]) -> bool: ...
     
     @classmethod
-    def isIterable(cls, v, /, *_, mode = _MODE_AND):
+    def isIterable(cls, *v, OR = False):
         """
         Availability: >= 0.3.52 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isIterable
         
         Check if value is an iterable object
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         
-        _all_ = (v,) + _
-        
-        return _used_mode(mode)([_is_iterable(e) for e in _all_])
+        return _used_mode(OR)([_is_iterable(e) for e in v])
     
     @classmethod
     @extensions.overload
-    def isIterator(cls, v: _Any, /) -> extensions.TypeIs[extensions.AVT_Iterator[_Any]]: ...
+    def isIterator(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_Iterator[_Any]]: ...
     
     @classmethod
     @extensions.overload
-    def isIterator(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
+    def isIterator(cls, *v: extensions.Any, OR: extensions.Literal[True]) -> bool: ...
     
     @classmethod
-    def isIterator(cls, v, /, *_, mode = _MODE_AND):
+    def isIterator(cls, *v, OR = False):
         """
         Availability: >= 0.3.52 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isIterator
         
         Check if value is an iterator
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         
-        _all_ = (v,) + _
-        
-        return _used_mode(mode)([isinstance(e, extensions.Iterator) for e in _all_])
+        return _used_mode(OR)([isinstance(e, extensions.Iterator) for e in v])
     
     @classmethod
     @extensions.overload
-    def isAwaitable(cls, v: _Any, /) -> extensions.TypeIs[extensions.AVT_Awaitable[_Any]]: ...
+    def isAwaitable(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_Awaitable[_Any]]: ...
     
     @classmethod
     @extensions.overload
-    def isAwaitable(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
+    def isAwaitable(cls, *v: extensions.Any, OR: extensions.Literal[True]) -> bool: ...
     
     @classmethod
-    def isAwaitable(cls, v, /, *_, mode = _MODE_AND):
+    def isAwaitable(cls, *v, OR = False):
         """
         Availability: >= 0.3.52 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isAwaitable
         
         Check if value is an awaitable object
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         
-        _all_ = (v,) + _
-        
-        return _used_mode(mode)([isinstance(e, extensions.Awaitable) for e in _all_])
+        return _used_mode(OR)([isinstance(e, extensions.Awaitable) for e in v])
     
     @classmethod
     @extensions.overload
-    def isGenerator(cls, v: _Any, /) -> extensions.TypeIs[extensions.AVT_Generator[_Any, _Any, _Any]]: ...
+    def isGenerator(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_Generator[_Any, _Any, _Any]]: ...
     
     @classmethod
     @extensions.overload
-    def isGenerator(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
+    def isGenerator(cls, *v: extensions.Any, OR: extensions.Literal[True]) -> bool: ...
     
     @classmethod
-    def isGenerator(cls, v, /, *_, mode = _MODE_AND):
+    def isGenerator(cls, *v, OR = False):
         """
         Availability: >= 0.3.52 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isGenerator
         
         Check if value is an generator object
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         
-        _all_ = (v,) + _
-        
-        return _used_mode(mode)([isinstance(e, extensions.Generator) for e in _all_])
+        return _used_mode(OR)([isinstance(e, extensions.Generator) for e in v])
     
     @classmethod
     @extensions.overload
-    def isGenExpr(cls, v: _Any, /) -> extensions.TypeIs[extensions.AVT_Generator[_Any, None, None]]: ...
+    def isGenExpr(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_Generator[_Any, None, None]]: ...
     
     @classmethod
     @extensions.overload
-    def isGenExpr(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
+    def isGenExpr(cls, *v: extensions.Any, OR: extensions.Literal[True]) -> bool: ...
     
     @classmethod
-    def isGenExpr(cls, v, /, *_, mode = _MODE_AND):
+    def isGenExpr(cls, *v, OR = False):
         """
         Availability: >= 0.3.52 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isGenExpr
         
         Check if value is a generator object from generator expression
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         
-        _all_ = (v,) + _
-        
-        return _used_mode(mode)([isinstance(e, extensions.GenExprType) for e in _all_])
+        return _used_mode(OR)([isinstance(e, extensions.GenExprType) for e in v])
     
     @classmethod
     @extensions.overload
-    def isCoroutine(cls, v: _Any, /) -> extensions.TypeIs[extensions.AVT_Coroutine[_Any, _Any, _Any]]: ...
+    def isCoroutine(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_Coroutine[_Any, _Any, _Any]]: ...
     
     @classmethod
     @extensions.overload
-    def isCoroutine(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
+    def isCoroutine(cls, *v: extensions.Any, OR: extensions.Literal[True]) -> bool: ...
     
     @classmethod
-    def isCoroutine(cls, v, /, *_, mode = _MODE_AND):
+    def isCoroutine(cls, *v, OR = False):
         """
         Availability: >= 0.3.52 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isCoroutine
         
         Check if value is a coroutine object
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         
-        _all_ = (v,) + _
-        
-        return _used_mode(mode)([isinstance(e, extensions.Coroutine) for e in _all_])
+        return _used_mode(OR)([isinstance(e, extensions.Coroutine) for e in v])
     
     @classmethod
     @extensions.overload
-    def isAsyncGenerator(cls, v: _Any, /) -> extensions.TypeIs[extensions.AVT_AsyncGenerator[_Any, _Any]]: ...
+    def isAsyncGenerator(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_AsyncGenerator[_Any, _Any]]: ...
     
     @classmethod
     @extensions.overload
-    def isAsyncGenerator(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
+    def isAsyncGenerator(cls, *v: extensions.Any, OR: extensions.Literal[True]) -> bool: ...
     
     @classmethod
-    def isAsyncGenerator(cls, v, /, *_, mode = _MODE_AND):
+    def isAsyncGenerator(cls, *v, OR = False):
         """
         Availability: >= 0.3.53 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isAsyncGenerator
         
         Check if value is an asynchronous generator
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         
-        _all_ = (v,) + _
-        
-        return _used_mode(mode)([isinstance(e, extensions.AsyncGenerator) for e in _all_])
+        return _used_mode(OR)([isinstance(e, extensions.AsyncGenerator) for e in v])
     
     @classmethod
-    @extensions.overload
-    def isGeneric(cls, v: type, /) -> bool: ...
-    
-    @classmethod
-    @extensions.overload
-    def isGeneric(cls, v: type, /, *_: type, mode: _Mode = _MODE_AND) -> bool: ...
-    
-    @classmethod
-    def isGeneric(cls, v, /, *_, mode = _MODE_AND):
+    def isGeneric(cls, *v: extensions.Any, OR: bool = False):
         """
         Availability: >= 0.3.53 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isGeneric
@@ -2033,9 +2025,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         This does not include special forms of `typing`, use
         `isSpecialForm()` instead
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         
-        _all_ = (v,) + _
+        _all_ = v
         
         def _internals(v):
             
@@ -2067,61 +2061,53 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 
             return True
         
-        return _used_mode(mode)([_internals(t) for t in _all_])
+        return _used_mode(OR)([_internals(t) for t in _all_])
     
     @classmethod
-    @extensions.overload
-    def isSpecialForm(cls, v: _Any, /) -> bool: ...
-    
-    @classmethod
-    @extensions.overload
-    def isSpecialForm(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
-    
-    @classmethod
-    def isSpecialForm(cls, v, /, *_, mode = _MODE_AND):
+    def isSpecialForm(cls, *v: extensions.Any, OR: bool = False):
         """
         Availability: >= 0.3.53 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isSpecialForm
         
         Special forms/typings on `typing` module
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         
-        _all_ = (v,) + _
-        
-        return _used_mode(mode)([isinstance(e, extensions.SpecialForm) for e in _all_])
+        return _used_mode(OR)([isinstance(e, extensions.SpecialForm) for e in v])
     
     if _sys.version_info >= (3, 14):
         @classmethod
         @extensions.overload
-        def isUnion(cls, v: _Any, /) -> extensions.TypeIs[extensions.AVT_UnionType]: ...
+        def isUnion(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_UnionType]: ...
     elif _sys.version_info >= (3, 10):
         @classmethod
         @extensions.overload
-        def isUnion(cls, v: _Any, /) -> extensions.TypeIs[extensions.Union[extensions.TypingUnionType, extensions.UnionType]]: ...
+        def isUnion(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.Union[extensions.TypingUnionType, extensions.UnionType]]: ...
     else:
         @classmethod
         @extensions.overload
-        def isUnion(cls, v: _Any, /) -> extensions.TypeIs[extensions.TypingUnionType]: ...
+        def isUnion(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.TypingUnionType]: ...
         
     @classmethod
     @extensions.overload
-    def isUnion(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
+    def isUnion(cls, *v: extensions.Any, OR: extensions.Literal[True]) -> bool: ...
     
     @classmethod
-    def isUnion(cls, v, /, *_, mode = _MODE_AND):
+    def isUnion(cls, *v, OR = False):
         """
         Availability: >= 0.3.62 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isUnion
         
         Returns `True` if value is an union type
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         
-        _all_ = (v,) + _
-        
-        return _used_mode(mode)([cls.isType(extensions.getOrigin(e), _UnionTypes) for e in _all_])
+        return _used_mode(OR)([cls.isType(extensions.getOrigin(e), _UnionTypes) for e in v])
     
     @classmethod
-    def isDeprecated(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND):
+    def isDeprecated(cls, *v: extensions.Any, OR: bool = False):
         """
         Availability: >= 0.3.56 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isDeprecated
@@ -2131,11 +2117,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         To return `True`, the `__deprecated__` attribute of the definition(s) must be string(s); preferably use the `@deprecated` decorator instead of setting it manually.
         
         `@deprecated` decorator is featured by `warnings` library since Python 3.13, and `typing_extensions` prior to it and since by importing from `warnings`
+        
+        - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
         
-        _all_ = (v,) + _
-        
-        return _used_mode(mode)([isinstance(getattr(e, "__deprecated__", None), str) for e in _all_])
+        return _used_mode(OR)([isinstance(getattr(e, "__deprecated__", None), str) for e in v])
     
     
     # OVERLOAD >= 0.3.34; < 0.3.39
@@ -2415,6 +2401,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         - 0.3.45: The `m` parameter now can receive a set of positive integers, `range` objects and abroad object. This thing was meant to be provided in version 0.3.48
         - 0.3.66: The `m` parameter received support for any integer iterable objects, aside dictionaries/mapping objects
+        - 0.3.73: The `m` parameter receive restricted integer iterable object support to sequence-like objects only
         """
         
         if not _is_iterable(i):
@@ -2422,8 +2409,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             raise error
         
         # 0.3.45
-        if cls.isDict(m) or (not isinstance(m, (str, _ab_mod.AbroadInitializer, *_SequenceLikeTypes))) or (
-            (cls.isAbroad(m) or cls.isIterable(m)) and not Math.isPositive(list(m))
+        if not isinstance(m, (str, _ab_mod.AbroadInitializer, *_SequenceLikeTypes)) or (
+            (cls.isAbroad(m) or isinstance(m, _SequenceLikeTypes)) and not Math.isPositive(list(m))
         ):
             error = TypeError("expected a valid string literal, like \"> 3\", an abroad object, or a positive integer iterable object")
             raise error
@@ -2518,7 +2505,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         return False
     
     @classmethod
-    def group(cls, *statements: extensions.Union[extensions.AVT_Sequence[bool], extensions.AVT_Uniqual[bool]], mode = "and-or"):
+    def group(cls, *statements: extensions.Union[extensions.AVT_Sequence[bool], extensions.AVT_AbstractSet[bool]], mode = "and-or"):
         """
         Availability: >= 0.3.34 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.group
@@ -2561,7 +2548,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         for statement in statements:
             
-            if not isinstance(statement, (extensions.Sequence, extensions.Uniqual)) or (isinstance(statement, (extensions.Sequence, extensions.Uniqual)) and not cls.isList(list(statement), bool)):
+            if not isinstance(statement, (extensions.Sequence, extensions.AbstractSet)) or (isinstance(statement, (extensions.Sequence, extensions.AbstractSet)) and not cls.isList(list(statement), bool)):
                 
                 error = ValueError("expected non-empty sequence(s) with single boolean values, like list, tuple, set or frozenset")
                 raise error
@@ -2693,7 +2680,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         Availability: >= 0.3.41 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.equal
         
-        Returns `True` if all values are equal to each other. Returns `False` when `v` has 0-1 values and when at least value is distinct to another.
+        Returns `True` if all values are equal to each other. Returns `False` when `v` has 0-1 values and when at least one value is distinct to another.
         
         In the code it is roughly the same as `all([x == v[0] for x in v[1:]])`
         """
@@ -3429,7 +3416,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             error = ValueError("parameter 'mode' provides invalid mode")
             raise error
         
-        if isinstance(v, (str, _ab_mod.AbroadInitializer, extensions.Sequence, extensions.Uniqual, extensions.Mapping)) and reckon(v) == 0:
+        if isinstance(v, (str, _ab_mod.AbroadInitializer, extensions.Sequence, extensions.AbstractSet, extensions.Mapping)) and reckon(v) == 0:
             return 0
         
         if cls.isString(v):
@@ -3483,7 +3470,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                     
             return o
                     
-        elif isinstance(v, (extensions.Sequence, extensions.Uniqual)):
+        elif isinstance(v, (extensions.Sequence, extensions.AbstractSet)):
             
             _v = list(v)
             
@@ -3599,7 +3586,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 _v1 = {k: v1.__annotations__[k] for k in v1.__annotations__ if k[:1] != "_"}
                 _v2 = {k: v2[k] for k in v2 if k[:1] != "_"}
             
-            elif isinstance(v2, (extensions.Sequence, extensions.Uniqual)):
+            elif isinstance(v2, (extensions.Sequence, extensions.AbstractSet)):
                 
                 if not cls.isList([k for k in v2], str):
                     
@@ -3647,7 +3634,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 else:
                     return [e for e in _v2 if e not in _v1]
                 
-            elif isinstance(v2, (extensions.Sequence, extensions.Uniqual)):
+            elif isinstance(v2, (extensions.Sequence, extensions.AbstractSet)):
                 
                 if not cls.isList([e for e in v2], int):
                     
@@ -3661,7 +3648,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 error = TypeError("with comparison with a result from abroad() function expected another abroad() function result or integer sequence")
                 raise error
             
-        elif isinstance(v1, (extensions.Sequence, extensions.Uniqual)):
+        elif isinstance(v1, (extensions.Sequence, extensions.AbstractSet)):
             
             if isinstance(v2, type):
                 
@@ -3683,7 +3670,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 _v1 = list(v1)
                 _v2 = +v2
                 
-            elif isinstance(v2, (extensions.Sequence, extensions.Uniqual)):
+            elif isinstance(v2, (extensions.Sequence, extensions.AbstractSet)):
                 
                 _v1 = list(v1)
                 _v2 = list(v2)
@@ -4328,7 +4315,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 elif isinstance(_v, (
                     
                     extensions.MutableSequence,
-                    extensions.MutableUniqual,
+                    extensions.MutableAbstractSet,
                     extensions.MutableMapping,
                     _util.MutableString,
                     extensions.FrameType
@@ -4482,7 +4469,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         if cls.isString(names):
             seq = names.strip().split(" ")
         
-        elif isinstance(names, (extensions.Sequence, extensions.Uniqual)):
+        elif isinstance(names, _SequenceLikeTypes):
             seq = list(names)
             
             if not cls.isList(seq, str):
@@ -4668,7 +4655,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 )) if reckon(list(v)) > 0 else None
             
             # 0.3.54: 'array.array' inherits from 'collections.abc.MutableSequence' since Python 3.10
-            elif isinstance(v, (extensions.Sequence, extensions.Uniqual, extensions.array)): 
+            elif isinstance(v, (extensions.Sequence, extensions.AbstractSet, extensions.array)): 
                 
                 _type_origin_ = type(v)
                 
@@ -5175,7 +5162,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         """
         
         # >= 0.3.66: ValuesView
-        if cls.isAbroad(i) or isinstance(i, (extensions.SizeableItemGetter, extensions.Sequence, extensions.Uniqual, extensions.Mapping, extensions.ValuesView)):
+        if cls.isAbroad(i) or isinstance(i, (extensions.SizeableItemGetter, extensions.Sequence, extensions.AbstractSet, extensions.Mapping, extensions.ValuesView)):
             
             if reckon(i) == 0: 
                 error = TypeError("expected at least one item in a(n) sequence/set/abroad object / one pair in a mapping/dictionary")
@@ -5228,7 +5215,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             
             return 1/v
         
-        elif isinstance(v, (extensions.Sequence, extensions.Uniqual)) and cls.all(v, lambda x: cls.isInteger(x) or cls.isFloat(x)):
+        elif isinstance(v, (extensions.Sequence, extensions.AbstractSet)) and cls.all(v, lambda x: cls.isInteger(x) or cls.isFloat(x)):
             
             _filter = cls.cast([1/e for e in v if e not in (0, .0)], extensions.AVT_List[float])
             
@@ -5550,7 +5537,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                     
                     _e = cls.extend(_e, {_keys[i]: _values[i] for i in abroad(_keys)})
                     
-                elif isinstance(e, (extensions.Sequence, extensions.Uniqual)):
+                elif isinstance(e, (extensions.Sequence, extensions.AbstractSet)):
                     
                     _ie = cls.cast(tuple(e), extensions.AVT_Tuple[extensions.T, int]) # AbstractSet is not indexable
                     
@@ -5620,7 +5607,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         Sort an iterable with improved bogo sort.
         
         Bogosort uses shuffling iterable's content to return sorted iterable. 'Improved' in the method name
-        is its auxiliary appendix: extensions.this variant finds consecutive values from shuffled iterable, and places
+        is its auxiliary appendix: this variant finds consecutive values from shuffled iterable, and places
         in a list, which will be returned, when list is sorted. This decreases amount of accesses, and shortens
         execution time.
         

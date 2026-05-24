@@ -14,18 +14,16 @@ import decimal as _decimal
 import fractions as _fractions
 import math as _math
 import numbers as _numbers
-import tkinter as _tkinter
 import warnings as _warnings
 
 from . import _abroad as _ab_mod
 from . import _constants as _lc
 from . import _version
 from .. import constants as _constants
+from .. import exceptions as _exceptions
 from .. import extensions as _extensions
 
 __name__ = "aveytense"
-# between @since and @author there is unnecessarily long line spacing
-# hence this warning is being thrown; it is being disabled.
 _warnings.filterwarnings("ignore", category = SyntaxWarning)
 
 # types
@@ -107,7 +105,7 @@ def aveytenseVersion(asString = True):
 
 def _int_float_fallback(v, /): # 0.3.71
     
-    if isinstance(v, _extensions.FloatOrInteger):
+    if isinstance(v, (int, float)):
         return v
     elif isinstance(v, _extensions.FloatConvertible):
         return v.__float__()
@@ -184,7 +182,7 @@ def _abroad_prepend_init(value1: _AbroadValue1Pre[_T1], /, value2: _AbroadValue2
     elif isinstance(value1, float):
         
         if value2 in (_math.inf, _math.nan):
-            error = _extensions.IncorrectValueError("'inf' or 'nan' as value for 'value1' (1st parameter) is not allowed.")
+            error = _exceptions.IncorrectValueError("'inf' or 'nan' as value for 'value1' (1st parameter) is not allowed.")
             raise error
         
         else:
@@ -215,7 +213,7 @@ def _abroad_prepend_init(value1: _AbroadValue1Pre[_T1], /, value2: _AbroadValue2
     elif isinstance(value2, float):
         
         if value2 in (_math.inf, _math.nan):
-            error = _extensions.IncorrectValueError("'inf' or 'nan' as value for 'value2' (2nd parameter) is not allowed.")
+            error = _exceptions.IncorrectValueError("'inf' or 'nan' as value for 'value2' (2nd parameter) is not allowed.")
             raise error
         
         else:
