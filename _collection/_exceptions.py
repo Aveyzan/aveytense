@@ -21,10 +21,17 @@ from . import _extensions
 #     from typing import Type as type
 ###
 
+def _prevent_unused_definitions(*_): pass
+
 _unbound_local_messages = (
     "cannot access local variable '{}' where it is not associated with a value",
     "local variable '{}' referenced before assignment"
-) # ≥ 0.3.47
+) # >= 0.3.47
+
+_avt_default_sequence_like_error_msg = (
+    "expected a sequence-like object",
+    "expected a sequence-like object in parameter {}"
+) # >= 0.3.74
 
 def _replacement(type: _extensions.AVT_Type[BaseException], value: BaseException, tb: _extensions.Optional[_extensions.TracebackType]): # ≥ 0.3.47
     
@@ -60,7 +67,7 @@ def _replacement(type: _extensions.AVT_Type[BaseException], value: BaseException
         # 0.3.50
         elif len(_last_) == 1:
             # about str.removeprefix() see pep 616
-            _last_ += [", ".join(_print_[2:]).removeprefix("in <module>\n").rstrip()] + [_REMOVE_]
+            _last_ += [_extensions.str_removeprefix(", ".join(_print_[2:]), "in <module>\n").rstrip()] + [_REMOVE_]
         
         _in_ = "in \x1b[35m" + _last_[0][3:] + "\x1b[0m"
         
@@ -88,10 +95,8 @@ def _replacement(type: _extensions.AVT_Type[BaseException], value: BaseException
         # tildes (~) can be on left or right (or both) of place where carets are placed
         _tilde_range_ = [_last_[2].count(" "), len(_last_[2])]
         
-        # ansi escape code. for easier use, check out ~.Color class.
-        # 31 means red, 1;31 means bold red, 35 means pink,
-        # 1;31 means bold pink, 0 resets the formatting
-        
+        # ansi escape code. for easier use, check out the 'aveytense.Color' class.
+        # 31 means red, 1;31 means bold red, 35 means pink, 1;31 means bold pink, 0 resets the formatting
         if _last_[2] == _REMOVE_:
             
             print(
@@ -125,7 +130,7 @@ def _replacement(type: _extensions.AVT_Type[BaseException], value: BaseException
         
     else:
         
-        # if we cannot invoke 'try' statement, we need to use traceback.print_tb.
+        # if we cannot invoke 'try' statement, we need to use 'traceback.print_tb()'.
         # we cannot have list item with only whitespaces, tildes and carets in older
         # versions of Python; usually 'try' statement below should throw IndexError
         try: 
@@ -145,7 +150,7 @@ def _replacement(type: _extensions.AVT_Type[BaseException], value: BaseException
             
             traceback.print_tb(tb, 1)
         
-sys.excepthook = _replacement
+# sys.excepthook = _replacement
 
 class _ErrorHandler:
     """
@@ -227,5 +232,4 @@ class _ErrorHandler:
         raise error
 
 # prevent unused
-_unbound_local_messages = _unbound_local_messages
-_ErrorHandler = _ErrorHandler
+_prevent_unused_definitions(_avt_default_sequence_like_error_msg, _unbound_local_messages, _ErrorHandler)

@@ -69,10 +69,11 @@ from ._typeparams import (
 ### IMPORTS FOR PY3.6+ ###
 
 from abc import (
+    # 0.3.27rc2
+    abstractmethod as abstractmethod,
     # 0.3.44
     ABC as ABC, 
-    ABCMeta as ABCMeta,
-    abstractmethod as abstractmethod
+    ABCMeta as ABCMeta
 )
 from array import (
     # 0.3.37
@@ -1441,7 +1442,7 @@ class CoroutineWrapperType(AVT_Generator[_T_yield_cov, _T_send_con, _T_return_co
     Availability: >= 0.3.53 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.CoroutineWrapperType
     
-    A wrapper object implementing `__await__` for coroutines
+    A wrapper object implementing `__await__()` for coroutines
     """
     
 class MaybeNone:
@@ -1990,7 +1991,7 @@ class AVT_Slice(Generic[_T_start_cov, _T_stop_cov, _T_step_cov]):
     """
     Availability: >= 0.3.55b1 // Generic version of `slice`
     
-    `slice` is a non-subscriptable final class. In this case this class only defines `__new__` method, which returns `slice` object.
+    `slice` is a non-subscriptable final class. In this case this class only defines `__new__()` method, which returns `slice` object.
     This object cannot be, however, *subscripted*.
     
     Instead consider using `AVT_Slice[Start?, Stop?, Step?]`
@@ -2030,9 +2031,9 @@ class AVT_Slice(Generic[_T_start_cov, _T_stop_cov, _T_step_cov]):
             return slice(args[0], args[1], args[2])
         
 if _sys.version_info >= (3, 8): # TE>=4.10, Py3.8+
-    AVT_TypeIs = TypeIs # 0.3.56
+    from typing_extensions import TypeIs as AVT_TypeIs # 0.3.56
 else:
-    AVT_TypeIs = TypeGuard # 0.3.56
+    from typing_extensions import TypeGuard as AVT_TypeIs # 0.3.56
     
 class AVT_Zip(zip, Generic[T_cov]):
     """Availability: >= 0.3.55a2 // Generic version of `zip`"""
@@ -2106,6 +2107,7 @@ class AVT_ZipLongest(zip_longest, Generic[T_cov]):
     """Availability: >= 0.3.55a2 // Generic version of `itertools.zip_longest`"""
     
 _prevent_unused_imports(
+    AVT_AbstractSet,
     AVT_Accumulate,
     AVT_Array,
     AVT_AsyncContextManager,
@@ -2167,8 +2169,8 @@ _prevent_unused_imports(
     AVT_TakeWhile,
     AVT_Tuple,
     AVT_Type,
+    AVT_TypeIs,
     AVT_UnionType,
-    AVT_AbstractSet,
     AVT_ValuesView,
     AVT_Zip,
     AVT_ZipLongest
@@ -2237,7 +2239,7 @@ class EnterOperable(Protocol[T_cov]):
     Availability: >= 0.3.26b3 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.EnterOperable
 
-    A runtime protocol class with method `__enter__`. Returned type is addicted to covariant type parameter.
+    A runtime protocol class with method `__enter__()`. Returned type is addicted to covariant type parameter.
     """
     def __enter__(self) -> T_cov: ...
 
@@ -2247,7 +2249,7 @@ class AsyncEnterOperable(Protocol[T_cov]):
     Availability: >= 0.3.26b3 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.AsyncEnterOperable
 
-    A runtime protocol class with method `__aenter__`. Returned type must be an awaitable \\
+    A runtime protocol class with method `__aenter__()`. Returned type must be an awaitable \\
     of type represented by covariant type parameter.
     """
     async def __aenter__(self) -> Awaitable[T_cov]: ...
@@ -2285,8 +2287,8 @@ class SizeableItemGetter(Sized, ItemGetter[int, T_cov]):
     """
     Availability: >= 0.3.27a3 // `_typeshed.SupportsLenAndGetItem`
 
-    A runtime protocol class with methods `__len__` and `__getitem__`. Type parameters:
-    - first equals returned type for `__getitem__`
+    A runtime protocol class with methods `__len__()` and `__getitem__()`. Type parameters:
+    - first equals returned type for `__getitem__()`
     """
 
 @runtime
@@ -2659,36 +2661,40 @@ class HexadecimalRepresentable(Protocol):
 @runtime
 class StringConvertible(Protocol):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.StringConvertible
 
-    A runtime protocol class with method `__str__`.
+    A runtime protocol class with method `__str__()`.
     """
     def __str__(self) -> str: ...
 
 @runtime
 class Representable(Protocol):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Representable
 
-    A runtime protocol class with method `__repr__`.
+    A runtime protocol class with method `__repr__()`.
     """
     def __repr__(self) -> str: ...
 
 @runtime
 class Indexable(Protocol):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Indexable
 
-    A runtime protocol class with method `__index__`. 
+    A runtime protocol class with method `__index__()`. 
     """
     def __index__(self) -> int: ...
 
 @runtime
 class Positive(Protocol[T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Positive
 
-    A runtime protocol class with method `__pos__`.
+    A runtime protocol class with method `__pos__()`.
     Returned type is addicted to covariant type parameter.
     """
     def __pos__(self) -> T_cov: ...
@@ -2696,9 +2702,10 @@ class Positive(Protocol[T_cov]):
 @runtime
 class Negative(Protocol[T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Negative
 
-    A runtime protocol class with method `__neg__`.
+    A runtime protocol class with method `__neg__()`.
     Returned type is addicted to covariant type parameter.
     """
     def __neg__(self) -> T_cov: ...
@@ -2706,9 +2713,10 @@ class Negative(Protocol[T_cov]):
 @runtime
 class Invertible(Protocol[T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Invertible
 
-    A runtime protocol class with method `__invert__`.
+    A runtime protocol class with method `__invert__()`.
     Returned type is addicted to covariant type parameter.
     """
     def __invert__(self) -> T_cov: ...
@@ -2719,54 +2727,60 @@ BufferOperable = Buffer
 @runtime
 class LeastComparable(Protocol[T_con]):
     """
-    Availability: >= 0.3.26b3
+    Availability: >= 0.3.26b3 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.LeastComparable
 
-    Can be compared with `<`
+    A runtime protocol class with method `__lt__()`, called to be compared with `<`
     """
     def __lt__(self, other: T_con) -> bool: ...
 
 @runtime
 class GreaterComparable(Protocol[T_con]):
     """
-    Availability: >= 0.3.26b3
+    Availability: >= 0.3.26b3 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.GreaterComparable
 
-    Can be compared with `>`
+    A runtime protocol class with method `__gt__()`, called to be compared with `>`
     """
     def __gt__(self, other: T_con) -> bool: ...
 
 @runtime
 class LeastEqualComparable(Protocol[T_con]):
     """
-    Availability: >= 0.3.26b3
+    Availability: >= 0.3.26b3 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.LeastEqualComparable
 
-    Can be compared with `<=`
+    A runtime protocol class with method `__le__()`, called to be compared with `<=`
     """
     def __le__(self, other: T_con) -> bool: ...
 
 @runtime
 class GreaterEqualComparable(Protocol[T_con]):
     """
-    Availability: >= 0.3.26b3
+    Availability: >= 0.3.26b3 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.GreaterEqualComparable
 
-    Can be compared with `>=`
+    A runtime protocol class with method `__ge__()`, called to be compared with `>=`
     """
     def __ge__(self, other: T_con) -> bool: ...
 
 @runtime
 class EqualComparable(Protocol[T_con]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.EqualComparable
 
-    Can be compared with `==`
+    A runtime protocol class with method `__eq__()`, called to be compared with `==`
     """
     def __eq__(self, other: T_con) -> bool: ...
 
 @runtime
 class InequalComparable(Protocol[T_con]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.InequalComparable
 
-    Can be compared with `!=`
+    A runtime protocol class with method `__ne__()`, called to be compared with `!=`
     """
     def __ne__(self, other: T_con) -> bool: ...
 
@@ -2781,9 +2795,10 @@ class Comparable(
     AVT_Container[Any]
 ):
     """
-    Availability: >= 0.3.26b3
+    Availability: >= 0.3.26b3 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Comparable
 
-    A protocol class supporting any form of comparison with operators \\
+    A runtime protocol class supporting any form of comparison with operators \\
     `>`, `<`, `>=`, `<=`, `==`, `!=`, `in` (last 3 missing before 0.3.26rc1)
     """
     ...
@@ -2796,16 +2811,18 @@ class Comparable2(
     EqualComparable[Any]
 ):
     """
-    Availability: >= 0.3.27a2
+    Availability: >= 0.3.27a2 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Comparable2
 
-    A protocol class same as `aveytense.extensions.Comparable`, but without the `in` keyword support. To 0.3.72 it was called `ComparableWithoutIn`
+    A runtime protocol class same as `aveytense.extensions.Comparable`, but without the `in` keyword support. To 0.3.72 it was called `ComparableWithoutIn`
     """
     ...
 
 @runtime
 class BitwiseAndOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseAndOperable
 
     A runtime protocol class with method `__and__()`. First type is contravariant (for value after the `&` operator), second type is covariant and it is the return type.
     """
@@ -2814,7 +2831,8 @@ class BitwiseAndOperable(Protocol[T_con, T_cov]):
 @runtime
 class BitwiseOrOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseOrOperable
 
     A runtime protocol class with method `__or__()`. First type is contravariant (for value after the `|` operator), second type is covariant and it is the return type.
     """
@@ -2823,7 +2841,8 @@ class BitwiseOrOperable(Protocol[T_con, T_cov]):
 @runtime
 class BitwiseXorOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseXorOperable
 
     A runtime protocol class with method `__xor__()`. First type is contravariant (for value after the `^` operator), second type is covariant and it is the return type.
     """
@@ -2832,7 +2851,8 @@ class BitwiseXorOperable(Protocol[T_con, T_cov]):
 @runtime
 class BitwiseLeftOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseLeftOperable
 
     A runtime protocol class with method `__lshift__()`. First type is contravariant (for value after the `<<` operator), second type is covariant and it is the return type.
     """
@@ -2841,7 +2861,8 @@ class BitwiseLeftOperable(Protocol[T_con, T_cov]):
 @runtime
 class BitwiseRightOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseRightOperable
 
     A runtime protocol class with method `__rshift__()`. First type is contravariant (for value after the `>>` operator), second type is covariant and it is the return type.
     """
@@ -2855,7 +2876,8 @@ class BitwiseOperable(
     BitwiseRightOperable[Any, Any]
 ):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseOperable
 
     Can be used with `&`, `|`, `^`, `<<` and `>>` operators (with `other` being the right operand)
     """
@@ -2864,7 +2886,8 @@ class BitwiseOperable(
 @runtime
 class ReflectedBitwiseAndOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.73
+    Availability: >= 0.3.73 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.ReflectedBitwiseAndOperable
     
     A runtime protocol class with method `__rand__()`. First type is contravariant (for value before the `&` operator), second type is covariant and it is the return type.
     """
@@ -2873,7 +2896,8 @@ class ReflectedBitwiseAndOperable(Protocol[T_con, T_cov]):
 @runtime
 class ReflectedBitwiseOrOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.73
+    Availability: >= 0.3.73 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.ReflectedBitwiseOrOperable
     
     A runtime protocol class with method `__ror__()`. First type is contravariant (for value before the `|` operator), second type is covariant and it is the return type.
     """
@@ -2882,7 +2906,8 @@ class ReflectedBitwiseOrOperable(Protocol[T_con, T_cov]):
 @runtime
 class ReflectedBitwiseXorOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.73
+    Availability: >= 0.3.73 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.ReflectedBitwiseXorOperable
     
     A runtime protocol class with method `__rxor__()`. First type is contravariant (for value before the `^` operator), second type is covariant and it is the return type.
     """
@@ -2891,7 +2916,8 @@ class ReflectedBitwiseXorOperable(Protocol[T_con, T_cov]):
 @runtime
 class ReflectedBitwiseLeftOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.73
+    Availability: >= 0.3.73 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.ReflectedBitwiseLeftOperable
     
     A runtime protocol class with method `__rlshift__()`. First type is contravariant (for value before the `<<` operator), second type is covariant and it is the return type.
     """
@@ -2900,7 +2926,8 @@ class ReflectedBitwiseLeftOperable(Protocol[T_con, T_cov]):
 @runtime
 class ReflectedBitwiseRightOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.73
+    Availability: >= 0.3.73 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.ReflectedBitwiseRightOperable
     
     A runtime protocol class with method `__rrshift__()`. First type is contravariant (for value before the `>>` operator), second type is covariant and it is the return type.
     """
@@ -2914,7 +2941,8 @@ class ReflectedBitwiseOperable(
     ReflectedBitwiseRightOperable[Any, Any]
 ):
     """
-    Availability: >= 0.3.73
+    Availability: >= 0.3.73 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.ReflectedBitwiseOperable
 
     Can be used with `&`, `|`, `^`, `<<` and `>>` operators (with `other` being the left operand)
     """
@@ -2923,7 +2951,8 @@ class ReflectedBitwiseOperable(
 @runtime
 class BitwiseAndReassignable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseAndReassignable
 
     A runtime protocol class with method `__iand__()`. First type is contravariant (for value after the `&=` operator), second type is covariant and it is the return type.
     """
@@ -2932,7 +2961,8 @@ class BitwiseAndReassignable(Protocol[T_con, T_cov]):
 @runtime
 class BitwiseOrReassignable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseOrReassignable
 
     A runtime protocol class with method `__ior__()`. First type is contravariant (for value after the `|=` operator), second type is covariant and it is the return type.
     """
@@ -2941,7 +2971,8 @@ class BitwiseOrReassignable(Protocol[T_con, T_cov]):
 @runtime
 class BitwiseXorReassignable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseXorReassignable
 
     A runtime protocol class with method `__ixor__()`. First type is contravariant (for value after the `^=` operator), second type is covariant and it is the return type.
     """
@@ -2950,7 +2981,8 @@ class BitwiseXorReassignable(Protocol[T_con, T_cov]):
 @runtime
 class BitwiseLeftReassignable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseLeftReassignable
 
     A runtime protocol class with method `__ilshift__()`. First type is contravariant (for value after the `<<=` operator), second type is covariant and it is the return type.
     """
@@ -2959,7 +2991,8 @@ class BitwiseLeftReassignable(Protocol[T_con, T_cov]):
 @runtime
 class BitwiseRightReassignable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseRightReassignable
 
     A runtime protocol class with method `__irshift__()`. First type is contravariant (for value after the `>>=` operator), second type is covariant and it is the return type.
     """
@@ -2973,7 +3006,8 @@ class BitwiseReassignable(
     BitwiseRightReassignable[Any, Any]
 ):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseReassignable
 
     Can be used with `&=`, `|=`, `^=`, `<<=` and `>>=` operators
     """
@@ -2985,7 +3019,8 @@ class BitwiseCollection(
     ReflectedBitwiseOperable
 ):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseCollection
 
     Can be used with `&`, `|` and `^` operators, including their \\
     augmented forms: `&=`, `|=` and `^=`, with `~` use following::
@@ -2996,7 +3031,8 @@ class BitwiseCollection(
 
 class UnaryOperable(Positive[Any], Negative[Any], Invertible[Any]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.UnaryOperable
 
     Can be used with `+`, `-` and `~` operators preceding the type
     """
@@ -3004,9 +3040,10 @@ class UnaryOperable(Positive[Any], Negative[Any], Invertible[Any]):
 
 class Indexed(ItemGetter[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc2
+    Availability: >= 0.3.26rc2 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Indexed
     
-    A runtime protocol class with method `__getitem__` that equals `self[key]`. \\
+    A runtime protocol class with method `__getitem__()` that equals `self[key]`. \\
     Returned type is addicted to covariant type parameter as the second \\
     type parameter; first is type for `key` parameter.
     """
@@ -3015,9 +3052,10 @@ class Indexed(ItemGetter[T_con, T_cov]):
 @runtime
 class Ceilable(Protocol[T_cov]):
     """
-    Availability: >= 0.3.26b3
+    Availability: >= 0.3.26b3 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Ceilable
 
-    A runtime protocol class with method `__ceil__`.
+    A runtime protocol class with method `__ceil__()`.
     Returned type is addicted to covariant type parameter.
     """
     def __ceil__(self) -> T_cov: ...
@@ -3025,9 +3063,10 @@ class Ceilable(Protocol[T_cov]):
 @runtime
 class Floorable(Protocol[T_cov]):
     """
-    Availability: >= 0.3.26b3
+    Availability: >= 0.3.26b3 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Floorable
 
-    A runtime protocol class with method `__floor__`.
+    A runtime protocol class with method `__floor__()`.
     Returned type is addicted to covariant type parameter.
     """
     def __floor__(self) -> T_cov: ...
@@ -3035,9 +3074,10 @@ class Floorable(Protocol[T_cov]):
 @runtime
 class Roundable(Protocol[T_cov]):
     """
-    Availability: >= 0.3.26b3
+    Availability: >= 0.3.26b3 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Roundable
 
-    A runtime protocol class with method `__round__`.
+    A runtime protocol class with method `__round__()`.
     Returned type is addicted to covariant type parameter.
     """
     def __round__(self, ndigits: Optional[int] = None) -> T_cov: ...
@@ -3049,36 +3089,40 @@ RoundOperable = Roundable
 @runtime
 class AdditionOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.AdditionOperable
     
-    A runtime protocol class with method `__add__`. First type is contravariant (for value after the `+` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__add__()`. First type is contravariant (for value after the `+` operator), second type is covariant and it is the return type.
     """
     def __add__(self, other: T_con) -> T_cov: ...
 
 @runtime
-class SubtractionOperable(Protocol[T_con, T_cov]):
+class SubstractionOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SubstractionOperable
     
-    A runtime protocol class with method `__sub__`. First type is contravariant (for value after the `-` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__sub__()`. First type is contravariant (for value after the `-` operator), second type is covariant and it is the return type.
     """
     def __sub__(self, other: T_con) -> T_cov: ...
 
 @runtime
 class MultiplicationOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.MultiplicationOperable
     
-    A runtime protocol class with method `__mul__`. First type is contravariant (for value after the `*` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__mul__()`. First type is contravariant (for value after the `*` operator), second type is covariant and it is the return type.
     """
     def __mul__(self, other: T_con) -> T_cov: ...
 
 @runtime
 class MatrixMultiplicationOperable(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.MatrixMultiplicationOperable
     
-    A runtime protocol class with method `__matmul__`. First type is contravariant (for value after the `@` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__matmul__()`. First type is contravariant (for value after the `@` operator), second type is covariant and it is the return type.
     """
     def __matmul__(self, other: T_con) -> T_cov: ...
 
@@ -3087,7 +3131,7 @@ class TrueDivisionOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__truediv__`. First type is contravariant (for value after the `/` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__truediv__()`. First type is contravariant (for value after the `/` operator), second type is covariant and it is the return type.
     """
     def __truediv__(self, other: T_con) -> T_cov: ...
 
@@ -3096,7 +3140,7 @@ class FloorDivisionOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__floordiv__`. First type is contravariant (for value after the `//` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__floordiv__()`. First type is contravariant (for value after the `//` operator), second type is covariant and it is the return type.
     """
     def __floordiv__(self, other: T_con) -> T_cov: ...
 
@@ -3105,7 +3149,7 @@ class DivmodOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__divmod__`. First type is contravariant (the second argument for `divmod()`), second type is covariant and it is the return type.
+    A runtime protocol class with method `__divmod__()`. First type is contravariant (the second argument for `divmod()`), second type is covariant and it is the return type.
     """
     def __divmod__(self, other: T_con) -> T_cov: ...
 
@@ -3114,7 +3158,7 @@ class ModuloOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__mod__`. First type is contravariant (for value after the `%` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__mod__()`. First type is contravariant (for value after the `%` operator), second type is covariant and it is the return type.
     """
     def __mod__(self, other: T_con) -> T_cov: ...
 
@@ -3123,7 +3167,7 @@ class ExponentiationOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__pow__`. First type is contravariant (for value after the `**` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__pow__()`. First type is contravariant (for value after the `**` operator), second type is covariant and it is the return type.
     """
     def __pow__(self, other: T_con) -> T_cov: ...
 
@@ -3132,7 +3176,7 @@ class ReflectedAdditionOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__radd__`. First type is contravariant (for value before the `+` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__radd__()`. First type is contravariant (for value before the `+` operator), second type is covariant and it is the return type.
     """
     def __radd__(self, other: T_con) -> T_cov: ...
 
@@ -3141,7 +3185,7 @@ class ReflectedSubtractionOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__rsub__`. First type is contravariant (for value before the `-` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__rsub__()`. First type is contravariant (for value before the `-` operator), second type is covariant and it is the return type.
     """
     def __rsub__(self, other: T_con) -> T_cov: ...
 
@@ -3150,7 +3194,7 @@ class ReflectedMultiplicationOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__rmul__`. First type is contravariant (for value before the `*` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__rmul__()`. First type is contravariant (for value before the `*` operator), second type is covariant and it is the return type.
     """
     def __rmul__(self, other: T_con) -> T_cov: ...
 
@@ -3159,7 +3203,7 @@ class ReflectedMatrixMultiplicationOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__rmatmul__`. First type is contravariant (for value before the `@` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__rmatmul__()`. First type is contravariant (for value before the `@` operator), second type is covariant and it is the return type.
     """
     def __rmatmul__(self, other: T_con) -> T_cov: ...
 
@@ -3168,7 +3212,7 @@ class ReflectedTrueDivisionOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__rtruediv__`. First type is contravariant (for value before the `/` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__rtruediv__()`. First type is contravariant (for value before the `/` operator), second type is covariant and it is the return type.
     """
     def __rtruediv__(self, other: T_con) -> T_cov: ...
 
@@ -3177,7 +3221,7 @@ class ReflectedFloorDivisionOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__rfloordiv__`. First type is contravariant (for value before the `//` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__rfloordiv__()`. First type is contravariant (for value before the `//` operator), second type is covariant and it is the return type.
     """
     def __rfloordiv__(self, other: T_con) -> T_cov: ...
 
@@ -3186,7 +3230,7 @@ class ReflectedDivmodOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__rdivmod__`. First type is contravariant (the first argument for `divmod()`), second type is covariant and it is the return type.
+    A runtime protocol class with method `__rdivmod__()`. First type is contravariant (the first argument for `divmod()`), second type is covariant and it is the return type.
     """
     def __rdivmod__(self, other: T_con) -> T_cov: ...
 
@@ -3195,7 +3239,7 @@ class ReflectedModuloOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__rmod__`. First type is contravariant (for value before the `%` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__rmod__()`. First type is contravariant (for value before the `%` operator), second type is covariant and it is the return type.
     """
     def __rmod__(self, other: T_con) -> T_cov: ...
 
@@ -3204,7 +3248,7 @@ class ReflectedExponentiationOperable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__rpow__`. First type is contravariant (for value before the `**` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__rpow__()`. First type is contravariant (for value before the `**` operator), second type is covariant and it is the return type.
     """
     def __rpow__(self, other: T_con) -> T_cov: ...
 
@@ -3213,7 +3257,7 @@ class AdditionReassignable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__iadd__`. First type is contravariant (for value after the `+=` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__iadd__()`. First type is contravariant (for value after the `+=` operator), second type is covariant and it is the return type.
     """
     def __iadd__(self, other: T_con) -> T_cov: ...
 
@@ -3222,7 +3266,7 @@ class SubtractionReassignable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__isub__`. First type is contravariant (for value after the `-=` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__isub__()`. First type is contravariant (for value after the `-=` operator), second type is covariant and it is the return type.
     """
     def __isub__(self, other: T_con) -> T_cov: ...
 
@@ -3231,7 +3275,7 @@ class MultiplicationReassignable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__imul__`. First type is contravariant (for value after the `*=` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__imul__()`. First type is contravariant (for value after the `*=` operator), second type is covariant and it is the return type.
     """
     def __imul__(self, other: T_con) -> T_cov: ...
 
@@ -3240,7 +3284,7 @@ class MatrixMultiplicationReassignable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__imatmul__`. First type is contravariant (for value after the `@=` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__imatmul__()`. First type is contravariant (for value after the `@=` operator), second type is covariant and it is the return type.
     """
     def __imatmul__(self, other: T_con) -> T_cov: ...
 
@@ -3249,7 +3293,7 @@ class TrueDivisionReassingable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__itruediv__`. First type is contravariant (for value after the `/=` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__itruediv__()`. First type is contravariant (for value after the `/=` operator), second type is covariant and it is the return type.
     """
     def __itruediv__(self, other: T_con) -> T_cov: ...
 
@@ -3258,7 +3302,7 @@ class FloorDivisionReassignable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__ifloordiv__`. First type is contravariant (for value after the `//=` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__ifloordiv__()`. First type is contravariant (for value after the `//=` operator), second type is covariant and it is the return type.
     """
     def __ifloordiv__(self, other: T_con) -> T_cov: ...
 
@@ -3267,7 +3311,7 @@ class ModuloReassignable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__imod__`. First type is contravariant (for value after the `%=` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__imod__()`. First type is contravariant (for value after the `%=` operator), second type is covariant and it is the return type.
     """
     def __imod__(self, other: T_con) -> T_cov: ...
 
@@ -3276,7 +3320,7 @@ class ExponentiationReassignable(Protocol[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc1
     
-    A runtime protocol class with method `__ipow__`. First type is contravariant (for value after the `**=` operator), second type is covariant and it is the return type.
+    A runtime protocol class with method `__ipow__()`. First type is contravariant (for value after the `**=` operator), second type is covariant and it is the return type.
     """
     def __ipow__(self, other: T_con) -> T_cov: ...
 
@@ -3303,7 +3347,7 @@ class ReflectedArithmeticOperable(
 
 class ArithmeticOperable(
     AdditionOperable[Any, Any],
-    SubtractionOperable[Any, Any],
+    SubstractionOperable[Any, Any],
     MultiplicationOperable[Any, Any],
     MatrixMultiplicationOperable[Any, Any],
     TrueDivisionOperable[Any, Any],
@@ -3386,7 +3430,7 @@ class LenGetItemOperable(Sized, ItemGetter[int, T_cov]):
     """
     Availability: >= 0.3.26rc2 // `_typeshed.SupportsLenAndGetItem`
     
-    A runtime protocol class with `__getitem__` and `__len__` methods. Those are typical in sequences.
+    A runtime protocol class with `__getitem__()` and `__len__()` methods. Those are typical in sequences.
     """
     ...
 
@@ -3395,7 +3439,7 @@ class Formattable(Protocol):
     """
     Availability: >= 0.3.26rc1
 
-    A runtime protocol class with method `__format__`.
+    A runtime protocol class with method `__format__()`.
     """
     def __format__(self, format_spec: str = "") -> str: ...
 
@@ -3480,7 +3524,7 @@ class NotIterable(Protocol):
     """
     Availability: >= 0.3.26b3
 
-    A protocol class disallowing iteration with `for` loop
+    A runtime protocol class disallowing iteration with `for` loop
     """
     __iter__ = None
 
@@ -3489,7 +3533,7 @@ class NotCallable(Protocol[T_cov]):
     """
     Availability: >= 0.3.45
 
-    A protocol class disallowing invoking its subclasses (`__call__()` throws an error)
+    A runtime protocol class disallowing invoking its subclasses (`__call__()` throws an error)
     """
     __call__ = None
             
@@ -3641,7 +3685,8 @@ class NotComparable(Protocol[T_con]):
 @runtime
 class TimeClockInfo(Protocol):
     """
-    Availability: >= 0.3.71
+    Availability: >= 0.3.71 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.TimeClockInfo
     
     A runtime protocol class equivalent to stub protocol class `time._ClockInfo`
     
@@ -3654,9 +3699,10 @@ class TimeClockInfo(Protocol):
     
 class Allocator:
     """
-    Availability: >= 0.3.27b3
+    Availability: >= 0.3.27b3 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Allocator
 
-    An allocator class. Classes extending this class have access to `__alloc__` magic method, \\
+    An allocator class. Classes extending this class have access to `__alloc__()` magic method, \\
     but it is advisable to use it wisely.
     """
     __a = bytearray()
@@ -3683,14 +3729,16 @@ class AwaitableGenerator(
     metaclass = ABCMeta
 ):
     """
-    Availability: >= 0.3.58 // `_typeshed._type_checker.AwaitableGenerator`
+    Availability: >= 0.3.58 // `_typeshed._type_checker.AwaitableGenerator` \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.AwaitableGenerator
     """
     ...
 
 @runtime
 class VersionInfo(Protocol):
     """
-    Availability: >= 0.3.72
+    Availability: >= 0.3.72 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.VersionInfo
     
     A runtime protocol class for classes that offer the same properties as `sys.version_info`
     """
@@ -3709,7 +3757,8 @@ class VersionInfo(Protocol):
 @runtime
 class Clearable(Protocol):
     """
-    Availability: >= 0.3.73
+    Availability: >= 0.3.73 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Clearable
     """
     
     def clear(self) -> None: ...
@@ -3717,7 +3766,8 @@ class Clearable(Protocol):
 @runtime
 class Viewable(Protocol[T_cov]):
     """
-    Availability: >= 0.3.73 // `_typeshed.Viewable`
+    Availability: >= 0.3.73 // `_typeshed.Viewable` \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.Viewable
     """
     
     def __len__(self) -> int: ...
@@ -3726,7 +3776,8 @@ class Viewable(Protocol[T_cov]):
 @runtime
 class ViewableItemGetter(Protocol[KT, VT_cov]):
     """
-    Availability: >= 0.3.73 // `_typeshed.SupportsGetItemViewable`
+    Availability: >= 0.3.73 // `_typeshed.SupportsGetItemViewable` \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.ViewableItemGetter
     """
     
     def __len__(self) -> int: ...
@@ -3965,6 +4016,25 @@ cached_property = cachedproperty
 dict_keys = type({}.keys()) # >= 0.3.73
 dict_items = type({}.items()) # >= 0.3.73
 dict_values = type({}.values()) # >= 0.3.73
+
+# Private types, not for export. This prefix will be removed in 0.3.76, keeping the underscore
+if TYPE_CHECKING:
+    _PrideMonth2026ReckonType: TypeAlias = Union[IO[Any], AVT_Iterable[Any], ReckonOperable, Sized] # >= 0.3.74
+    _PrideMonth2026AbroadStep: TypeAlias = Union[int, float, IntegerConvertible, FloatConvertible, Indexable] # >= 0.3.74
+    _PrideMonth2026AbroadStop: TypeAlias = Union[_PrideMonth2026AbroadStep, _PrideMonth2026ReckonType] # >= 0.3.74
+    _PrideMonth2026AbroadStart: TypeAlias = _PrideMonth2026AbroadStop # >= 0.3.74
+    _PrideMonth2026AbroadConvectType: TypeAlias = _PrideMonth2026AbroadStop # >= 0.3.74
+    
+    _Bits: TypeAlias = Literal[3, 4, 8, 24] # aveytense.Color
+    _Clearable: TypeAlias = Union[str, Clearable, AVT_MutableMapping[Any, Any], AVT_MutableSequence[Any], AVT_MutableSet[Any], IO[Any], FrameType]
+    _ProbabilityType: TypeAlias = Union[
+        AVT_Tuple[T, int],
+        SequenceLike[Union[T, int]], # Sequence => _AVT = 0.3.53, SequenceLike = 0.3.72
+        AVT_Mapping[T, int], # Mapping => _AVT = 0.3.53
+        T
+    ]
+    
+    _prevent_unused_imports(_PrideMonth2026AbroadStart, _PrideMonth2026AbroadConvectType, _Bits, _Clearable, _ProbabilityType)
 
 del _collections_abc, _abc, _enum, _hashlib, hashlib, _hmac, _time, _typing, _typing_ext # not for export!
 

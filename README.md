@@ -23,6 +23,12 @@ pip install --upgrade aveytense
 
 After installation process, you can import module `aveytense`, which imports AveyTense components into your project.
 
+## Versioning
+
+Current version of AveyTense on GitHub is displayed as the latest commit message. If the commit message seems different then this means commit unrelated
+to the final changes for the next version, usually bound with amendments like in this README. For example, "0.3.73 Preview Test" was actually a preview
+test to figure out if commits worked well, and AveyTense could be open source this way.
+
 ## Support
 
 You can support my project via donation on my [Ko-Fi](https://ko-fi.com/aveyzan). This isn't necessary but will be much appreciated.

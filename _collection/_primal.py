@@ -16,44 +16,51 @@ import math as _math
 import numbers as _numbers
 import warnings as _warnings
 
-from . import _abroad as _ab_mod
+
+
 from . import _constants as _lc
 from . import _version
 from .. import constants as _constants
 from .. import exceptions as _exceptions
 from .. import extensions as _extensions
 
+if _extensions.TYPE_CHECKING:
+    from ._extensions import (
+        _PrideMonth2026AbroadConvectType,
+        _PrideMonth2026AbroadStart,
+        _PrideMonth2026AbroadStop,
+        _PrideMonth2026AbroadStep,
+        _PrideMonth2026ReckonType
+    )
+
+from ._typeparams import (
+    T1 as _T1,
+    T2 as _T2
+)
+
 __name__ = "aveytense"
-_warnings.filterwarnings("ignore", category = SyntaxWarning)
 
 # types
-_var = _extensions.TypeVar
-
-_T_fi = _var("_T_fi", int, float) # Bound to float/int
-_T1 = _var("_T1")
-_T2 = _var("_T2")
-_T3 = _var("_T3")
+_T_fi = _extensions.TypeVar("_T_fi", int, float) # Bound to float/int
 
 _Ellipsis = _extensions.EllipsisType
 _MODE_AND = _lc.ModeSelection.AND
 _MODE_OR = _lc.ModeSelection.OR
 _Mode = _extensions.Union[_lc.ModeSelection, _extensions.Literal["and", "or"]]
-_ReckonTypePre = _ab_mod.ReckonType[_extensions.T]
-_AbroadValue1Pre = _ab_mod.AbroadValue1[_extensions.T]
-_AbroadValue2Pre = _ab_mod.AbroadValue2[_extensions.T]
-_AbroadModifierPre = _ab_mod.AbroadModifier[_extensions.T]
 _FloatOrInteger = _extensions.FloatOrInteger
 _OptionalFloatOrInteger = _extensions.Union[_FloatOrInteger, _Ellipsis]
 _OptionalInteger = _extensions.Union[int, _Ellipsis]
+
+_ReckonNGT = (_extensions.IO, _extensions.Iterable, _extensions.ReckonOperable, _extensions.Sized)
 
 # >= 0.3.55
 class _FibGenerator(_extensions.AVT_Generator[_T1, _extensions.Any, _T2]): ...
 _FibGenerator = _extensions.AVT_Generator[_T1, _extensions.Any, _T2]
 
-# >= 0.3.55
-def _figurate_checker(x, cond):
+def _figurate_checker(x, cond): # 0.3.55
     
-    return isinstance(x, int) and bool(cond)
+    # alteration 0.3.74
+    return isinstance(x, int) and isinstance(cond, _extensions.FunctionType)
 
 
 def _domain_checker(x: _FloatOrInteger, f: _extensions.Literal["asin", "acos", "asec", "acosec"] = "asin"): # 0.3.38
@@ -70,12 +77,12 @@ def _domain_checker(x: _FloatOrInteger, f: _extensions.Literal["asin", "acos", "
     
     return True
 
-@_extensions.deprecated("Deprecated since 0.3.67, use aveytense.__version__ or Tense.versionInfo instead")
 @_extensions.overload
+@_extensions.deprecated("Deprecated since 0.3.67, use aveytense.__version__ or Tense.versionInfo instead. Up for removal in 0.3.78")
 def aveytenseVersion(asString: _extensions.Literal[True] = True) -> _version.VERSION_TYPE: ...
 
-@_extensions.deprecated("Deprecated since 0.3.67, use aveytense.__version__ or Tense.versionInfo instead")
 @_extensions.overload
+@_extensions.deprecated("Deprecated since 0.3.67, use aveytense.__version__ or Tense.versionInfo instead. Up for removal in 0.3.78")
 def aveytenseVersion(asString: _extensions.Literal[False]) -> _version._VERSION_INFO: ...
 
 def aveytenseVersion(asString = True):
@@ -108,20 +115,26 @@ def _int_float_fallback(v, /): # 0.3.71
     if isinstance(v, (int, float)):
         return v
     elif isinstance(v, _extensions.FloatConvertible):
-        return v.__float__()
+        return _extensions.cast(float, v.__float__())
     elif isinstance(v, _extensions.IntegerConvertible):
-        return v.__int__()
+        return _extensions.cast(int, v.__int__())
     elif isinstance(v, _extensions.Indexable):
-        return v.__index__()
+        return _extensions.cast(int, v.__index__())
+
+def _sign(v, /): # 0.3.74
     
-
-
+    if not isinstance(v, (int, float)):
+        error = TypeError("expected a number")
+        raise error
+    
+    return 1 if v > 0 else -1
+    
 # declarations
 
-def _reckon_prepend_init(*countables: _ReckonTypePre[_extensions.T]):
+def _reckon_init(*v: _PrideMonth2026ReckonType):
     
     i = 0
-    for e in countables:
+    for e in v:
         
         if isinstance(e, _extensions.IO):
             
@@ -146,238 +159,417 @@ def _reckon_prepend_init(*countables: _ReckonTypePre[_extensions.T]):
             i += e.__reckon__()
             
         else:
-            error = TypeError("expected sizeable or iterable object, or object of class extending '{}' base class".format(_extensions.ReckonOperable.__name__))
+            error = TypeError("expected an iterable or file object, or object of a class that has one or more of these methods: __len__(), __reckon__()")
             raise error
         
     return i
 
-def _reckon_init(*countables: _ReckonTypePre[_extensions.T]):
-    return _reckon_prepend_init(*countables)
-
-
-class _AbroadInitializer:
+def reckon(*v: _PrideMonth2026ReckonType):
     """
-    Availability: >= 0.3.25
-        
-    Better identifier for returned sequence from `abroad()` function
+    Availability: >= 0.3.7 \\
+    Standard: >= 0.3.7 \\
+    https://aveyzan.xyz/aveytense#aveytense.reckon
+    
+    Extension of `len()` built-in function. Supports `IO` and
+    its subclasses, classes having either `__len__`, `__iter__`
+    or `__reckon__` magic methods.
     """
-    def __new__(cls, seq: _extensions.AVT_Iterable[int], v1: int, v2: int, m: int, /):
-        return _ab_mod.AbroadInitializer(seq, v1, v2, m)
+    i = 0
     
+    for e in v:
+        i += _reckon_init(e)
+        
+    return i
 
-def _abroad_prepend_init(value1: _AbroadValue1Pre[_T1], /, value2: _AbroadValue2Pre[_T2] = None, modifier: _AbroadModifierPre[_T3] = None):
+def reckonLeast(*v: _PrideMonth2026ReckonType):
+    """
+    Availability: >= 0.3.25 \\
+    Standard: >= 0.3.25
     
-    _pre = (_extensions.IO, _extensions.Iterable, _extensions.ReckonOperable, _extensions.Sizeable)
+    Get the least length from the iterable objects passed.
+    """
+    n = 0
+    for e in v:
+        if n > reckon(e):
+            n = reckon(e)
+    return n
+
+def reckonGreatest(*v: _PrideMonth2026ReckonType):
+    """
+    Availability: >= 0.3.25 \\
+    Standard: >= 0.3.25
     
-    conv, v1, v2, m = [0], 0, 0, 0
-    del conv[0]
+    Get the greatest length from the iterable objects passed.
+    """
+    n = 0
+    for e in v:
+        if n < reckon(e):
+            n = reckon(e)
+    return n
+
+def reckonIsLeast(v1: _PrideMonth2026ReckonType, v2: _PrideMonth2026ReckonType, /):
+    """
+    Availability: >= 0.3.25 \\
+    Standard: >= 0.3.25
     
-    # v1 (value1)
-    if isinstance(value1, _pre):
-        v1 = _reckon_init(value1)
-        
-    elif isinstance(value1, int):
-        v1 = value1
-        
-    elif isinstance(value1, float):
-        
-        if value2 in (_math.inf, _math.nan):
-            error = _exceptions.IncorrectValueError("'inf' or 'nan' as value for 'value1' (1st parameter) is not allowed.")
-            raise error
-        
-        else:
-            v1 = _math.trunc(value1)
-            
-    elif isinstance(value1, complex):
-        v1 = _math.trunc(value1.real)
-        
-    else:
-        error = TypeError("Missing value or invalid type of 'value1' (1st parameter). Used type '{}' does not match any of types, which are allowed in this parameter.".format(type(value1).__name__))
-        raise error
+    Comparison: Check whether first argument is length-less than the second.
+    """
+    return reckon(v1) < reckon(v2)
+
+
+def reckonIsGreater(v1: _PrideMonth2026ReckonType, v2: _PrideMonth2026ReckonType, /):
+    """
+    Availability: >= 0.3.25 \\
+    Standard: >= 0.3.25
     
-    # v2 (value2)
-    if isinstance(value2, _pre):
-        v2 = _reckon_init(value2)
-        
-    elif isinstance(value2, (bool, _Ellipsis)) or value2 is None:
-        
-        if isinstance(value1, complex):
-            v2 = _math.trunc(value1.imag)
-            
-        else:
-            v2 = v1
-            
-    elif isinstance(value2, int):
-        v2 = value2
-        
-    elif isinstance(value2, float):
-        
-        if value2 in (_math.inf, _math.nan):
-            error = _exceptions.IncorrectValueError("'inf' or 'nan' as value for 'value2' (2nd parameter) is not allowed.")
-            raise error
-        
-        else:
-            v2 = _math.trunc(value2)
-    else:
-        error = TypeError("Invalid type of 'value2' (2nd parameter). Used type '{}' does not match any of types, which are allowed in this parameter.".format(type(value2).__name__))
-        raise error
+    Comparison: Check whether first argument is length-greater than the second.
+    """
+    return reckon(v1) > reckon(v2)
+
+# set all these 3 to False since these are re-declared differently
+@_extensions.dataclass(init = False, repr = False, eq = False, frozen = True)
+class abroad:
+    """
+    Availability: >= 0.3.9 \\
+    Standard: >= 0.3.10 \\
+    https://aveyzan.xyz/aveytense#aveytense.abroad
+    """
     
-    # m (modifier)
-    if isinstance(modifier, _pre):
-        
-        m = _reckon_init(modifier)
-        
-        if m == 0:
-            m = 1
-            
-    elif isinstance(modifier, int):
-        
-        if modifier == 0:
-            m = 1
-            
-        else:
-            m = abs(modifier)
-            
-        if m == 0:
-            m = 1
-            
-    elif isinstance(modifier, float):
-        
-        if modifier == _math.inf:
-            error = _extensions.IncorrectValueError("'inf' as value for 'modifier' (3rd parameter) is not allowed")
-            raise error
-        
-        elif modifier == _math.nan:
-            m = 1
-            
-        else:
-            m = abs(_math.trunc(modifier))
-            if m == 0: m = 1
-            
-    elif isinstance(modifier, complex):
-        
-        m = _math.trunc(modifier.real) + _math.trunc(modifier.imag)
-        
-        if m < 0:
-            m = abs(m)
-            
-        elif m == 0:
-            m = 1
-            
-    elif isinstance(modifier, _Ellipsis) or modifier is None:
-        m = 1
-        
-    else:
-        error = TypeError("Invalid type of 'modifier' (3rd parameter). Used type '{}' does not match any of types, which are allowed in this parameter.".format(type(modifier).__name__))
-        raise error
+    # These genuinely represent these types
+    __start: int
+    __stop: int
+    __step: int
+    __list: _extensions.AVT_List[int]
     
-    # iteration begins
-    if (v1 == v2 or isinstance(value1, complex)) and (isinstance(value2, bool) or value2 is None):
+    # 0.3.25: slash update
+    # 0.3.74: overloads
+    
+    @_extensions.overload
+    def __init__(self, stop: _PrideMonth2026AbroadStop, /) -> None: ...
+    @_extensions.overload
+    def __init__(self, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> None: ...
+    
+    def __init__(self, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
         
-        if isinstance(value1, complex):
-            
-            v1 = _math.trunc(value1.real)
-            v2 = _math.trunc(value1.imag)
-            
-            if v1 < v2:
-                
-                i = v1
-                
-                while i < v2:
-                    
-                    if value2 is False:
-                        conv.append(-i - 1)
-                        
-                    else:
-                        conv.append(i)
-                        
-                    i += m
+        error1 = lambda param: TypeError("expected the '{}' argument to be an integer, a floating-point number, an iterable object, a file object," + \
+            "or instance of a class that supports one or more of the following methods: __len__(), __reckon__(), __float__(), __int__(), __index__()".format(param))
+        error2 = TypeError("expected the 'step' argument to be an integer, a floating-point number, or instance of a class that supports one or more of the following methods: __float__(), __int__(), __index__()")
+        
+        try:
+            _start = _reckon_init(start)
+        except TypeError:
+            _start = _int_float_fallback(start)
+        if _start is None:
+            if stop is Ellipsis:
+                raise error1("stop")
             else:
-                
-                i = v1
-                
-                while i > v2:
-                    
-                    if value2 is False:
-                        conv.append(-i - 1)
-                        
-                    else:
-                        conv.append(i)
-                        
-                    i -= m
-                    
-            if value2 is False:
-                conv.reverse()
-                
-        else:
-            
-            if v1 > 0:
-                
-                i = 0
-                
-                while i < v1:
-                    
-                    if value2 is False:
-                        conv.append(-i - 1)
-                        
-                    else:
-                        conv.append(i)
-                        
-                    i += m
+                raise error1("start")
+        if isinstance(_start, float):
+            _start = _math.trunc(_start)
+        
+        if stop is Ellipsis:
+            if _start >= 0:
+                _stop = _start
+                _start = 0
             else:
-                
-                i = v1
-                
-                while i < 0:
-                    
-                    if value2 is False:
-                        conv.append(-i - 1)
-                        
-                    else:
-                        conv.append(i)
-                        
-                    i += m
-                    
-            if value2 is False:
-                conv.reverse()
-                
-        # earlier: return conv (< 0.3.28)
-        return _AbroadInitializer(
-            conv,
-            0 if v1 == v2 else v1,
-            v1 if v1 == v2 else v2,
-            m
-        )
-        
-    if isinstance(value2, float):
-        
-        if v2 >= 0 or (v1 < 0 and v2 < 0):
-            v2 += 1
-            
+                _stop = -1
         else:
-            v2 -= 1
+            try:
+                _stop = _reckon_init(stop)
+            except TypeError:
+                _stop = _int_float_fallback(stop)
+            if _stop is None:
+                raise error1("stop")
+            if isinstance(_stop, float):
+                # fractions above 0.6 and below -0.6
+                # re-implementing behavior from the past implementation
+                _stop = round(_stop)
             
-    if v1 < v2:
-        
-        i = v1
-        
-        while i < v2:
-            conv.append(i)
-            i += m
-    else:
-        
-        i = v1
-        
-        while i > v2:
-            conv.append(i)
-            i -= m
+        _step = _int_float_fallback(step)
+        if _step is None:
+            raise error2
+        if isinstance(_step, float):
+            _step = _math.trunc(_step)
+        _step = abs(_step)
+        if _step == 0:
+            _step = 1
             
-    # earlier: return conv (< 0.3.28)
-    return _AbroadInitializer(conv, v1, v2, m)
+        _list = [0]
+        _list.clear()
+        
+        i = _start
+        
+        _statement = lambda x = 0: x > _stop if _start > _stop else x < _stop
+        _step = -_step if _start > _stop else _step
+        
+        while _statement(i):
+            _list.append(i)
+            i += _step
+        
+        # normally if we used e.g.: "__start", this means the name is as-is
+        # and not mangled
+        def _mangle(attr: str):
+            return "_{}__{}".format(type(self).__name__, attr)
+            
+        object.__setattr__(self, _mangle("start"), _start)
+        object.__setattr__(self, _mangle("stop"), _stop) 
+        object.__setattr__(self, _mangle("step"), _step)
+        object.__setattr__(self, _mangle("list"), _list)
+        
+        del _mangle
+        
+    @property
+    def start(self): # 0.3.74
+        return self.__start
+    
+    @property
+    def stop(self): # 0.3.74
+        return self.__stop
+    
+    @property
+    def step(self): # 0.3.74
+        return self.__step
+    
+    @property
+    def list(self): # 0.3.74
+        return self.__list
+    
+    @property
+    def tuple(self): # 0.3.74
+        return tuple(self.__list)
+        
+    def __str__(self):
+        return type(self).__name__ + f"{(self.start, self.stop, self.step)}"
+    
+    def __repr__(self):
+        from . import _ReprStr
+        return _ReprStr.format(type(self).__qualname__, id(self))
+    
+    def __iter__(self):
+        return iter(self.list)
+    
+    def __reversed__(self): # 0.3.32
+        return reversed(self.list)
+    
+    def __bytes__(self): # 0.3.74
+        return bytes(self.list)
+    
+    def __hash__(self): # 0.3.74
+        return hash(self.tuple)
+    
+    def __len__(self): # 0.3.74
+        return len(self.list)
+    
+    def __contains__(self, key: int): # 0.3.32
+        return key in self.list
+    
+    def __eq__(self, value): # 0.3.74
+        return type(value) == type(self) and value.list == self.list
+    
+    def __ne__(self, value): # 0.3.74
+        return not self.__eq__(value)
+    
+    def __add__(self, other: _extensions.AVT_Iterable[_extensions.T]): # 0.3.32
+        
+        if not isinstance(other, _extensions.Iterable):
+            error = TypeError("expected an iterable as the right operand")
+            raise error
+        
+        return self.list + list(other)
+    
+    def __radd__(self, other: _extensions.AVT_Iterable[_extensions.T]): # 0.3.32
+        
+        if not isinstance(other, _extensions.Iterable):
+            error = TypeError("expected an iterable as the left operand")
+            raise error
+        
+        return list(other) + self.list
+    
+    def __mul__(self, other: _extensions.Indexable): # 0.3.32
+        
+        if not isinstance(other, _extensions.Indexable) or (isinstance(other, _extensions.Indexable) and other.__index__() < 1):
+            error = TypeError("expected a non-negative integer as a right operand")
+            raise error
+        
+        return self.list * other
+    
+    def __rmul__(self, other: _extensions.Indexable): # 0.3.32
+        
+        return other * self.list
+            
+    @_extensions.overload
+    def __getitem__(self, key: _extensions.Indexable) -> int: ...
+    @_extensions.overload
+    def __getitem__(self, key: slice) -> _extensions.AVT_List[int]: ...
+    def __getitem__(self, key): # 0.3.29
+        return self.__list.__getitem__(key)
+    
+    @_extensions.deprecated(
+        "Pending deprecation since 0.3.78, up for removal in 0.3.84. Consider using the 'abroad.list' property instead.",
+        category = PendingDeprecationWarning
+    )
+    def __pos__(self):
+        """
+        Availability: >= 0.3.28 \\
+        Deprecated: >= 0.3.78
+        
+        Returns abroad object as a list object. The plus sign means that items can be changed.
+        """
+        return self.__list
+    
+    @_extensions.deprecated(
+        "Pending deprecation since 0.3.78, up for removal in 0.3.84. Consider using the 'abroad.tuple' property instead.",
+        category = PendingDeprecationWarning
+    )
+    def __neg__(self):
+        """
+        Availability: >= 0.3.28 \\
+        Deprecated: >= 0.3.78
+        
+        Returns abroad object as a tuple object. The minus sign means that items can be changed.
+        """
+        return tuple(self.__list)
+    
+    @_extensions.deprecated(
+        "Deprecated since 0.3.74 due to the modified item order of 'set' objects. " +
+        "Use of 'reversed(self)' is more encouraged in this case. Moreover, the abroad object content " +
+        "is always unique. Up for removal in 0.3.78."
+    )
+    def __invert__(self):
+        """
+        Availability: >= 0.3.28 \\
+        Deprecated: >= 0.3.74
+        
+        Returns abroad object as a set object. The bitwise inversion means that all items are unique.
+        """
+        
+        return set(self.__list)
+    
+    def count(self, value: int, /): # 0.3.74
+        return self.__list.count(value)
+    
+    def index(self, value: int, start: _extensions.Indexable = 0, stop: _extensions.Indexable = _sys.maxsize, /): # 0.3.74
+        return self.__list.index(value, start, stop)
+        
+    @staticmethod
+    def fromComplex(c: _extensions.Union[complex, _extensions.ComplexConvertible], /, step: _PrideMonth2026AbroadStep = 1):
+        """
+        Availability: >= 0.3.74
+        
+        A static method creating instance of class `abroad`, with behavior for `complex` objects improved
+        """
+        
+        # Python 3.11+: 'complex' has the '__complex__()' method
+        if not isinstance(c, (complex, _extensions.ComplexConvertible)) or (
+            isinstance(c, _extensions.ComplexConvertible) and not isinstance(c.__complex__(), complex)
+        ):
+            error = TypeError("expected a complex object or object of a class defining the __complex__() method that returns a complex object")
+            raise error
+        
+        if isinstance(c, _extensions.ComplexConvertible):
+            c2 = complex(c)
+        else:
+            c2 = c
+        
+        return abroad(c2.real, c2.imag, step)
+    
+    @staticmethod
+    @_extensions.overload
+    def negative(stop: _PrideMonth2026AbroadStop, /) -> abroad: ...
+    
+    @staticmethod
+    @_extensions.overload
+    def negative(start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> abroad: ...
+    
+    @staticmethod
+    def negative(start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
+        """
+        Availability: >= 0.3.74
+        
+        A static method creating instance of class `abroad`, converting `start` and `stop` to negative.
+        """
+        
+        a = abroad(start, stop, step)
+        _start = -abs(a.start)
+        _stop = -abs(a.stop)
+        _step = a.step if _start < _stop else -a.step
+        del a
+        return abroad(_start, _stop, _step)
+    
+    @staticmethod
+    @_extensions.overload
+    def positive(stop: _PrideMonth2026AbroadStop, /) -> abroad: ...
+    
+    @staticmethod
+    @_extensions.overload
+    def positive(start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> abroad: ...
+    
+    @staticmethod
+    def positive(start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
+        """
+        Availability: >= 0.3.74
+        
+        A static method creating instance of class `abroad`, converting `start` and `stop` to positive.
+        """
+        
+        a = abroad(start, stop, step)
+        _start = abs(a.start)
+        _stop = abs(a.stop)
+        _step = a.step if _start < _stop else -a.step
+        del a
+        return abroad(_start, _stop, _step)
+    
+    @staticmethod
+    def convect(*v: _PrideMonth2026AbroadConvectType):
+        """
+        Availability: >= 0.3.74 \\
+        https://aveyzan.xyz/aveytense#aveytense.abroad.convect
+        
+        See abroad convection term on https://aveyzan.xyz/aveytense/glossary#abroad_convection
+        """
+        
+        i = 0
+        
+        if reckon(v) == 0:
+            error = _exceptions.MissingValueError("expected at least one item in parameter 'v'")
+            raise error
+        
+        for e in v:
+            
+            if not isinstance(e, (*_ReckonNGT, int, float, _extensions.IntegerConvertible, _extensions.FloatConvertible, _extensions.Indexable)):
+                error = TypeError("at least one argument from parameter 'v' represents unsupported type")
+                raise error
+            
+            elif isinstance(e, _ReckonNGT):
+                i += reckon(e)
+            
+            elif isinstance(e, (float, _extensions.FloatConvertible)):
+                
+                if isinstance(e, float):
+                    i += _math.trunc(e)
+                else:
+                    i += _math.trunc(float(e))
+            
+            elif isinstance(e, (int, _extensions.IntegerConvertible)):
+                
+                if isinstance(e, int):
+                    i += e
+                else:
+                    i += int(e)
+                    
+            else:
+                i += e.__index__()
+                
+        if i >= 0:
+            return abroad(i)
+        else:
+            return abroad(i, -1)
+        
 
-def _abroad_init(value1: _AbroadValue1Pre[_T1], /, value2: _AbroadValue2Pre[_T2] = None, modifier: _AbroadModifierPre[_T3] = None):
-    return _abroad_prepend_init(value1, value2, modifier)
-
+@_extensions.deprecated(
+    "Pending deprecation since 0.3.78.",
+    category = PendingDeprecationWarning
+)
 class Time:
     """
     Availability: >= 0.3.25 (4th July 2024)
@@ -386,7 +578,9 @@ class Time:
     """
     
     __forced_unix_year_range = False
+    
     @classmethod
+    @_extensions.deprecated("Deprecated since 0.3.74. No longer encouraged to use this method anymore.")
     def forceUnixYearRange(self, option = False, /):
         """
         Availability: >= 0.3.25 (4th July 2024)
@@ -394,10 +588,12 @@ class Time:
         Forces year range to 1st Jan 1970 - 19th Jan 2038. \\
         If set to `False`, it is reset.
         """
+    
         self.__forced_unix_year_range = option
         return self
     
     @classmethod
+    @_extensions.deprecated("Deprecated since 0.3.74. No longer encouraged to use this method anymore.")
     def fencordFormat(self):
         """
         Availability: >= 0.3.25 (4th July 2024)
@@ -405,6 +601,7 @@ class Time:
         Returned is present time in `aveytense.fencord.Fencord` former class format as `%Y-%m-%d %H:%M:%S`. Timezone is user's local timezone.
         This format also uses `discord` module.
         """
+        
         return _datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     @classmethod
@@ -440,8 +637,8 @@ class Time:
         """
         return (
                 isinstance(year, int) and isinstance(month, int) and isinstance(day, int)) and (year >= 1 and month >= 1 and day >= 1) and (
-                (day == 31 and month in (1, 3, 5, 7, 8, 10, 12)) or (day == 30 and month in set(_abroad_init(1, 12.1)).difference({2})) or
-                (day == 29 and month in _abroad_init(1, 12.1) and self.isLeapYear(year)) or (day < 29 and month in _abroad_init(1, 12.1))
+                (day == 31 and month in (1, 3, 5, 7, 8, 10, 12)) or (day == 30 and month in set(abroad(1, 12.1)).difference({2})) or
+                (day == 29 and month in abroad(1, 12.1) and self.isLeapYear(year)) or (day < 29 and month in abroad(1, 12.1))
             )
                 
     @classmethod
@@ -602,7 +799,7 @@ class Math:
                     raise error
             
             _r = [e for e in x if e < 0]
-            return _reckon_init(_r) == _reckon_init(x)
+            return reckon(_r) == reckon(x)
                 
     
     @classmethod
@@ -648,7 +845,7 @@ class Math:
         if x in (0, 1):
             return False
         
-        for i in _abroad_init(2, x):
+        for i in abroad(2, x):
             
             if x % i == 0:
                 return False
@@ -775,7 +972,7 @@ class Math:
             
             _placeholder = True
             
-            for i in _abroad_init(_reckon_init(x) - 1):
+            for i in abroad(_reckon_init(x) - 1):
                 
                 _placeholder = _placeholder and x[i + 1] - x[i] > 0
                 
@@ -802,7 +999,7 @@ class Math:
             
             _placeholder = True
             
-            for i in _abroad_init(_reckon_init(x) - 1):
+            for i in abroad(_reckon_init(x) - 1):
                 
                 _placeholder = _placeholder and x[i + 1] - x[i] < 0
                 
@@ -828,7 +1025,7 @@ class Math:
             
             _placeholder = True
             
-            for i in _abroad_init(_reckon_init(x) - 1):
+            for i in abroad(_reckon_init(x) - 1):
                 
                 _placeholder = _placeholder and x[i + 1] - x[i] == 0
                 
@@ -854,7 +1051,7 @@ class Math:
             
             _placeholder = True
             
-            for i in _abroad_init(_reckon_init(x) - 1):
+            for i in abroad(_reckon_init(x) - 1):
                 
                 _placeholder = _placeholder and x[i + 1] - x[i] <= 0
                 
@@ -880,7 +1077,7 @@ class Math:
             
             _placeholder = True
             
-            for i in _abroad_init(_reckon_init(x) - 1):
+            for i in abroad(_reckon_init(x) - 1):
                 
                 _placeholder = _placeholder and x[i + 1] - x[i] >= 0
                 
@@ -1008,89 +1205,59 @@ class Math:
                 
                 return False
     
-    if True: # >= 0.3.54
+    class fib(_extensions.NotReassignable):
+        """
+        Availability: >= 0.3.41 (3rd March 2025) \\
+        https://aveyzan.xyz/aveytense#aveytense.Math.?miscellaneous_functions
         
-        class fib(_extensions.NotReassignable):
-            """
-            Availability: >= 0.3.41 (3rd March 2025) \\
-            https://aveyzan.xyz/aveytense#aveytense.Math.?miscellaneous_functions
-            
-            Returns a number from Fibonacci sequence at index `n` before 0.3.54, and since \\
-            0.3.54 - generate next Fibonacci sequence numbers up to specified index `n`. If \\
-            index not given, generate next numbers endlessly (`itertools`-like).
-            
-            To retrieve target number at `n` index (if specified), use index `-1` once converting \\
-            to a built-in sequence. This number will be at index `n - 1` in Fibonacci sequence, \\
-            what means if `n = 13`, then number will be at index 12 in the sequence.
-            
-            0.3.51: Allow zero. 0 won't appear in the returned generator as first, if `n > 0`. This \\
-            is the reason the number at index `-1` is actually at index `n - 1` in Fibonacci \\
-            sequence, not at index `n`.
-            """
-            
-            @_extensions.overload
-            def __new__(cls, n: None = None, /) -> _FibGenerator[int, _extensions.NoReturn]: ...
-            
-            @_extensions.overload
-            def __new__(cls, n: int, /) -> _FibGenerator[int, None]: ...
-            
-            def __new__(cls, n = None, /):
-                
-                if not isinstance(n, (int, _extensions.NoneType)) or (isinstance(n, int) and n < 0):
-                    error = TypeError("expected integer value above zero or None")
-                    raise error
-                
-                if n == 0:
-                    yield n
-                    
-                n1, n2, _next, i = 0, 1, 1, 1
-                
-                yield 1
-                
-                if n is None:
-                    
-                    while True:
-                        yield _next
-                        i += 1
-                        n1, n2 = n2, _next
-                        _next = n1 + n2
-                        
-                        
-                else:
-                    
-                    while i <= n - 2:
-                        yield _next
-                        i += 1
-                        n1, n2 = n2, _next
-                        _next = n1 + n2
-                        
-    else:
+        Returns a number from Fibonacci sequence at index `n` before 0.3.54, and since \\
+        0.3.54 - generate next Fibonacci sequence numbers up to specified index `n`. If \\
+        index not given, generate next numbers endlessly (`itertools`-like).
         
-        @classmethod
-        def fib(self, n: int, /):
-            """
-            Availability: >= 0.3.41 (3rd March 2025) \\
-            https://aveyzan.xyz/aveytense#aveytense.Math.?miscellaneous_functions
+        To retrieve target number at `n` index (if specified), use index `-1` once converting \\
+        to a built-in sequence. This number will be at index `n - 1` in Fibonacci sequence, \\
+        what means if `n = 13`, then number will be at index 12 in the sequence.
+        
+        0.3.51: Allow zero. 0 won't appear in the returned generator as first, if `n > 0`. This \\
+        is the reason the number at index `-1` is actually at index `n - 1` in Fibonacci \\
+        sequence, not at index `n`.
+        """
+        
+        @_extensions.overload
+        def __new__(cls, n: None = None, /) -> _FibGenerator[int, _extensions.NoReturn]: ...
+        
+        @_extensions.overload
+        def __new__(cls, n: int, /) -> _FibGenerator[int, None]: ...
+        
+        def __new__(cls, n = None, /):
             
-            Returns a number from Fibonacci sequence at index `n`.
-            
-            0.3.51: Allow zero
-            """
-            if not isinstance(n, int) or n < 0:
-                error = TypeError("expected integer value above zero")
+            if not isinstance(n, (int, _extensions.NoneType)) or (isinstance(n, int) and n < 0):
+                error = TypeError("expected integer value above zero or None")
                 raise error
             
             if n == 0:
-                return n
-            
+                yield n
+                
             n1, n2, _next, i = 0, 1, 1, 1
             
-            while i <= n - 2:
-                i += 1
-                n1, n2 = n2, _next
-                _next = n1 + n2
+            yield 1
+            
+            if n is None:
                 
-            return _next
+                while True:
+                    yield _next
+                    i += 1
+                    n1, n2 = n2, _next
+                    _next = n1 + n2
+                    
+                    
+            else:
+                
+                while i <= n - 2:
+                    yield _next
+                    i += 1
+                    n1, n2 = n2, _next
+                    _next = n1 + n2
         
         
     @classmethod
@@ -2946,184 +3113,6 @@ class Math:
     "Availability: >= 0.3.25"
     __dir__ = lambda self: __all__
     "Availability: >= 0.3.25"
-
-_ReckonType = _ReckonTypePre[_extensions.T]
-_AbroadValue1 = _AbroadValue1Pre[_extensions.T]
-_AbroadValue2 = _AbroadValue2Pre[_extensions.T]
-_AbroadModifier = _AbroadModifierPre[_extensions.T]
-
-def abroad(value1: _AbroadValue1[_extensions.Any], /, value2: _AbroadValue2[_extensions.Any] = ..., modifier: _AbroadModifier[_extensions.Any] = ...):
-    """
-    Availability: >= 0.3.9 \\
-    Standard: >= 0.3.10  \\
-    Updates: 0.3.25 (moved slash to between `value1` and `value2`) \\
-    https://aveyzan.xyz/aveytense#aveytense.abroad
-    
-    Same function as `range()`, but more improved. `abroad()` has the following advantages:
-    - supports countable objects, without using `len()` function, for all parameters
-    - no overloads, only one version of function; that means there are 3 parameters, last 2 are optional
-    - returns mutable sequence of integers, while `range()` returns integer-typed immutable sequence
-    - `abroad()` is a function to faciliate recognizion; `range` is simultaneously a function and class
-    - modifier will be always positive, negative values doesn't matter (!)
-    - sequence begins from least of `value1` and `value2`, if `value2` is `bool` or `None`, begins
-    from 0 to `value1` (or from `value1` to 0, if `value1` is negative)
-    - `value2` as floating-point number allows the truncated integer to become endpoint, which will
-    be included
-
-    If `value2` is set to `None`, it will behave identically as `True` boolean value. It allows the
-    iteration to go normally. Setting to `False` will flip the order and making all integers negative,
-    put in ascending order.
-
-    Function supports `range` class itself. \\
-    Below `range()` values and `abroad()` function equivalents:
-    ```
-    range(23) = abroad(23)
-    range(2, 23) = abroad(2, 23)
-    range(2, 24) = abroad(2, 23.6) # or just abroad(2, 24)
-    range(23, 5, -1) = abroad(23, 5) # modifier skipped, default is 1
-    range(23, 5, -3) = abroad(23, 5, 3) # there 3 also can be -3
-    range(len("Perfect!")) = abroad("Perfect!")
-    ``` \n
-    By providing `range()` as an argument of this function, it simultaneously allows to alter the
-    sequence from immutable to mutable. It is actually recommended to keep the same endpoint as
-    `range` has, otherwise it may bind with returning not these results. Keep on mind this syntax:
-    ```
-    abroad(range(0, x, m), x, m) # x - endpoint; m (optional) - step/modifier
-    ```
-    where `x` is stop/endpoint and `m` is step/modifier. That `m` can be omitted.
-    That number 0 is set specially, because it may lead with returning unexpected
-    sequence of numbers. But if it is intentional - sure, why not! 
-    For example:
-    ```
-    abroad(range(0, 13), 13) # empty sequence
-    abroad(range(0, 13), 13.24) # 13
-    abroad(range(0, 13), 13, 2) # empty sequence
-    abroad(range(0, 13, 2), 13, 2) # 7, 9, 11 (13 / 2 (round up) = 7)
-    abroad(range(5, 13), 13) # 7, 8, 9, 10, 11, 12 (13 - 5 - 1 = 7)
-    ```
-
-    If `range` function is used commonly, with one parameter, syntax will be shortened:
-    ```
-    abroad(range(x)) # x - endpoint
-    ```
-    where `x` is stop/endpoint.
-
-    Usages:
-    ```
-    # value1 = integer | iterable-object
-    # value2 = None
-    # modifier = 1
-    abroad(92) # 0, 1, 2, 3, ..., 90, 91
-    abroad(-92) # -92, -91, -90, ..., -2, -1
-    abroad(["jump", "on", "the", "roof"]) # 0, 1, 2, 3
-    abroad("Hello!") # 0, 1, 2, 3, 4, 5
-
-    # value1 = integer
-    # value2 = integer, float
-    # modifier = 1
-    abroad(92, 3) # 92, 91, 90, ..., 5, 4
-    abroad(3, 92) # 3, 4, 5, ..., 90, 91
-    abroad(92, 3.05) # 92, 91, 90, ..., 5, 4, 3 (!)
-    abroad(3, 92.05) # 3, 4, 5, ..., 90, 91, 92 (!)
-
-    # value1 = integer
-    # value2 = bool | None | ... (None and ellipsis equal True)
-    # modifier = 1
-    abroad(92, True) # 0, 1, 2, 3, ..., 90, 91
-    abroad(-92, True) # -92, -91, -90, ..., -2, -1
-    abroad(92, False) # -92, -91, -90, ..., -2, -1
-    abroad(-92, False) # 0, 1, 2, 3, ..., 90, 91
-
-    # value1 = complex (under experiments)
-    # value2 = bool | None | ... (None and ellipsis equal True)
-    # modifier = 1
-    abroad(3+9j, True) # 3, 4, ..., 7, 8
-    abroad(3+9j, False) # -9, -8, ..., -5, -4
-    abroad(3-9j, True) # 3, 2, 1, ..., -7, -8
-    abroad(3-9j, False) # 7, 6, 5, ..., -3, -4
-    abroad(-3+9j, True) # -3, -2, ..., 7, 8
-    abroad(-3+9j, False) # -9, -8, ..., 1, 2
-    abroad(-3-9j, True) # -3, -4, -5, ..., -7, -8
-    abroad(-3-9j, False) # 7, 6, 5, ..., 3, 2
-
-    # value1 = integer
-    # value2 = bool | None (None equals True)
-    # modifier = 4 (-4 will also result 4)
-    abroad(92, True, 4) # 0, 4, 8, 12, ..., 84, 88
-    abroad(-92, True, 4) # -92, -88, -84, ..., -8, -4
-    abroad(92, False, 4) # -92, -88, -84, ..., -8, -4
-    abroad(-92, False, 4) # 0, 4, 8, 12, ..., 84, 88
-    ```
-    """
-    
-    m = [
-        None if isinstance(value2, _extensions.EllipsisType) else value2,
-        None if isinstance(modifier, _extensions.EllipsisType) else modifier
-    ]
-    
-    return _abroad_init(value1, m[0], m[1])
-
-def reckon(*countables: _ReckonType[_extensions.Any]):
-    """
-    Availability: >= 0.3.7 \\
-    Standard: >= 0.3.7 \\
-    https://aveyzan.xyz/aveytense#aveytense.reckon
-    
-    Extension of `len()` built-in function. Supports `IO` and
-    its subclasses, classes having either `__len__`, `__iter__`
-    or `__reckon__` magic methods.
-    """
-    i = 0
-    
-    for e in countables:
-        i += _reckon_init(e)
-        
-    return i
-
-def reckonLeast(*countables: _ReckonType[_extensions.Any]):
-    """
-    Availability: >= 0.3.25 \\
-    Standard: >= 0.3.25
-    
-    Get least length from iterable objects passed.
-    """
-    n = 0
-    for e in countables:
-        if n > reckon(e):
-            n = reckon(e)
-    return n
-
-def reckonGreatest(*countables: _ReckonType[_extensions.Any]):
-    """
-    Availability: >= 0.3.25 \\
-    Standard: >= 0.3.25
-    
-    Get greatest length from iterable objects passed.
-    """
-    n = 0
-    for e in countables:
-        if n < reckon(e):
-            n = reckon(e)
-    return n
-
-def reckonIsLeast(countable1: _ReckonType[_extensions.Any], countable2: _ReckonType[_extensions.Any], /):
-    """
-    Availability: >= 0.3.25 \\
-    Standard: >= 0.3.25
-    
-    Comparison: Check whether first argument is length-less than the second.
-    """
-    return reckon(countable1) < reckon(countable2)
-
-
-def reckonIsGreater(countable1: _ReckonType[_extensions.Any], countable2: _ReckonType[_extensions.Any], /):
-    """
-    Availability: >= 0.3.25 \\
-    Standard: >= 0.3.25
-    
-    Comparison: Check whether first argument is length-greater than the second.
-    """
-    return reckon(countable1) > reckon(countable2)
 
 __all__ = sorted([n for n in globals() if n[:1] != "_"])
 __dir__ = __all__

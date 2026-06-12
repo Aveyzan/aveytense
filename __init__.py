@@ -35,11 +35,11 @@ import re as _re
 import time as _time
 import types as _types
 import uuid as _uuid
+import warnings as _warnings
 
-from ._collection import _abroad as _ab_mod
 from ._collection import _constants as _cl
 from ._collection._primal import *
-from ._collection._extensions import Any as _Any, _AVT_Slice
+from ._collection._extensions import Any as _Any
 from ._collection._util import _TenseImmutableMeta
 from ._collection import _version
 from . import constants as _constants
@@ -60,11 +60,7 @@ __version__ = _version.VERSION # >= 0.3.26rc3
 _MODE_AND = _cl.ModeSelection.AND
 _MODE_OR = _cl.ModeSelection.OR
 
-# gimmick from enum standard module. these are classes genuinely
-Color = RGB = None
-
 # TypeVars, TypeVarTuples, ParamSpecs
-_T_func = extensions.TypeVar("_T_func", bound = extensions.AnyCallable)
 _T_yield_cov = extensions.TypeVar("_T_yield_cov", covariant = True) # >= 0.3.53
 _T_send_con = extensions.TypeVar("_T_send_con", contravariant = True, default = None) # >= 0.3.53
 _T_return_cov = extensions.TypeVar("_T_return_cov", covariant = True, default = None) # >= 0.3.53
@@ -156,57 +152,28 @@ class _ColorAdvancedStyling(extensions.Enum):
     ITALIC_STRIKE_OVERLINE = 1107
     STRIKE_UOLINE = 1108
     
-@extensions.runtime
-class _ClearableAbc(extensions.Protocol[extensions.T]):
-    """
-    Available: 0.3.42
-    
-    An internal runtime protocol class providing a `clear()` method. Used in `~.Tense.clear()`
-    """
-    
-    def clear() -> extensions.T: ...
+# gimmick from enum standard module. these are classes genuinely
+Color = RGB = None
 
-class _AbroadType(type):
-    """Availability: >= 0.3.68"""
-    
-    def __instancecheck__(self, obj: object) -> extensions.TypeIs[_ab_mod.AbroadInitializer]:
-        return isinstance(obj, _ab_mod.AbroadInitializer)
+if extensions.TYPE_CHECKING:
+    from ._collection._extensions import (
+        _AVT_Slice,
+        _PrideMonth2026AbroadConvectType,
+        _PrideMonth2026AbroadStart,
+        _PrideMonth2026AbroadStop,
+        _PrideMonth2026AbroadStep,
+        _PrideMonth2026ReckonType,
+        _Bits,
+        _Clearable as Clearable,
+        _ProbabilityType
+    )
+    _Clearable: extensions.TypeAlias = extensions.Union[Clearable, Color, util.MutableString] # 0.3.42
+    _Color: extensions.TypeAlias = extensions.Union[extensions.ColorType, RGB]
+    _ColorStylingType: extensions.TypeAlias = extensions.Union[_ColorStyling, _ColorAdvancedStyling]
+    _Mode: extensions.TypeAlias = extensions.Union[bool, _cl.ModeSelection, extensions.Literal["and", "or"]] # 0.3.36, deprecated
+    _Pattern: extensions.TypeAlias = extensions.PatternType[extensions.AnyStr] # 0.3.42
+    _Target: extensions.TypeAlias = extensions.Union[str, bytes] # 0.3.42
 
-class AbroadType(metaclass = _AbroadType): 
-    """
-    Availability: >= 0.3.52 \\
-    https://aveyzan.xyz/aveytense#aveytense.AbroadType
-
-    Only usable for `isinstance()` function to check whether the object is the result of the `abroad()` function
-    """
-    __init__ = None
-
-# local type aliases
-_Bits = extensions.Literal[3, 4, 8, 24]
-_Clearable = extensions.Union[str, Color, _ClearableAbc[_Any], util.MutableString, extensions.AVT_MutableMapping[_Any, _Any], extensions.AVT_MutableSequence[_Any], extensions.AVT_MutableSet[_Any], extensions.IO[_Any], extensions.FrameType] # 0.3.42
-_Color = extensions.Union[extensions.ColorType, RGB]
-_Mode = extensions.Union[bool, _cl.ModeSelection, extensions.Literal["and", "or"]] # 0.3.36
-_Pattern = extensions.PatternType # 0.3.42
-_Target = extensions.Union[str, bytes] # 0.3.42
-
-_AbroadValue1 = _ab_mod.AbroadValue1[extensions.T]
-_AbroadValue2 = _ab_mod.AbroadValue2[extensions.T]
-_AbroadModifier = _ab_mod.AbroadModifier[extensions.T]
-_AbroadPackType = _ab_mod.ReckonType[extensions.T]
-_AbroadConvectType = _ab_mod.AbroadConvectType[extensions.T]
-_AbroadMultiInitializer = extensions.AVT_List[extensions.AVT_List[int]]
-
-_ColorStylingType = extensions.Union[_ColorStyling, _ColorAdvancedStyling]
-_HaveCodeType = extensions.HaveCodeType
-        
-_ProbabilityType = extensions.Union[
-    extensions.AVT_Tuple[extensions.T, int],
-    extensions.SequenceLike[extensions.Union[extensions.T, int]], # Sequence => _AVT = 0.3.53, SequenceLike = 0.3.72
-    extensions.AVT_Mapping[extensions.T, int], # Mapping => _AVT = 0.3.53
-    extensions.T
-] # change 0.3.36, 0.3.46
-    
-_ReckonNGT = _ab_mod.ReckonNGT
 _SequenceLikeTypes = (extensions.Sequence, extensions.AbstractSet, extensions.ValuesView)
 
 if _sys.version_info >= (3, 10):
@@ -218,7 +185,7 @@ if _sys.version_info >= (3, 9):
     _GenericTypes = (extensions.TypingGenericType, extensions.GenericAlias)
 else:
     _GenericTypes = (extensions.TypingGenericType,)
-
+    
 # This tuple will be used as a type tuple to inspect via isinstance()
 # in various functions
 
@@ -226,8 +193,41 @@ else:
 # 0.3.36: 'types.GenericAlias' and 'types.UnionType'
 # 0.3.40: internal class for 'typing.Union' and class 'typing._GenericAlias'
 _SupportedTypes = (type, *_GenericTypes, *_UnionTypes)
-
 _Type = type # note for this alias (>= 0.3.35): must be used since it obscures with parameter with exact 'type' built-in name
+
+
+class _AbroadType(type):
+    """Availability: >= 0.3.68"""
+    
+    def __instancecheck__(self, obj: object) -> extensions.TypeIs[abroad]:
+        return isinstance(obj, abroad)
+
+@extensions.deprecated("Deprecated since 0.3.74, because 'aveytense.abroad' became a class. Up for removal in 0.3.78.")
+class AbroadType(metaclass = _AbroadType): 
+    """
+    Availability: >= 0.3.52 \\
+    https://aveyzan.xyz/aveytense#aveytense.AbroadType
+
+    Only usable for `isinstance()` function to check whether the object is the result of the `abroad()` function
+    """
+    __init__ = None
+
+def _check_if_sequence_like(v, msg: str, /): # >= 0.3.74
+    if not isinstance(v, _SequenceLikeTypes):
+        error = TypeError(msg)
+        raise error
+    
+def _check_if_sequence_like_with_specific_item_type(v, types, msg: str, /): # >= 0.3.74
+    seq = list(v) if not isinstance(v, list) else v
+    if reckon(seq) > 0 and not all([isinstance(x, types) for x in seq]):
+        error = TypeError(msg)
+        raise error
+    
+def _start_end_helper1(v) -> extensions.AVT_TypeIs[extensions.Union[str, extensions.SequenceLike[str]]]: # >= 0.3.74
+    return isinstance(v, str) or (isinstance(v, _SequenceLikeTypes) and all(isinstance(x, str) for x in list(v)))
+
+def _start_end_helper2(v) -> extensions.AVT_TypeIs[extensions.Union[extensions.ReadableBuffer, extensions.SequenceLike[extensions.ReadableBuffer]]]: # >= 0.3.74
+    return isinstance(v, extensions.ReadableBuffer) or (isinstance(v, _SequenceLikeTypes) and all(isinstance(x, extensions.ReadableBuffer) for x in list(v)))
 
 def _is_hexadecimal(target: str, /):
     
@@ -311,9 +311,6 @@ def _is_try_callback(v: _Any, /) -> extensions.TypeIs[extensions.AVT_Callable[[]
 # Following Python's advice instead of using isinstance(obj, collections.abc.Iterable)
 def _is_iterable(target: object, /): # 0.3.57
     
-    if hasattr(target, "__iter__") and isinstance(getattr(target, "__iter__", None), extensions.Iterator):
-        return True
-    
     # Checking for __getitem__() with integer indexes starting with 0
     try: 
         iter(target)
@@ -327,7 +324,7 @@ def _architecture(executable = _sys.executable, bits = "", linkage = ""):
     
     return _platform.architecture(executable, bits, linkage)[0]
 
-def _get_all_params(f: _T_func, /):
+def _get_all_params(f: extensions.AnyCallable, /):
     
     # if we don't want to use 'inspect' module components, we can use function's __code__ attribute,
     # and access parameters via 'co_varnames' (which also returns tuple of names defined within its body).
@@ -350,14 +347,14 @@ def _get_all_item_types(i: extensions.AVT_Iterable[extensions.T], /, distinct = 
     # 0.3.53: The 'distinct' parameter
     
     if distinct:
-        t = _util.uniquetuple
+        t = util.uniquetuple
     else:
         t = tuple
         
     return t([(
         extensions.cast(extensions.AVT_Type[extensions.T], e)
         if type(e) in (type(extensions.Protocol),) else extensions.cast(extensions.AVT_Type[extensions.T], _Any)
-        if e in (StopIteration.value, _Any) else type(e)
+        if e in (_Any,) else type(e)
     ) for e in i])
 
 ##### Functions for Tense.getGeneric() // 0.3.53 #####
@@ -902,7 +899,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def isAbroad(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[_ab_mod.AbroadInitializer]: ...
+    def isAbroad(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[abroad]: ...
     
     @classmethod
     @extensions.overload
@@ -918,7 +915,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         - 0.3.73: Renamed `mode` to `OR`, boolean values are accepted only (default is `False`)
         """
-        return _inspect_many(*v, type = _ab_mod.AbroadInitializer, OR = OR)
+        return _inspect_many(*v, type = abroad, OR = OR)
     
     @classmethod
     @extensions.overload
@@ -1162,20 +1159,20 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def isTuple2(cls, v1: extensions.AVT_Tuple[_Any, ...], v2: extensions.AVT_Tuple[extensions.Unpack[extensions.Ts]], /) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.Unpack[extensions.Ts]]]: ...
+    def isTuple2(cls, v1: extensions.AVT_Tuple[extensions.Any, ...], v2: extensions.AVT_Tuple[extensions.Unpack[extensions.Ts]], /) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.Unpack[extensions.Ts]]]: ...
     
     @classmethod
     @extensions.overload
     def isTuple2(
         cls,
-        v1: extensions.AVT_Tuple[_Any, ...],
+        v1: extensions.AVT_Tuple[extensions.Any, ...],
         v2: extensions.SequenceLike[extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.Union[extensions.AVT_Type[extensions.T]]]]],
         /
     ) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.T, ...]]: ...
     
     @classmethod
     @extensions.overload
-    def isTuple2(cls, v1: extensions.AVT_Tuple[_Any, ...], v2: extensions.Union[extensions.AVT_Tuple[extensions.AVT_Tuple[()]], extensions.AVT_Tuple[()]], /) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.Any, ...]]: ...
+    def isTuple2(cls, v1: extensions.AVT_Tuple[extensions.Any, ...], v2: extensions.Union[extensions.AVT_Tuple[extensions.AVT_Tuple[()]], extensions.AVT_Tuple[()]], /) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.Any, ...]]: ...
     
     @classmethod
     def isTuple2(cls, v1, v2, /):
@@ -1777,7 +1774,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 return any([_check_if_final(e) for e in v])
             
     @classmethod
-    @extensions.deprecated("Deprecated since 0.3.69")
+    @extensions.deprecated("Deprecated since 0.3.69, up for removal in 0.3.78.")
     def isUnbound(cls, f: extensions.AnyCallable, v: str, /):
         """
         Availability: >= 0.3.44 \\
@@ -2033,7 +2030,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         def _internals(v):
             
-            if isinstance(v, extensions.TypingGenericType) and _sys.version_info < (3, 9):
+            if isinstance(v, _GenericTypes):
                 return True
             
             if not isinstance(v, type):
@@ -2200,11 +2197,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def test(cls, target: str, pattern: _Pattern[str], flags: extensions.FlagsType = 0) -> bool: ...
+    def test(cls, target: str, pattern: extensions.PatternType[str], flags: extensions.FlagsType = 0) -> bool: ...
     
     @classmethod
     @extensions.overload # >= 0.3.62: 'bytearray' as pattern
-    def test(cls, target: extensions.ReadableBuffer, pattern: extensions.Union[bytearray, _Pattern[bytes]], flags: extensions.FlagsType = 0) -> bool: ...
+    def test(cls, target: extensions.ReadableBuffer, pattern: extensions.Union[bytearray, extensions.PatternType[bytes]], flags: extensions.FlagsType = 0) -> bool: ...
     
     @classmethod
     def test(cls, target, pattern, flags = 0):
@@ -2247,16 +2244,17 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def startsWith(cls, s: str, prefix: extensions.Union[str, extensions.AVT_Tuple[str, ...]], /, start: extensions.Optional[extensions.Indexable] = ..., end: extensions.Optional[extensions.Indexable] = ...) -> bool: ...
+    def startsWith(cls, s: str, prefix: extensions.Union[str, extensions.SequenceLike[str]], /, start: extensions.Optional[extensions.Indexable] = ..., end: extensions.Optional[extensions.Indexable] = ...) -> bool: ...
     
     @classmethod
     @extensions.overload
     def startsWith(
         cls,
         b: extensions.Union[bytes, bytearray],
-        prefix: extensions.Union[extensions.ReadableBuffer, extensions.AVT_Tuple[extensions.ReadableBuffer, ...]],
+        prefix: extensions.Union[extensions.ReadableBuffer, extensions.SequenceLike[extensions.ReadableBuffer]],
         /,
-        start: extensions.Optional[extensions.Indexable] = ..., end: extensions.Optional[extensions.Indexable] = ...
+        start: extensions.Optional[extensions.Indexable] = ...,
+        end: extensions.Optional[extensions.Indexable] = ...
     ) -> bool: ...
     
     @classmethod
@@ -2268,35 +2266,36 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         `[str|bytes|bytearray].startswith()`
         """
         
-        if (isinstance(target, str) and isinstance(prefix, str)) or \
-            (isinstance(target, (bytes, bytearray)) and isinstance(prefix, extensions.ReadableBuffer)):
-                
-            _start = 0 if start in (None, ...) else start
-            _end = reckon(target) - 1 if end in (None, ...) else end
-                
-            return target.startswith(prefix, _start, _end)
+        _start, _end = (
+            0 if start in (None, ...) else start,
+            reckon(target) - 1 if end in (None, ...) else end
+        )
+         
+        if isinstance(target, str) and _start_end_helper1(prefix):
+            return target.startswith(tuple(prefix) if not isinstance(prefix, str) else prefix, _start, _end)
+        elif isinstance(target, (bytes, bytearray)) and _start_end_helper2(prefix):
+            return target.startswith(tuple(prefix) if not isinstance(prefix, extensions.ReadableBuffer) else prefix, _start, _end)
         
-        error = TypeError("expected 'str' + 'str' or 'bytes/bytearray' + 'bytes-like'")
+        error = TypeError("expected parameters 'target' and 'prefix' to have the following values, respectively: string + string/sequence-like object with strings | bytes/bytearray object + buffer object/sequence-like object with buffer objects")
         raise error
-    
     
     @classmethod
     @extensions.overload
-    def endsWith(cls, s: str, suffix: extensions.Union[str, extensions.AVT_Tuple[str, ...]], /, start: extensions.Optional[extensions.Indexable] = ..., end: extensions.Optional[extensions.Indexable] = ...) -> bool: ...
+    def endsWith(cls, s: str, suffix: extensions.Union[str, extensions.SequenceLike[str]], /, start: extensions.Optional[extensions.Indexable] = ..., end: extensions.Optional[extensions.Indexable] = ...) -> bool: ...
     
     @classmethod
     @extensions.overload
     def endsWith(
         cls,
         b: extensions.Union[bytes, bytearray],
-        suffix: extensions.Union[extensions.ReadableBuffer, extensions.AVT_Tuple[extensions.ReadableBuffer, ...]],
+        suffix: extensions.Union[extensions.ReadableBuffer, extensions.SequenceLike[extensions.ReadableBuffer]],
         /,
         start: extensions.Optional[extensions.Indexable] = ...,
         end: extensions.Optional[extensions.Indexable] = ...
     ) -> bool: ...
     
     @classmethod
-    def endsWith(cls, v, suffix, /, start = ..., end = ...):
+    def endsWith(cls, target, suffix, /, start = ..., end = ...):
         """
         Availability: >= 0.3.42 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.endsWith
@@ -2304,15 +2303,17 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         `[str|bytes|bytearray].endswith()`
         """
         
-        if (isinstance(v, str) and isinstance(suffix, str)) or \
-            (isinstance(v, (bytes, bytearray)) and isinstance(suffix, extensions.ReadableBuffer)):
-                
-            _start = 0 if start in (None, ...) else start
-            _end = reckon(v) - 1 if end in (None, ...) else end
-                
-            return v.endswith(suffix, _start, _end)
+        _start, _end = (
+            0 if start in (None, ...) else start,
+            reckon(target) - 1 if end in (None, ...) else end
+        )
+         
+        if isinstance(target, str) and _start_end_helper1(suffix):
+            return target.endswith(tuple(suffix) if not isinstance(suffix, str) else suffix, _start, _end)
+        elif isinstance(target, (bytes, bytearray)) and _start_end_helper2(suffix):
+            return target.endswith(tuple(suffix) if not isinstance(suffix, extensions.ReadableBuffer) else suffix, _start, _end)
         
-        error = TypeError("expected 'str' + 'str' or 'bytes/bytearray' + 'bytes-like'")
+        error = TypeError("expected parameters 'target' and 'prefix' to have the following values, respectively: string + string/sequence-like object with strings | bytes/bytearray object + buffer object/sequence-like object with buffer objects")
         raise error
                         
     if _version.VERSION_INFO >= (0, 3, 78) and False: # >= 18.03.2025
@@ -2384,7 +2385,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     # >= 0.3.45: Annotation in parameter 'm'
     @classmethod
-    def expect(cls, i: extensions.AVT_Iterable[extensions.T], m: extensions.Union[str, _ab_mod.AbroadInitializer, extensions.SequenceLike[int]] = ">= 1", /, condition: extensions.AVT_Callable[[extensions.T], bool] = ...):
+    def expect(cls, i: extensions.AVT_Iterable[extensions.T], m: extensions.Union[str, abroad, extensions.SequenceLike[int]] = ">= 1", /, condition: extensions.AVT_Callable[[extensions.T], bool] = ...):
         """
         Availability: >= 0.3.40 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.expect
@@ -2405,11 +2406,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         """
         
         if not _is_iterable(i):
-            error = TypeError("expected an iterable in first positional parameter")
+            error = TypeError("expected an iterable object in first positional parameter")
             raise error
         
         # 0.3.45
-        if not isinstance(m, (str, _ab_mod.AbroadInitializer, *_SequenceLikeTypes)) or (
+        if not isinstance(m, (str, abroad, *_SequenceLikeTypes)) or (
             (cls.isAbroad(m) or isinstance(m, _SequenceLikeTypes)) and not Math.isPositive(list(m))
         ):
             error = TypeError("expected a valid string literal, like \"> 3\", an abroad object, or a positive integer iterable object")
@@ -2478,25 +2479,30 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             return reckon([e for e in i if _cond(e)]) in _util.uniquelist(m)
     
     @classmethod
-    def hasAttr(cls, o: object, attr: extensions.Union[str, extensions.AVT_Tuple[str, ...]], /) -> bool:
+    def hasAttr(cls, o: object, names: extensions.Union[str, extensions.SequenceLike[str]], /):
         """
         Availability: >= 0.3.34 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.hasAttr
         
-        Extension to inbuilt function `hasattr()`, allowing to check multiple attributes at once
+        Returns `True` if at least one attribute exists in the object. If one attribute is given, it behaves like mere `hasattr()` invocation.
         
-        Check update from 0.3.61 regarding removal of `mode` parameter and no multiple objects support
+        `False` is returned for empty string or string sequence-like object.
+        
+        - 0.3.61: The `mode` parameter has been removed and so the support for multiple objects
+        - 0.3.74: The tuple support has been replaced with any sequence-like objects containing strings
         """
         
-        if cls.isString(attr):
-            _seq = attr.strip().split(" ")
-        elif cls.isTuple(attr, str):
-            _seq = list(attr)
+        if cls.isString(names):
+            _seq = names.strip().split(" ")
         else:
-            error = TypeError("expected a string tuple or a string in parameter 'attr'")
-            raise error
-        
+            _check_if_sequence_like(names, "expected a sequence-like object containing strings, or a string in parameter 'names'")
+            _seq = list(names)
+            _check_if_sequence_like_with_specific_item_type(_seq, str, "expected a sequence-like object containing strings, or a string in parameter 'names'")
+            
         _seq = list(filter(lambda x: reckon(x) > 0, _seq))
+        
+        if reckon(_seq) == 0:
+            return False
         
         for a in _seq:
             if hasattr(o, a):
@@ -2505,7 +2511,37 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         return False
     
     @classmethod
-    def group(cls, *statements: extensions.Union[extensions.AVT_Sequence[bool], extensions.AVT_AbstractSet[bool]], mode = "and-or"):
+    def hasAttrs(cls, o: object, names: extensions.Union[str, extensions.SequenceLike[str]], /):
+        """
+        Availability: >= 0.3.74 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.hasAttrs
+        
+        Returns `True` if all attributes given exist in the object. If one attribute is given, it behaves like mere `hasattr()` invocation.
+        
+        `False` is returned for empty string or string sequence-like object.
+        """
+        
+        if cls.isString(names):
+            _seq = names.strip().split(" ")
+        else:
+            _check_if_sequence_like(names, "expected a sequence-like object containing strings, or a string in parameter 'names'")
+            _seq = list(names)
+            _check_if_sequence_like_with_specific_item_type(_seq, str, "expected a sequence-like object containing strings, or a string in parameter 'names'")
+            
+        _seq = list(filter(lambda x: reckon(x) > 0, _seq))
+        
+        if reckon(_seq) == 0:
+            return False
+        
+        _placeholder = True
+        
+        for a in _seq:
+            _placeholder = _placeholder and hasattr(o, a)
+        
+        return _placeholder
+    
+    @classmethod
+    def group(cls, *statements: extensions.SequenceLike[bool], mode = "and-or"):
         """
         Availability: >= 0.3.34 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.group
@@ -2548,7 +2584,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         for statement in statements:
             
-            if not isinstance(statement, (extensions.Sequence, extensions.AbstractSet)) or (isinstance(statement, (extensions.Sequence, extensions.AbstractSet)) and not cls.isList(list(statement), bool)):
+            if not isinstance(statement, _SequenceLikeTypes) or (isinstance(statement, _SequenceLikeTypes) and not cls.isList(list(statement), bool)):
                 
                 error = ValueError("expected non-empty sequence(s) with single boolean values, like list, tuple, set or frozenset")
                 raise error
@@ -2697,7 +2733,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         Availability: >= 0.3.41 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.inequal
         
-        Returns `True` if all values are inequal to each other. Returns `False` when `v` has 0-1 values and when at least one value is the same to another.
+        Returns `True` if all values are different to each other. Returns `False` when `v` has 0-1 values and when at least one value is the same to another.
         
         In the code it is the same as `v == util.uniquetuple(v)`; can be also implemented as `sorted(v) == list(set(v))` since
         duplicate items in the `set` class are ignored and the `sorted()` function returns a list.
@@ -2707,77 +2743,121 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             return False
         
         # 0.3.67; constructor of uniquetuple returns a mere tuple object
-        return v == _util.uniquetuple(v)
+        return v == util.uniquetuple(v)
     
     @classmethod
-    def abroadPositive(cls, value1: _AbroadValue1[_Any], /, value2: _AbroadValue2[_Any] = None, modifier: _AbroadModifier[_Any] = None):
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.positive()' static method instead. Up for removal in 0.3.78.")
+    def abroadPositive(cls, stop: _PrideMonth2026AbroadStop, /) -> abroad: ...
+    
+    @classmethod
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.positive()' static method instead. Up for removal in 0.3.78.")
+    def abroadPositive(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> abroad: ...
+    
+    @classmethod
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.positive()' static method instead. Up for removal in 0.3.78.")
+    def abroadPositive(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
         """
         Availability: >= 0.3.24 \\
-        Updates: 0.3.25 (moved slash to between `value1` and `value2`), 0.3.29, 0.3.52 \\
+        Deprecated: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.abroadPositive
-        
-        Every negative integer is coerced to positive.
         """
-        ab = abroad(value1, value2, modifier)
-        return type(ab)([abs(e) for e in ab], abs(ab.params[0]), abs(ab.params[1]), ab.params[2])
+        
+        return abroad.positive(start, stop, step)
     
     @classmethod
-    def abroadNegative(cls, value1: _AbroadValue1[_Any], /, value2: _AbroadValue2[_Any] = None, modifier: _AbroadModifier[_Any] = None):
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.negative()' static method instead. Up for removal in 0.3.78.")
+    def abroadNegative(cls, stop: _PrideMonth2026AbroadStop, /) -> abroad: ...
+    
+    @classmethod
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.negative()' static method instead. Up for removal in 0.3.78.")
+    def abroadNegative(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> abroad: ...
+    
+    @classmethod
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.negative()' static method instead. Up for removal in 0.3.78.")
+    def abroadNegative(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
         """
         Availability: >= 0.3.24 \\
-        Updates: 0.3.25 (moved slash to between `value1` and `value2`), 0.3.29, 0.3.52 \\
+        Deprecated: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.abroadNegative
-        
-        
-        Every positive integer is coerced to negative.
         """
-        ab = abroad(value1, value2, modifier)
-        return type(ab)([-abs(e) for e in ab], -abs(ab.params[0]), -abs(ab.params[1]), ab.params[2])
+        
+        return abroad.negative(start, stop, step)
     
     @classmethod
-    def abroadPositiveFlip(cls, value1: _AbroadValue1[_Any], /, value2: _AbroadValue2[_Any] = None, modifier: _AbroadModifier[_Any] = None):
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.positive())' instead. Up for removal in 0.3.78.")
+    def abroadPositiveFlip(cls, stop: _PrideMonth2026AbroadStop, /) -> extensions.AVT_Iterator[int]: ...
+    
+    @classmethod
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.positive())' instead. Up for removal in 0.3.78.")
+    def abroadPositiveFlip(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> extensions.AVT_Iterator[int]: ...
+    
+    @classmethod
+    @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.positive())' instead. Up for removal in 0.3.78.")
+    def abroadPositiveFlip(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
         """
         Availability: >= 0.3.24 \\
-        Updates: 0.3.25 (moved slash to between `value1` and `value2`), 0.3.29, 0.3.52 \\
+        Deprecated: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.abroadPositiveFlip
-        
-        
-        Every negative integer is coerced to positive, then sequence is reversed.
         """
-        ab = abroad(value1, value2, modifier)
-        return type(ab)([abs(e) for e in ab][::-1], abs(ab.params[1]) - 1, abs(ab.params[0]) - 1, ab.params[2])
+        
+        return reversed(abroad.positive(start, stop, step))
     
     @classmethod
-    def abroadNegativeFlip(cls, value1: _AbroadValue1[_Any], /, value2: _AbroadValue2[_Any] = None, modifier: _AbroadModifier[_Any] = None):
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.negative())' instead. Up for removal in 0.3.78.")
+    def abroadNegativeFlip(cls, stop: _PrideMonth2026AbroadStop, /) -> extensions.AVT_Iterator[int]: ...
+    
+    @classmethod
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.negative())' instead. Up for removal in 0.3.78.")
+    def abroadNegativeFlip(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> extensions.AVT_Iterator[int]: ...
+    
+    @classmethod
+    @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.negative())' instead. Up for removal in 0.3.78.")
+    def abroadNegativeFlip(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
         """
         Availability: >= 0.3.24 \\
-        Updates: 0.3.25 (moved slash to between `value1` and `value2`), 0.3.29, 0.3.52 \\
+        Deprecated: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.abroadNegativeFlip
-        
-        
-        Every positive integer is coerced to negative, then sequence is reversed.
         """
-        ab = abroad(value1, value2, modifier)
-        return type(ab)([-abs(e) for e in ab][::-1], -abs(ab.params[1]) + 1, -abs(ab.params[0]) + 1, ab.params[2])
+        
+        return reversed(abroad.negative(start, stop, step))
     
     @classmethod
-    def abroadPack(cls, *values: _AbroadPackType[_Any]):
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad(reckonLeast(...))' static method instead. Up for removal in 0.3.78.")
+    def abroadPack(cls, *v: _PrideMonth2026ReckonType):
         """
         Availability: >= 0.3.25 \\
-        Updates: 0.3.29 \\
+        Deprecated: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.abroadPack
-        
         
         This variation of `abroad()` function bases on `zip()` Python function.
         """
-        ab = abroad(reckonLeast(*values))
-        return type(ab)([e for e in ab], ab.params[0], ab.params[1], ab.params[2])
+        
+        return abroad(reckonLeast(*v))
     
     @classmethod
-    def abroadPrecede(cls, value1: _AbroadValue1[_Any], /, value2: _AbroadValue2[_Any] = None, modifier: _AbroadModifier[_Any] = None, prefix: extensions.Optional[str] = None):
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__rmod__()' instead. Up for removal in 0.3.78.")
+    def abroadPrecede(cls, stop: _PrideMonth2026AbroadStop, /, prefix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
+    
+    @classmethod
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__rmod__()' instead. Up for removal in 0.3.78.")
+    def abroadPrecede(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1, prefix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
+    
+    @classmethod
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__rmod__()' instead. Up for removal in 0.3.78.")
+    def abroadPrecede(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1, prefix: extensions.Optional[str] = None):
         """
         Availability: >= 0.3.25 \\
-        Updates: 0.3.29, 0.3.52 \\
+        Deprecated: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.abroadPrecede
         
         
@@ -2785,16 +2865,27 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         returned are integers in strings, otherwise added is special string prefix before integers.
         """
         if prefix is not None and not isinstance(prefix, str):
-            error = TypeError("expected parameter '{}' have string value".format(_get_all_params(cls.abroadPrecede)[-1]))
+            error = TypeError("expected parameter '{}' to have a string value".format(_get_all_params(cls.abroadPrecede)[-1]))
             raise error
 
-        return [("" if prefix is None else prefix) + str(e) for e in abroad(value1, value2, modifier)] # >= 0.3.52; return list
+        return [("" if prefix is None else prefix) + str(e) for e in abroad(start, stop, step)] # >= 0.3.52; return list
+    
+    @classmethod
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__mod__()' instead. Up for removal in 0.3.78.")
+    def abroadSufcede(cls, stop: _PrideMonth2026AbroadStop, /, suffix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
+    
+    @classmethod
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__mod__()' instead. Up for removal in 0.3.78.")
+    def abroadSufcede(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1, suffix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
             
     @classmethod
-    def abroadSufcede(cls, value1: _AbroadValue1[_Any], /, value2: _AbroadValue2[_Any] = None, modifier: _AbroadModifier[_Any] = None, suffix: extensions.Optional[str] = None):
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__mod__()' instead. Up for removal in 0.3.78.")
+    def abroadSufcede(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1, suffix: extensions.Optional[str] = None):
         """
         Availability: >= 0.3.25 \\
-        Updates: 0.3.29, 0.3.52 \\
+        Deprecated: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.abroadSufcede
         
         
@@ -2802,16 +2893,27 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         returned are integers in strings, otherwise added is special string suffix after integers.
         """
         if suffix is not None and not isinstance(suffix, str):
-            error = TypeError("expected parameter '{}' have string value".format(_get_all_params(cls.abroadSufcede)[-1]))
+            error = TypeError("expected parameter '{}' to have a string value".format(_get_all_params(cls.abroadSufcede)[-1]))
             raise error
 
-        return [str(e) + ("" if suffix is None else suffix) for e in abroad(value1, value2, modifier)] # >= 0.3.52; return list
+        return [str(e) + ("" if suffix is None else suffix) for e in abroad(start, stop, step)] # >= 0.3.52; return list
     
     @classmethod
-    def abroadInside(cls, value1: _AbroadValue1[_Any], /, value2: _AbroadValue2[_Any] = None, modifier: _AbroadModifier[_Any] = None, string: extensions.Optional[str] = None):
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'str.format(abroad(...))' instead. Up for removal in 0.3.78.")
+    def abroadInside(cls, stop: _PrideMonth2026AbroadStop, /, string: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
+    
+    @classmethod
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.74, use 'str.format(abroad(...))' instead. Up for removal in 0.3.78.")
+    def abroadInside(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1, string: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
+    
+    @classmethod
+    @extensions.deprecated("Deprecated since 0.3.74, use 'str.format(abroad(...))' instead. Up for removal in 0.3.78.")
+    def abroadInside(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1, string: extensions.Optional[str] = None):
         """
         Availability: >= 0.3.25 \\
-        Updates: 0.3.29, 0.3.52 \\
+        Deprecated: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.abroadInside
         
         
@@ -2822,11 +2924,12 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             error = TypeError("expected parameter '{}' have string value".format(_get_all_params(cls.abroadInside)[-1]))
             raise error
 
-        ab = abroad(value1, value2, modifier)
-        return [str(e) for e in ab] if string is None else [string.format(str(e)) for e in ab]
+        ab = abroad(start, stop, step)
+        return [(str(e) if string is None else string.format(str(e))) for e in ab]
     
     @classmethod
-    def abroadConvect(cls, *values: _AbroadConvectType[_Any]):
+    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.convect()' static method instead. Up for removal in 0.3.78.")
+    def abroadConvect(cls, *v: _PrideMonth2026AbroadConvectType):
         """
         Availability: >= 0.3.25 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.abroadConvect
@@ -2835,48 +2938,37 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         If from values a value is:
         - an integer - added is this integer
         - a float - added is this number, without fraction
-        - a complex - added are both real and imaginary parts
         - sizeable object - added is its length
 
         Note: it is possible to provide negative entities. If resulted number is negative,
         up to `abroad()` function, sequence will go in range `[values_sum, -1]`.
         Otherwise, it will take this form: `[0, values_sum - 1]`.
         """
-        i = 0
-        _params = _get_all_params(cls.abroadConvect)
         
-        if reckon(values) == 0:
-            error = exceptions.MissingValueError("expected at least one item in parameter '{}'".format(_params[-1]))
-            raise error
+        return abroad.convect(*v)
         
-        for e in values:
-            
-            if not isinstance(e, (_ReckonNGT, int, float, complex)):
-                error = TypeError("from gamut of supported types, parameter '{}' has at least one unsupported type".format(_params[-1]))
-                raise error
-            
-            elif isinstance(e, int):
-                i += e
-                
-            elif isinstance(e, float):
-                i += _math.trunc(e)
-                
-            elif isinstance(e, complex):
-                i += _math.trunc(e.real) + _math.trunc(e.imag)
-                
-            else:
-                i += reckon(e)
-        return abroad(i)
+    @classmethod
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.71, up for removal in 0.3.78. Use 'batched' with 'abroad' object instead")
+    def abroadSplit(cls, stop: _PrideMonth2026AbroadStop, /, limit: int = 2) -> extensions.AVT_List[extensions.AVT_List[int]]: ...
     
     @classmethod
-    @extensions.deprecated("Deprecated since 0.3.71")
-    def abroadSplit(cls, value1: _AbroadValue1[_Any], /, value2: _AbroadValue2[_Any] = None, modifier: _AbroadModifier[_Any] = None, limit = 2) -> _AbroadMultiInitializer:
+    @extensions.overload
+    @extensions.deprecated("Deprecated since 0.3.71, up for removal in 0.3.78. Use 'batched' with 'abroad' object instead")
+    def abroadSplit(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1, limit: int = 2) -> extensions.AVT_List[extensions.AVT_List[int]]: ...
+    
+    @classmethod
+    @extensions.deprecated("Deprecated since 0.3.71, up for removal in 0.3.78. Use 'batched' with 'abroad' object instead")
+    def abroadSplit(cls, start: _PrideMonth2026AbroadStart, /, stop: _PrideMonth2026AbroadStop = ..., step: _PrideMonth2026AbroadStep = 1, limit: int = 2):
         """
-        Availability: >= 0.3.25
+        Availability: >= 0.3.25 \\
+        Deprecated: >= 0.3.71 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.abroadSplit
         
-        Reference to string slicing. Limit is amount of items, \\
-        which can be in one sub-list. May not be equal or below 1.
+        Reference to string slicing. Limit is amount of items,
+        which can be in one sub-list. May not be equal or below 1. 
         """
+        
         lim = 0
         tmp, a = ([0], [[0]])
         cls.clear(a, tmp)
@@ -2889,7 +2981,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             error = ValueError("parameter 'limit' may not be negative, or have value 0 or 1. Start from 2.")
             raise error
         
-        for i in abroad(value1, value2, modifier):
+        for i in abroad(start, stop, step):
             
             if lim % limit == 0:
                 a.append(tmp)
@@ -2911,27 +3003,139 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         """
         return _architecture(executable, bits, linkage)
     
-    @classmethod
-    def disassemble(
-        cls,
-        x: extensions.Union[extensions.HaveCodeType, str, bytes, bytearray, None] = None, # 0.3.62: missing type hint
-        /,
-        file: extensions.Optional[extensions.IO[str]] = None,
-        depth: extensions.Optional[int] = None,
-        showCaches = False,
-        adaptive = False,
-        showOffsets = False
-    ):
-        """
-        Availability: >= 0.3.26rc3
+    if _sys.version_info >= (3, 14):
         
-        Detach code of a class, type, function, methods and other compiled objects. \\
-        If argument `x` is `None` (by default is `None`), disassembled is last traceback. \\
-        See [`dis.dis()`](https://docs.python.org/3/library/dis.html#dis.dis) \\
-        Modified 0.3.31: added missing parameter `showOffsets`
-        """
-        _dis.dis(x, file = file, depth = depth, show_caches = showCaches, adaptive = adaptive, show_offsets = showOffsets)
-        return cls
+        @classmethod
+        @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use 'dis.dis()' instead")
+        def dis(
+            cls,
+            x: extensions.Union[extensions.HaveCodeType, str, bytes, bytearray, None] = None, # 0.3.62: missing type hint
+            /,
+            file: extensions.Optional[extensions.IO[str]] = None,
+            depth: extensions.Optional[int] = None,
+            showCaches = False,
+            adaptive = False,
+            showOffsets = False,
+            showPositions = False
+        ):
+            """
+            Availability: >= 0.3.26rc3 \\
+            Deprecated: >= 0.3.74 \\
+            https://aveyzan.xyz/aveytense#aveytense.Tense.dis
+            
+            See [`dis.dis()`](https://docs.python.org/3/library/dis.html#dis.dis)
+            
+            - 0.3.31: added missing parameter `showOffsets` (Python 3.13+)
+            - 0.3.74: added missing parameter `showPositions` (Python 3.14+)
+            """
+            _dis.dis(
+                x,
+                file = file,
+                depth = depth,
+                show_caches = showCaches,
+                adaptive = adaptive,
+                show_offsets = showOffsets,
+                show_positions = showPositions
+            )
+            return cls
+        
+    elif _sys.version_info >= (3, 13):
+        
+        @classmethod
+        @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use 'dis.dis()' instead")
+        def dis(
+            cls,
+            x: extensions.Union[extensions.HaveCodeType, str, bytes, bytearray, None] = None, # 0.3.62: missing type hint
+            /,
+            file: extensions.Optional[extensions.IO[str]] = None,
+            depth: extensions.Optional[int] = None,
+            showCaches = False,
+            adaptive = False,
+            showOffsets = False
+        ):
+            """
+            Availability: >= 0.3.26rc3 \\
+            Deprecated: >= 0.3.74 \\
+            https://aveyzan.xyz/aveytense#aveytense.Tense.dis
+            
+            See [`dis.dis()`](https://docs.python.org/3/library/dis.html#dis.dis)
+            
+            - 0.3.31: added missing parameter `showOffsets` (Python 3.13+)
+            - 0.3.74: added missing parameter `showPositions` (Python 3.14+)
+            """
+            _dis.dis(
+                x,
+                file = file,
+                depth = depth,
+                show_caches = showCaches,
+                adaptive = adaptive,
+                show_offsets = showOffsets
+            )
+            return cls
+        
+    elif _sys.version_info >= (3, 11):
+        
+        @classmethod
+        @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use 'dis.dis()' instead")
+        def dis(
+            cls,
+            x: extensions.Union[extensions.HaveCodeType, str, bytes, bytearray, None] = None, # 0.3.62: missing type hint
+            /,
+            file: extensions.Optional[extensions.IO[str]] = None,
+            depth: extensions.Optional[int] = None,
+            showCaches = False,
+            adaptive = False
+        ):
+            """
+            Availability: >= 0.3.26rc3 \\
+            Deprecated: >= 0.3.74 \\
+            https://aveyzan.xyz/aveytense#aveytense.Tense.dis
+            
+            Detach code of a class, type, function, methods and other compiled objects. \\
+            If argument `x` is `None` (by default is `None`), disassembled is last traceback. \\
+            See [`dis.dis()`](https://docs.python.org/3/library/dis.html#dis.dis)
+            
+            - 0.3.31: added missing parameter `showOffsets` (Python 3.13+)
+            - 0.3.74: added missing parameter `showPositions` (Python 3.14+)
+            """
+            _dis.dis(
+                x,
+                file = file,
+                depth = depth,
+                show_caches = showCaches,
+                adaptive = adaptive
+            )
+            return cls
+        
+    else:
+        
+        @classmethod
+        @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use 'dis.dis()' instead")
+        def dis(
+            cls,
+            x: extensions.Union[extensions.HaveCodeType, str, bytes, bytearray, None] = None, # 0.3.62: missing type hint
+            /,
+            file: extensions.Optional[extensions.IO[str]] = None,
+            depth: extensions.Optional[int] = None
+        ):
+            """
+            Availability: >= 0.3.26rc3 \\
+            Deprecated: >= 0.3.74 \\
+            https://aveyzan.xyz/aveytense#aveytense.Tense.dis
+            
+            Detach code of a class, type, function, methods and other compiled objects. \\
+            If argument `x` is `None` (by default is `None`), disassembled is last traceback. \\
+            See [`dis.dis()`](https://docs.python.org/3/library/dis.html#dis.dis)
+            
+            - 0.3.31: added missing parameter `showOffsets` (Python 3.13+)
+            - 0.3.74: added missing parameter `showPositions` (Python 3.14+)
+            """
+            _dis.dis(
+                x,
+                file = file,
+                depth = depth
+            )
+            return cls
     
     # changeover 0.3.42
     @classmethod
@@ -2971,7 +3175,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         Availability: >= 0.3.50 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.generator
         
-        Creates a generator (before 0.3.53 with generator expression) using an iterable
+        Creates a generator (before 0.3.53 with generator expression) using an iterable object
         
         - 0.3.55: Added support for asynchronous iterable objects
         """
@@ -2979,45 +3183,30 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         if not isinstance(i, (extensions.Iterable, extensions.AsyncIterable)):
             error = TypeError("passed object isn't iterable")
             raise error
+            
+        if isinstance(i, extensions.AsyncIterable): # >= 0.3.55
+            gen = _extract_from_async_iterable(i)
         
-        if True: # >= 0.3.53
-            
-            if isinstance(i, extensions.AsyncIterable): # >= 0.3.55
-                gen = _extract_from_async_iterable(i)
-            
-            else:
-            
-                def _gen_(iterable: extensions.AVT_Iterable[extensions.T]):
-                    
-                    nonlocal condition
-                    
-                    if cls.isEllipsis(condition):
-                        yield from iterable # see pep 380 (>=Py3.3)
-                            
-                    elif _is_bool_callback(condition):
-                        yield from [e for e in iterable if condition(e)]
-                                
-                    else:
-                        error = TypeError("expected ellipsis or callable object with one parameter only")
-                        raise error
-                    
-                gen = _gen_(i)
-                
-            gen.__qualname__ = "<aveytense_generator>"
-            return gen
-            
         else:
-            if cls.isEllipsis(condition):
-                return (e for e in i)
-            
-            else:
+        
+            def _gen_(iterable: extensions.AVT_Iterable[extensions.T]):
                 
-                if _is_bool_callback(condition):
-                    return (e for e in i if condition(e))
+                nonlocal condition
                 
+                if cls.isEllipsis(condition):
+                    yield from iterable # see pep 380 (>=Py3.3)
+                        
+                elif _is_bool_callback(condition):
+                    yield from [e for e in iterable if condition(e)]
+                            
                 else:
-                    error = TypeError("expected one parameter only")
+                    error = TypeError("expected ellipsis or callable object with one parameter only")
                     raise error
+                
+            gen = _gen_(i)
+            
+        gen.__qualname__ = "<aveytense_generator>"
+        return gen
             
     @classmethod
     def asyncGenerator(cls, i: extensions.AVT_Iterable[extensions.T], /, condition: extensions.AVT_Callable[[extensions.T], bool] = ...):
@@ -3070,11 +3259,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload # >= 0.3.43
-    def shuffle(cls, v: _util.MutableString) -> _util.MutableString: ...
+    def shuffle(cls, v: util.MutableString) -> util.MutableString: ...
     
     @classmethod
     @extensions.overload
-    def shuffle(cls, v: _ab_mod.AbroadInitializer) -> extensions.AVT_List[int]: ...
+    def shuffle(cls, v: abroad) -> extensions.AVT_List[int]: ...
     
     @classmethod
     @extensions.overload
@@ -3113,11 +3302,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             _v2 = _shuffle(v)
             _v = RGB(_v2[0], _v2[1], _v2[2])
             
-        elif isinstance(v, _util.MutableString):
-            _v = _util.MutableString("".join(_shuffle(v.value)))
+        elif isinstance(v, util.MutableString):
+            _v = util.MutableString("".join(_shuffle(v.value)))
             
         elif cls.isAbroad(v):
-            _v = _shuffle(+v)
+            _v = _shuffle(v)
             
         # 0.3.53: Shuffle generators
         elif isinstance(v, extensions.Generator):
@@ -3155,11 +3344,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload # >= 0.3.43
-    def reverse(cls, v: _util.MutableString) -> _util.MutableString: ...
+    def reverse(cls, v: util.MutableString) -> util.MutableString: ...
     
     @classmethod
     @extensions.overload
-    def reverse(cls, v: _ab_mod.AbroadInitializer) -> extensions.AVT_List[int]: ...
+    def reverse(cls, v: abroad) -> extensions.AVT_List[int]: ...
     
     @classmethod
     @extensions.overload
@@ -3205,7 +3394,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             v.reverse()
             
         elif cls.isAbroad(v):
-            _v = (+v)[::-1]
+            _v = v[::-1]
             
         # 0.3.53: Reverse generators
         elif isinstance(v, extensions.Generator):
@@ -3267,26 +3456,22 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         """
         
         if isinstance(i, extensions.Mapping) and cls.all(items, lambda x: cls.isTuple(x) and reckon(x) == 2):
-            return dict([(k, i[k]) for k in i] + list(items))
+            return dict(list(i.items()) + list(items))
         else:
             if isinstance(i, extensions.Generator):
                 
                 def _gen_(*iterables):
                     
-                    nonlocal i
-                    
                     yield from i
                     yield from iterables
                 
                 gen = _gen_(*items)
-                gen.__qualname__ = "<aveytense_generator>"
+                gen.__qualname__ = i.__qualname__
                 return gen
             
             elif isinstance(i, extensions.AsyncGenerator):
                 
                 async def _asyncgen_(*iterables):
-                    
-                    nonlocal i
                     
                     async for e in i:
                         yield e
@@ -3294,7 +3479,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                         yield e
                         
                 asyncgen = _asyncgen_(*items)
-                asyncgen.__qualname__ = "<aveytense_async_generator>"
+                asyncgen.__qualname__ = i.__qualname__
                 return asyncgen
             
             elif cls.isIterable(i) and not isinstance(i, extensions.Mapping):
@@ -3303,7 +3488,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             
             else:
                 
-                error = TypeError("expected a mapping + 2-item tuples or iterable objects")
+                error = TypeError("expected a mapping object + 2-item tuples or iterable objects")
                 raise error
     
     if False:
@@ -3343,17 +3528,50 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         otherwise an error is thrown.
         """
         
+        # revamp 0.3.74
         if isinstance(i, extensions.Mapping) and cls.isTuple(iters, extensions.Mapping):
+            
+            newdict = dict(i)
+            
+            for e in iters:
+                newdict.update(e)
                 
-            return dict([(k, i[k]) for k in i] + [(k, e[k]) for e in iters for k in e])
+            return newdict
         
         elif isinstance(i, extensions.Generator) and cls.isTuple(iters, (extensions.AsyncIterable, extensions.Iterable)):
             
-            return cls.flatten([list(i)] + [cls.toList(e) for e in iters])
+            def newgen(*iters):
+                yield from i
+                
+                for e in iters:
+                    
+                    if isinstance(e, extensions.AsyncIterable):
+                        yield from _extract_from_async_iterable(e)
+                    else:
+                        yield from e
+                    
+            _newgen = newgen(*iters)
+            _newgen.__qualname__ = i.__qualname__
+            return _newgen
         
         elif isinstance(i, extensions.AsyncGenerator) and cls.isTuple(iters, (extensions.AsyncIterable, extensions.Iterable)):
             
-            return cls.asyncGenerator(cls.flatten([list(i)] + [cls.toList(e) for e in iters]))
+            async def anewgen(*iters):
+                async for e in i: # pep 380 not allowed in context of asynchronous functions
+                    yield e
+                
+                for e in iters:
+                    
+                    if isinstance(e, extensions.AsyncIterable):
+                        async for e2 in e:
+                            yield e2
+                    else:
+                        for e2 in e:
+                            yield e2
+                            
+            _anewgen = anewgen(*iters)
+            _anewgen.__qualname__ = i.__qualname__
+            return _anewgen
         
         elif isinstance(i, extensions.Iterable) and cls.isTuple(iters, extensions.Iterable):
             
@@ -3375,11 +3593,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def occurrences(cls, v: _ab_mod.AbroadInitializer, *items: int, mode: extensions.Literal["normal"] = "normal") -> int: ...
+    def occurrences(cls, v: abroad, *items: int, mode: extensions.Literal["normal"] = "normal") -> int: ...
     
     @classmethod
     @extensions.overload
-    def occurrences(cls, v: _ab_mod.AbroadInitializer, *items: int, mode: extensions.Literal["absolute"]) -> int: ...
+    def occurrences(cls, v: abroad, *items: int, mode: extensions.Literal["absolute"]) -> int: ...
     
     @classmethod
     @extensions.overload
@@ -3416,7 +3634,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             error = ValueError("parameter 'mode' provides invalid mode")
             raise error
         
-        if isinstance(v, (str, _ab_mod.AbroadInitializer, extensions.Sequence, extensions.AbstractSet, extensions.Mapping)) and reckon(v) == 0:
+        if isinstance(v, (str, abroad, extensions.Sequence, extensions.AbstractSet, extensions.Mapping)) and reckon(v) == 0:
             return 0
         
         if cls.isString(v):
@@ -3445,11 +3663,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                     
             return o
                     
-        elif isinstance(v, _ab_mod.AbroadInitializer):
+        elif isinstance(v, abroad):
             
             if m not in ("normal", "absolute"):
                 
-                error = ValueError("for instances of internal class being result of abroad() function ({} class objects), parameter 'mode' can take one of 2 modes: 'normal' and 'absolute'".format(_ab_mod.AbroadInitializer.__name__))
+                error = ValueError("for instances of internal class being result of abroad() function ({} class objects), parameter 'mode' can take one of 2 modes: 'normal' and 'absolute'".format(abroad.__name__))
                 raise error
             
             _i = list(items)
@@ -3536,15 +3754,15 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def difference(cls, v1: _ab_mod.AbroadInitializer, v2: extensions.Union[extensions.SequenceLike[int]], /, invert: bool = False) -> extensions.AVT_List[int]: ...
+    def difference(cls, v1: abroad, v2: extensions.Union[extensions.SequenceLike[int]], /, invert: bool = False) -> extensions.AVT_List[int]: ...
     
     @classmethod
     @extensions.overload
-    def difference(cls, v1: extensions.Union[extensions.SequenceLike[int]], v2: _ab_mod.AbroadInitializer, /, invert: bool = False) -> extensions.AVT_List[int]: ...
+    def difference(cls, v1: extensions.Union[extensions.SequenceLike[int]], v2: abroad, /, invert: bool = False) -> extensions.AVT_List[int]: ...
     
     @classmethod
     @extensions.overload
-    def difference(cls, v1: _ab_mod.AbroadInitializer, v2: _ab_mod.AbroadInitializer, /, invert: bool = False) -> extensions.AVT_List[int]: ...
+    def difference(cls, v1: abroad, v2: abroad, /, invert: bool = False) -> extensions.AVT_List[int]: ...
     
     @classmethod
     @extensions.overload
@@ -3578,7 +3796,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             
             elif isinstance(v2, extensions.Mapping):
                 
-                if not cls.isList([k for k in v2], str):
+                if not cls.isList(list(v2.keys()), str):
                     
                     error = ValueError("with comparison with a class expected a string-key-typed mapping")
                     raise error
@@ -3586,14 +3804,14 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 _v1 = {k: v1.__annotations__[k] for k in v1.__annotations__ if k[:1] != "_"}
                 _v2 = {k: v2[k] for k in v2 if k[:1] != "_"}
             
-            elif isinstance(v2, (extensions.Sequence, extensions.AbstractSet)):
+            elif isinstance(v2, _SequenceLikeTypes):
                 
-                if not cls.isList([k for k in v2], str):
+                if not cls.isList(list(v2), str):
                     
                     error = ValueError("with comparison with a class expected a string-typed sequence")
                     raise error
                 
-                _v1 = [k for k in v1.__annotations__]
+                _v1 = list(v1.__annotations__.keys())
                 _v2 = list(v2)
                 
             else:
@@ -3621,12 +3839,12 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 error = TypeError("with comparison with a mapping expected another mapping or a class")
                 raise error
         
-        elif isinstance(v1, _ab_mod.AbroadInitializer):
+        elif isinstance(v1, abroad):
             
-            if isinstance(v2, _ab_mod.AbroadInitializer):
+            if isinstance(v2, abroad):
                 
-                _v1 = +v1
-                _v2 = +v2
+                _v1 = list(v1)
+                _v2 = list(v2)
                 
                 if invert:
                     return [e for e in _v1 if e not in _v2]
@@ -3634,21 +3852,21 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 else:
                     return [e for e in _v2 if e not in _v1]
                 
-            elif isinstance(v2, (extensions.Sequence, extensions.AbstractSet)):
+            elif isinstance(v2, _SequenceLikeTypes):
                 
-                if not cls.isList([e for e in v2], int):
+                if not cls.isList(list(v2), int):
                     
                     error = ValueError("with comparison with a result from abroad() function expected an integer sequence")
                     raise error
                 
-                _v1 = +v1
+                _v1 = list(v1)
                 _v2 = list(v2)
                 
             else:
                 error = TypeError("with comparison with a result from abroad() function expected another abroad() function result or integer sequence")
                 raise error
             
-        elif isinstance(v1, (extensions.Sequence, extensions.AbstractSet)):
+        elif isinstance(v1, _SequenceLikeTypes):
             
             if isinstance(v2, type):
                 
@@ -3658,19 +3876,19 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                     raise error
                 
                 _v1 = list(v1)
-                _v2 = [k for k in v2.__annotations__]
+                _v2 = list(v2.__annotations__.keys())
                 
-            elif isinstance(v2, _ab_mod.AbroadInitializer):
+            elif isinstance(v2, abroad):
                 
-                if not cls.isList([e for e in v2], int):
+                if not cls.isList(list(v2), int):
                     
                     error = ValueError("with comparison with a result from abroad() function expected an integer sequence")
                     raise error
                 
                 _v1 = list(v1)
-                _v2 = +v2
+                _v2 = list(v2)
                 
-            elif isinstance(v2, (extensions.Sequence, extensions.AbstractSet)):
+            elif isinstance(v2, _SequenceLikeTypes):
                 
                 _v1 = list(v1)
                 _v2 = list(v2)
@@ -3817,7 +4035,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             if _sys.version_info >= (3, 10): # extract from _prepare_union_() internal function from Tense.getGeneric()
                     
                 _union_: extensions.UnionType = v
-                for e in _: _union_ = _union_ | e
+                for e in _:
+                    _union_ = _union_ | e
                 return _union_
                 
             else:
@@ -3897,7 +4116,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         Availability: >= 0.3.34 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.exclude
         
-        Return a new list from iterable without items specified.
+        Return a new list from iterable object without items specified.
         
         Since 0.3.46 mappings are allowed. Keyword-only parameter `filter` *only* take place for mappings, \\
         and can only contain case-sensitive string values: `"keys"` or `"values"`
@@ -4180,7 +4399,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 if not _is_hexadecimal(vhex):
                     error = ValueError("implementation of __hex__() method doesn't return a string in hexadecimal notation")
                     raise error
-                return vhex
+                return vhex.lower()
             else:
                 return hex(v) # int + Indexable
         
@@ -4208,7 +4427,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 if not _is_octal(voct):
                     error = ValueError("implementation of __oct__() method doesn't return a string in octal notation")
                     raise error
-                return voct
+                return voct.lower()
             else:
                 return oct(v) # int + Indexable
             
@@ -4236,7 +4455,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 if not _is_binary(vbin):
                     error = ValueError("implementation of __bin__() method doesn't return a string in binary notation")
                     raise error
-                return vbin
+                return vbin.lower()
             else:
                 return bin(v) # int + Indexable
             
@@ -4315,9 +4534,9 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 elif isinstance(_v, (
                     
                     extensions.MutableSequence,
-                    extensions.MutableAbstractSet,
+                    extensions.MutableSet,
                     extensions.MutableMapping,
-                    _util.MutableString,
+                    util.MutableString,
                     extensions.FrameType
                     
                 )):
@@ -4335,7 +4554,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                     open(_name_, "w").close()
                 
                 # 0.3.42
-                elif isinstance(_v, _ClearableAbc) or (hasattr(_v, "clear") and callable(_v.clear)):
+                elif isinstance(_v, extensions.Clearable) or (hasattr(_v, "clear") and callable(_v.clear)):
                     
                     _clear = cls.cast(_v.clear, extensions.FunctionType)
                     p = util.ParamVar(_clear)
@@ -4457,11 +4676,13 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     @classmethod
     def getAttr(cls, o: object, names: extensions.Union[str, extensions.SequenceLike[str]], default: extensions.T = None, /):
         """
-        Availability: >= 0.3.58
+        Availability: >= 0.3.58 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.getAttr
         
-        Extension of `getattr()` that tries many attributes in a string sequence at once until one is defined and can be returned. If none of these exist, `default` is returned instead.
+        Returns a value from the first attribute that is defined in the object. If none of the attributes, `default` is returned instead.
         
-        0.3.59: If `names` is a string containing many names separated by space each, these are considered multiple attributes (inspired by `collections.namedtuple()`). Since the version, empty strings are excluded too
+        - 0.3.59: If `names` is a string containing many names separated by space each, these are considered multiple attributes
+        (inspired by `collections.namedtuple()`). Since the version, empty strings are excluded too
         """
         
         emitError = False
@@ -4479,7 +4700,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             emitError = True
             
         if emitError:
-            error = TypeError("expected a string or sequence/set of strings")
+            error = TypeError("expected a string or sequence-like object consisting of strings")
             raise error
         
         seq = list(filter(lambda x: reckon(x) > 0, seq)) # prevent empty string items
@@ -4488,19 +4709,62 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             if hasattr(o, attr):
                 return getattr(o, attr)
             
-        return default    
+        return default
+    
+    @classmethod
+    def getAttrs(cls, o: object, names: extensions.Union[str, extensions.SequenceLike[str]], default: extensions.T = None, /):
+        """
+        Availability: >= 0.3.74 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.getAttrs
+        
+        Returns a dictionary object with all attributes that have been found in the object. If none exist, `default` is returned.
+        
+        Dictionary object is of the form: *key* = attribute name (string), *value* = attribute value
+        """
+        
+        emitError = False
+        
+        if cls.isString(names):
+            seq = names.strip().split(" ")
+        
+        elif isinstance(names, _SequenceLikeTypes):
+            seq = list(names)
+            
+            if not cls.isList(seq, str):
+                emitError = True
+        
+        else:
+            emitError = True
+            
+        if emitError:
+            error = TypeError("expected a string or sequence-like object consisting of strings")
+            raise error
+        
+        seq = list(filter(lambda x: reckon(x) > 0, seq))
+        newdict = cls.cast({}, extensions.AVT_Dict[str, _Any])
+        
+        for attr in seq:
+            
+            if hasattr(o, attr):
+                newdict.update({attr: getattr(o, attr)})
+                
+        if reckon(newdict) > 0:
+            return newdict
+        else:
+            return default
+        
             
     @classmethod
-    def getAllItemsTypes(cls, i: extensions.AVT_Iterable[extensions.T], /): # >= 0.3.51
+    def getAllItemTypes(cls, i: extensions.AVT_Iterable[extensions.T], /): # >= 0.3.51
         """
         Availability: >= 0.3.51 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.getAllItemsTypes
+        https://aveyzan.xyz/aveytense#aveytense.Tense.getAllItemTypes
         
-        Returns all items' types in a set-like tuple, from an iterable
+        Returns all items' types in a set-like tuple, from an iterable object
         """
         
         if not isinstance(i, extensions.Iterable):
-            error = TypeError("passed object isn't iterable")
+            error = TypeError("expected an iterable object")
             raise error
         
         return _get_all_item_types(i)
@@ -4519,7 +4783,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         """
         
         # inspect union expressions (>=3.10)
-        def _prepare_union_(*v: extensions.type, default: extensions.T = _Any):
+        def _prepare_union_(*v: type, default: extensions.T = _Any):
             
             if _sys.version_info >= (3, 10):
                 
@@ -4600,11 +4864,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                             
                         elif isinstance(v, extensions.KeysView):
                             
-                            return _generic_(_type_origin_, (_prepare_union_(*cls.getAllItemsTypes(list(v))), _Any))
+                            return _generic_(_type_origin_, (_prepare_union_(*cls.getAllItemTypes(list(v))), _Any))
                             
                         else:
                             
-                            return _generic_(_type_origin_, (_Any, _prepare_union_(*cls.getAllItemsTypes(list(v)))))
+                            return _generic_(_type_origin_, (_Any, _prepare_union_(*cls.getAllItemTypes(list(v)))))
                         
                     elif not isinstance(_mapping_, extensions.MappingProxyType):
                         return None
@@ -4613,8 +4877,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                     # as mere dict:
                     
                     return _generic_(_type_origin_, (
-                        _prepare_union_(*cls.getAllItemsTypes(list(_mapping_.keys()))),
-                        _prepare_union_(*cls.getAllItemsTypes(list(_mapping_.values())))
+                        _prepare_union_(*cls.getAllItemTypes(list(_mapping_.keys()))),
+                        _prepare_union_(*cls.getAllItemTypes(list(_mapping_.values())))
                     )) if reckon(list(_mapping_.items())) > 0 else None
                                 
                 else:
@@ -4630,8 +4894,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                         _type_origin_ = type(v)
                     
                     return _generic_(_type_origin_, (
-                        _prepare_union_(*cls.getAllItemsTypes(list(v.keys()))),
-                        _prepare_union_(*cls.getAllItemsTypes(list(v.values())))
+                        _prepare_union_(*cls.getAllItemTypes(list(v.keys()))),
+                        _prepare_union_(*cls.getAllItemTypes(list(v.values())))
                     )) if reckon(list(v.items())) > 0 else None
                 
             elif isinstance(v, extensions.Generator):
@@ -4641,7 +4905,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 else:
                     _type_origin_ = type(v)
                 
-                _yield_ = _prepare_union_(*cls.getAllItemsTypes(list(v)))
+                _yield_ = _prepare_union_(*cls.getAllItemTypes(list(v)))
                 # these both below have default value 'None', visible such as in generator expressions,
                 # but generator doesn't have to be returned from generator expression and so these may
                 # change and differ from 'None'. setting to 'typing.Any'
@@ -4664,7 +4928,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 if _type_origin_ in (tuple, extensions.AVT_Tuple):
                     
                     if tupleEllipsis:
-                        return _generic_(extensions.AVT_Tuple, (_prepare_union_(*cls.getAllItemsTypes(v)), ...)) if reckon(v) > 0 else None
+                        return _generic_(extensions.AVT_Tuple, (_prepare_union_(*cls.getAllItemTypes(v)), ...)) if reckon(v) > 0 else None
                     else:
                         return _generic_(extensions.AVT_Tuple, _get_all_item_types(v, False)) if reckon(v) > 0 else None
                 
@@ -4687,7 +4951,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                         return cls.cast(extensions.AVT_Array[str], _generic_)
                     
                     else:
-                        return _generic_(extensions.AVT_Array, (_prepare_union_(*cls.getAllItemsTypes(v.tolist())),)) if reckon(v.tolist()) > 0 else None
+                        return _generic_(extensions.AVT_Array, (_prepare_union_(*cls.getAllItemTypes(v.tolist())),)) if reckon(v.tolist()) > 0 else None
                 
                 # 0.3.54: Revamp
                 elif _type_origin_ is memoryview:
@@ -4716,7 +4980,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                     else:
                         return None
 
-                return _generic_(_type_origin_, _prepare_union_(*cls.getAllItemsTypes(v))) if reckon(v) > 0 or not cls.isGeneric(_type_origin_) else None
+                return _generic_(_type_origin_, _prepare_union_(*cls.getAllItemTypes(v))) if reckon(v) > 0 or not cls.isGeneric(_type_origin_) else None
             
             # 0.3.55a2
             elif isinstance(v, zip):
@@ -4738,7 +5002,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                     
                 _types = list(cls.flatten(_zip_content))
                     
-                return _generic_(_type_origin_, _prepare_union_(*cls.getAllItemsTypes(_types))) if reckon(_types) > 0 or not cls.isGeneric(_type_origin_) else None
+                return _generic_(_type_origin_, _prepare_union_(*cls.getAllItemTypes(_types))) if reckon(_types) > 0 or not cls.isGeneric(_type_origin_) else None
             
             # 0.3.55a2
             elif isinstance(v, enumerate):
@@ -4753,7 +5017,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 for _, e in v:
                     _enumerate_convert.append(e)
                     
-                return _generic_(_type_origin_, _prepare_union_(*cls.getAllItemsTypes(_enumerate_convert))) if reckon(_enumerate_convert) > 0 else None
+                return _generic_(_type_origin_, _prepare_union_(*cls.getAllItemTypes(_enumerate_convert))) if reckon(_enumerate_convert) > 0 else None
             
             # 0.3.53: Revamp
             elif isinstance(v, extensions.Iterator): 
@@ -4779,24 +5043,24 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                     return _generic_(_type_origin_, (extensions.ValuesView,))
                 
                 elif _hidden_collections_abc_def_check(v, "list_iterator"):
-                    return _generic_(_type_origin_, (_generic_(extensions.AVT_List, (_prepare_union_(*cls.getAllItemsTypes(list(v))),)))) if reckon(list(v)) > 0 else None
+                    return _generic_(_type_origin_, (_generic_(extensions.AVT_List, (_prepare_union_(*cls.getAllItemTypes(list(v))),)))) if reckon(list(v)) > 0 else None
                 
                 elif _hidden_collections_abc_def_check(v, "list_reverseiterator"):
-                    return _generic_(_type_origin_, (_generic_(extensions.AVT_Iterator, (_prepare_union_(*cls.getAllItemsTypes(list(v))),)))) if reckon(list(v)) > 0 else None
+                    return _generic_(_type_origin_, (_generic_(extensions.AVT_Iterator, (_prepare_union_(*cls.getAllItemTypes(list(v))),)))) if reckon(list(v)) > 0 else None
                 
                 elif _hidden_collections_abc_def_check(v, "longrange_iterator") or \
                      _hidden_collections_abc_def_check(v, "range_iterator"):
                     return _generic_(_type_origin_, (range,))
                 
                 elif _hidden_collections_abc_def_check(v, "set_iterator"):
-                    return _generic_(_type_origin_, (_generic_(extensions.AVT_Set, (_prepare_union_(*cls.getAllItemsTypes(list(v))),)))) if reckon(list(v)) > 0 else None
+                    return _generic_(_type_origin_, (_generic_(extensions.AVT_Set, (_prepare_union_(*cls.getAllItemTypes(list(v))),)))) if reckon(list(v)) > 0 else None
                 
                 elif _hidden_collections_abc_def_check(v, "str_iterator"):
                     return _generic_(_type_origin_, (str,))
                 
                 elif _hidden_collections_abc_def_check(v, "tuple_iterator"):
                     if tupleEllipsis:
-                        return _generic_(_type_origin_, (_generic_(extensions.AVT_Tuple, (_prepare_union_(*cls.getAllItemsTypes(list(v))), ...)))) if reckon(list(v)) > 0 else None
+                        return _generic_(_type_origin_, (_generic_(extensions.AVT_Tuple, (_prepare_union_(*cls.getAllItemTypes(list(v))), ...)))) if reckon(list(v)) > 0 else None
                     else:
                         return _generic_(_type_origin_, (_generic_(extensions.AVT_Tuple, _get_all_item_types(list(v), False)))) if reckon(list(v)) > 0 else None
                 
@@ -4830,7 +5094,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                     _type_origin_ = type(v)
             
                 return _generic_(_type_origin_, (
-                    _prepare_union_(*cls.getAllItemsTypes(_list_from_gen_)), # 'yield'
+                    _prepare_union_(*cls.getAllItemTypes(_list_from_gen_)), # 'yield'
                     _Any, # 'send'
                     _Any # 'return'
                 )) if reckon(_list_from_gen_) > 0 else None
@@ -4851,7 +5115,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                     _type_origin_ = type(v)
                 
                 return _generic_(_type_origin_, (
-                    _prepare_union_(*cls.getAllItemsTypes(_list_from_async_)), # 'yield'
+                    _prepare_union_(*cls.getAllItemTypes(_list_from_async_)), # 'yield'
                     _Any # 'return'
                 )) if reckon(_list_from_async_) > 0 else None
                 
@@ -4862,7 +5126,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 else:
                     _type_origin_ = extensions.AVT_AsyncIterator
             
-                return _generic_(_type_origin_, (*cls.getAllItemsTypes(_list_from_async_),))
+                return _generic_(_type_origin_, (*cls.getAllItemTypes(_list_from_async_),))
             
             else:
                 
@@ -4915,7 +5179,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     @classmethod
     def getFlags(cls, v: _Any, /):
         """
-        Availability: >= 0.3.53
+        Availability: >= 0.3.53 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.getFlags
         
         Returns flags of a type, buffer or callable object or -1 if it is not possible
         """
@@ -4950,33 +5215,47 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     @classmethod
     def splitGeneric(cls, v: _Any, /):
         """
-        Availability: >= 0.3.55b1
+        Availability: >= 0.3.55b1 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.splitGeneric
         
         Splits generic alias into a tuple with type origin and type args in an internal tuple. Returns `None` if value isn't a generic alias.
         """
         
-        if not isinstance(v, _GenericTypes):
+        if not isinstance(v, _GenericTypes + _UnionTypes):
             return None
         
         return (cls.cast(v.__origin__, type), v.__args__)
     
     @classmethod
-    def splitUnion(cls, v: _Any, /):
+    def splitUnion(cls, v: _Any, /, extractOrigins: bool = False):
         """
-        Availability: >= 0.3.65
+        Availability: >= 0.3.65 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.splitUnion
         
         Extracts all types from an union type object and returns them in a tuple. Returns `None` when value isn't an union type object.
         
-        This class method returns `__args__` property value of the union type object.
+        - 0.3.74: Added optional parameter `extractOrigins`
         """
         
         if not isinstance(v, _UnionTypes):
             return None
         
-        return v.__args__
+        args = v.__args__
         
+        if extractOrigins:
+            newargs = [StopIteration.value] # list[Any]
+            newargs.clear()
+            for arg in args:
+                if isinstance(arg, _GenericTypes):
+                    newargs.append(arg.__origin__)
+                else:
+                    newargs.append(arg)
+            return tuple(newargs)
+        else:
+            return args
     
     @classmethod
+    @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use 'print()' inbuilt function instead")
     def print(cls, *values: object, separator: extensions.Optional[str] = " ", ending: extensions.Optional[str] = "\n", file: extensions.Union[extensions.Writable[str], extensions.Flushable, None] = None, flush = False, reprFirst = False):
         """
         Availability: >= 0.3.25
@@ -5008,7 +5287,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload # 0.3.64: AbroadInitializer
-    def random(cls, x: extensions.Union[int, _ab_mod.AbroadInitializer], /) -> int: ... 
+    def random(cls, x: extensions.Union[int, abroad], /) -> int: ... 
     
     @classmethod
     @extensions.overload # 0.3.66: UUID
@@ -5054,23 +5333,25 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             elif isinstance(x, (extensions.SizeableItemGetter, *_SequenceLikeTypes, extensions.Mapping)): # 0.3.54: Mapping; 0.3.66: ValuesView
                 return cls.pick(x)
             
-        a = cls.cast([x, y], extensions.AVT_List[int])
-        
-        if cls.isList(a, int):
+        else:
+            
+            a = cls.cast([x, y], extensions.AVT_List[int])
+            
+            if cls.isList(a, int):
+                    
+                _x, _y = a[0], a[1]
                 
-            _x, _y = a[0], a[1]
-            
-            if x > y:
-                _x, _y = _y, _x
-            
-            return _random.randint(_x, _y)
+                if x > y:
+                    _x, _y = _y, _x
+                
+                return _random.randint(_x, _y)
             
         error = TypeError("no matching function signature")
         raise error
     
     if False:
         @classmethod
-        def randomWithout(self, from_: int, to_: int, /, exclude: extensions.Union[range, _ab_mod.AbroadInitializer, None] = None):
+        def randomWithout(self, from_: int, to_: int, /, exclude: extensions.Union[range, abroad, None] = None):
             """
             Availability: >= 0.3.52
             
@@ -5083,7 +5364,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 error = TypeError("expected integers only in parameters '{}' and '{}'".format(*_get_all_params(self.randomWithout))[:2])
                 raise error
             
-            if not isinstance(exclude, (type(None), range, _ab_mod.AbroadInitializer)):
+            if not isinstance(exclude, (type(None), range, abroad)):
                 error = TypeError("expected 'range' or 'abroad' object, or 'None' in parameter '{}'".format(_get_all_params(self.randomWithout))[2])
                 raise error
             
@@ -5135,7 +5416,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def pick(cls, i: _ab_mod.AbroadInitializer, /) -> int: ...
+    def pick(cls, i: abroad, /) -> int: ...
     
     # >= 0.3.66: ValuesView. KeysView and ItemsView work normally (both have AbstractSet as a parent that is already supported within this method); KeysView
     # returns a random key, and ItemsView returns a random pair (as a tuple). Since ValuesView inherits from Collection, and not from AbstractSet, however,
@@ -5145,7 +5426,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     def pick(cls, i: extensions.Union[extensions.SizeableItemGetter[extensions.T], extensions.SequenceLike[extensions.T], extensions.AVT_Mapping[_Any, extensions.T]], /) -> extensions.T: ...
     
     @classmethod # before 0.3.46 this signature had no annotations
-    def pick(cls, i: extensions.Union[extensions.SizeableItemGetter[extensions.T], extensions.SequenceLike[extensions.T], extensions.AVT_Mapping[_Any, extensions.T], _ab_mod.AbroadInitializer], /):
+    def pick(cls, i: extensions.Union[extensions.SizeableItemGetter[extensions.T], extensions.SequenceLike[extensions.T], extensions.AVT_Mapping[_Any, extensions.T], abroad], /):
         """
         Availability: >= 0.3.8 \\
         Standard: >= 0.3.24 \\
@@ -5191,7 +5472,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def invert(cls, v: extensions.Union[extensions.SequenceLike[extensions.Union[int, float]], _ab_mod.AbroadInitializer], /) -> extensions.AVT_List[float]: ...
+    def invert(cls, v: extensions.Union[extensions.SequenceLike[extensions.Union[int, float]], abroad], /) -> extensions.AVT_List[float]: ...
     
     @classmethod
     @extensions.overload
@@ -5225,7 +5506,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             
             return cls.cast([-e for e in v], extensions.AVT_List[float])
             
-        elif isinstance(v, _ab_mod.AbroadInitializer):
+        elif isinstance(v, abroad):
             
             _filter = [1/e for e in v if e not in (0, .0)]
             
@@ -5588,15 +5869,20 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         return cls
     
     @classmethod
-    def sleep(cls, seconds: float, /):
+    def sleep(cls, seconds: float, /, awaitable = False):
         """
         Availability: >= 0.3.25 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.sleep
         
         Define an execution delay; equivalent to `time.sleep()`.
         """
-        _time.sleep(seconds)
-        return cls
+        
+        if not awaitable:
+            _time.sleep(seconds)
+        
+        else:
+            import asyncio
+            return asyncio.sleep(seconds)
     
     @classmethod
     def improvedBogoSort(cls, i: extensions.AVT_Iterable[extensions.T], /, key: extensions.AVT_Callable[[extensions.T], extensions.RichComparable] = ...):
@@ -5873,7 +6159,7 @@ class RGB(_util.Final):
         
         Converts RGB tuple into its corresponding binary value.
         """
-        return bin(self.__int__())
+        return bin(int(self))
     
     def __oct__(self):
         """
@@ -5882,7 +6168,7 @@ class RGB(_util.Final):
         
         Converts RGB tuple into its corresponding octal value.
         """
-        return oct(self.__int__())
+        return oct(int(self))
     
     def __iter__(self):
         """
@@ -5892,10 +6178,12 @@ class RGB(_util.Final):
         """
         return iter(self.__rgb)
     
-    @_util.finalproperty
+    @property
+    @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use the instance of 'aveytense.RGB' in 'aveytense.Tense.hex()' instead.")
     def hex(self):
         """
         Availability: >= 0.3.38 \\
+        Deprecated: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.RGB.?hexadecimal_conversion
         
         Provides conversion to hexadecimal format
@@ -5924,7 +6212,8 @@ class RGB(_util.Final):
         """
         return self.__str__().lower()
     
-    @_util.finalproperty
+    @property
+    @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use the instance of 'aveytense.RGB' in 'aveytense.Tense.oct()' instead.")
     def oct(self):
         """
         Availability: >= 0.3.44 \\
@@ -5934,7 +6223,8 @@ class RGB(_util.Final):
         """
         return self.__oct__()
     
-    @_util.finalproperty
+    @property
+    @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use the instance of 'aveytense.RGB' in 'aveytense.Tense.bin()' instead.")
     def bin(self):
         """
         Availability: >= 0.3.44 \\
@@ -5950,7 +6240,7 @@ class RGB(_util.Final):
         Availability: >= 0.3.38 \\
         https://aveyzan.xyz/aveytense#aveytense.RGB.tuple
         
-        Returns a RGB tuple
+        Returns the RGB tuple
         """
         return self.__rgb
     
@@ -6060,7 +6350,7 @@ class RGB(_util.Final):
         Returns a new `RGB` object with a random color.
         """
         
-        return RGB(Tense.random(range(256)), Tense.random(range(256)), Tense.random(range(256)))
+        return RGB(Tense.pick(range(256)), Tense.pick(range(256)), Tense.pick(range(256)))
     
     def invert(self):
         """
@@ -6278,7 +6568,7 @@ class RGBA(_util.Final):
         Returns a new `RGBA` object with random RGB and opacity values.
         """
         
-        return RGBA(Tense.random(range(256)), Tense.random(range(256)), Tense.random(range(256)), Tense.random(range(101)) / 100)
+        return RGBA(Tense.pick(range(256)), Tense.pick(range(256)), Tense.pick(range(256)), Tense.pick(range(101)) / 100)
     
     def copy(self):
         """
@@ -6289,7 +6579,7 @@ class RGBA(_util.Final):
         
         return RGBA.fromValue(int(self), float(self))
     
-    
+@extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use the static method 'aveytense.RGB.invert()' instead.")
 class CMYK(_util.Final):
     """
     Availability: >= 0.3.28 \\
@@ -6938,8 +7228,6 @@ class Color:
     """
     __fg = None
     __bg = None
-    if False: # 0.3.27
-        __un = None
     __text = ""
     __bits = 8 # 24 to 0.3.34
     
@@ -7153,8 +7441,6 @@ class Color:
         """
         self.__fg = None
         self.__bg = None
-        if False: # 0.3.27
-            self.__un = None
         self.__bits = 8
         return self
     
@@ -7391,15 +7677,7 @@ class Color:
         
         else:
             
-            if True: # >= 0.3.27
-                error = TypeError("expected one from following constant values as a right operand: " + repr(self.__constants__) + " or a specific lowercased string literal when single font style was meant to be applied")
-                
-            else: # < 0.3.27
-                error = TypeError(
-                    "Expected any from constant values: " + repr(self.__constants__) + ". You are discouraged to do common operations on these constants, like union as in case of regular expression flags, to satisfy this requirement, because it "
-                    "won't warrant that returned string will be styled as thought"
-                )
-                
+            error = TypeError("expected one from the following constant values as a right operand: " + repr(self.__constants__))
             raise error
         
     @staticmethod

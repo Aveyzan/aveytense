@@ -11,16 +11,22 @@ import sys as _sys
 
 from . import _extensions as __
 from ._exceptions import _ErrorHandler as _E
+from ._typeparams import (
+    T as _T,
+    T_cov as _T_cov,
+    P as _P,
+    KT as _KT,
+    VT as _VT
+)
 
 __name__ = "aveytense.util"
 
 _ch = __.eval # checker
 
-_P = __.ParamSpec("_P")
-_T = __.TypeVar("_T")
-_T_cov = __.TypeVar("_T_cov", covariant = True)
 _T_func = __.TypeVar("_T_func", bound = __.AVT_Callable[..., __.Any])
 _T_enum = __.TypeVar("_T_enum", bound = __.Enum)
+
+_AnyObjectHinter = StopIteration().value
 
 _RichComparable: __.TypeAlias = __.RichComparable
 _OptionSelection: __.TypeAlias = __.Literal["frozen", "final", "abstract", "no_reassign", "forced_abstract"] # 0.3.27rc2
@@ -628,17 +634,6 @@ def abstract(t: __.AVT_Type[_T], /): # <- 0.3.41 slash
     t = _InternalHelper(t, "abstract")
     return t
 
-@__.deprecated("Deprecated since 0.3.69")
-def frozen(t: __.AVT_Type[_T], /): # <- 0.3.41 slash
-    """
-    Availability: >= 0.3.27rc1
-
-    Alias to `dataclass(frozen = True)` decorator (for 0.3.27rc1). \\
-    Since 0.3.27rc2 using different way.
-    """
-    t = _InternalHelper(t, "frozen")
-    return t
-
 class Final:
     """
     Availability: >= 0.3.26b3 (experimental; to 0.3.27b3 `FinalClass`, experiments ended 0.3.27rc1) \\
@@ -735,7 +730,7 @@ class finalproperty(__.Generic[_T]):
         
         class R:
             
-            @finalproperty
+            @property
             def val(self):
                 return 42
         
@@ -888,73 +883,7 @@ class AbstractFinal:
         "Availability: >= 0.3.27rc1. Error is thrown, because class may not be subclassed"
         _ch(_ih(11))
 
-@__.deprecated("Deprecated since 0.3.69")
-class FinalFrozen:
-    """
-    Availability: >= 0.3.27rc1
-    
-    Creates a final-frozen class. Blend of `Final` and `Frozen` classes
-    within submodule `aveytense.util`. Classes extending this class cannot
-    be further extended nor have fields modified by their objects.
-    """
-    __slots__ = ("__weakref__",)
-    
-    def __init_subclass__(cls):
-        cls = _InternalHelper(cls, "final")
-        cls = _InternalHelper(cls, "frozen")
-       
-    def __instancecheck__(self, instance: object):
-        "Availability: >= 0.3.27rc1. Check whether an object is instance to this class"
-        return isinstance(instance, type(self))
-    
-    def __subclasscheck__(self, cls: type):
-        "Availability: >= 0.3.27rc1. Error is thrown, because this class may not be subclassed"
-        _ch(_ih(11))
-       
-    def __mro_entries__(self):
-        return None
-    
-    @property
-    def __mro__(self):
-        return None  
-
-@__.deprecated("Deprecated since 0.3.69")
-class AbstractFrozen:
-    """
-    Availability: >= 0.3.27rc1
-    
-    Creates an abstract-frozen class. Typically blend of `Abstract` and `Frozen` classes
-    within submodule `aveytense.util`. Classes extending this class cannot
-    be initialized, nor have their fields modified. *During experiments*
-    
-    Possible way to end the experiments would be:
-    - extending `enum.Enum` and overriding only some of its declarations, such as `__new__` method
-    - extending `type` and raising error in `__setattr__` and `__delattr__`
-    - creating private dictionary which will store class names as keys and fields as values, further
-        used by both pre-mentioned methods
-    """
-    __slots__ = ()
-    
-    def __init_subclass__(cls):
-        
-        def _no_init(self: __.Self):
-            _ch(_ih(2))
-        
-        cls = abstract(frozen(cls))
-        
-        if cls.__init__.__code__ is not _no_init.__code__:
-           error = LookupError("cannot remake __init__ method code on class " + cls.__name__)
-           raise error
-        
-    def __instancecheck__(self, instance: object):
-        "Availability: >= 0.3.27rc1. Error is thrown, because class may not be instantiated"
-        _E(115, type(self).__name__)
-        
-    def __subclasscheck__(self, cls: type):
-        "Availability: >= 0.3.27rc1. Check whether a class is a subclass of this class"
-        return issubclass(cls, type(self))
-
-
+@__.dataclass(init = False, repr = False, eq = False, frozen = True) # 0.3.74
 class SortedList(__.Generic[_T]):
     """
     Availability: >= 0.3.35
@@ -962,68 +891,62 @@ class SortedList(__.Generic[_T]):
     Creates a sorted list. Note this class doesn't inherit from `list` builtin itself.
     """
     
+    # The types are genuine and these attributes exist actually.
+    __list: __.AVT_List[_T]
+    __sorted: __.AVT_List[_T]
+    
     def __init__(self, i: __.AVT_Iterable[_T], /, key: __.Optional[__.AVT_Callable[[_T], _RichComparable]] = None, reverse = False): # 0.3.35
-        
+
         if not isinstance(i, __.Iterable):
-            
-            error = ValueError("expected an iterable")
+            error = ValueError("expected an iterable object")
             raise error
         
-        self.__l = self.__sorted = [e for e in i]
-        self.__sorted.sort(key = key, reverse = reverse)
+        _mangle = lambda attr = "": "_" + type(self).__name__ + attr
         
+        object.__setattr__(self, _mangle("__list"), list(i))
+        object.__setattr__(self, _mangle("__sorted"), sorted(i, key = key, reverse = reverse))
+        
+        del _mangle
     
     def __iter__(self): # 0.3.35
-        
         return iter(self.__sorted)
     
-    
     def __len__(self): # 0.3.35
-        
-        return _reckon(self.__sorted)
+        return len(self.__sorted)
     
+    @__.overload
+    def __getitem__(self, index: int, /) -> _T: ...
+    @__.overload
+    def __getitem__(self, index: slice, /) -> __.AVT_List[_T]: ...
     
-    def __getitem__(self, index: int, /): # 0.3.35
-        
+    def __getitem__(self, index: __.Union[int, slice], /): # 0.3.35
         return self.__sorted[index]
     
-    
     def __contains__(self, item: _T, /): # 0.3.35
-        
         return item in self.__sorted
     
-    
     def __eq__(self, other, /): # 0.3.35
-        
-        return type(other) is type(self) and list(self) == list(other)
-    
+        return type(other) == type(self) and list(self) == list(other)
     
     def __ne__(self, other, /): # 0.3.35
-        
-        return (type(other) is not type(self)) or self.__eq__(other)
-        
+        return not self.__eq__(other)
         
     def __str__(self): # 0.3.35
-        
-        return "{}({})".format(type(self).__name__, _reckon(self.__l))
-    
+        return "{}({})".format(type(self).__name__, len(self.__list))
     
     def __repr__(self): # 0.3.35
-        
-        return "<{}.{} object: {}>".format(self.__module__, type(self).__name__, self.__str__())
-        
+        from . import _ReprStr
+        return _ReprStr.format(type(self).__qualname__, id(self))
         
     def reverse(self, v = False, /):
         """Availability: >= 0.3.35"""
-        
         if v:
             self.__sorted.reverse()
-            
             
     def setKey(self, v: __.Optional[__.AVT_Callable[[_T], _RichComparable]] = None, /):
         """Availability: >= 0.3.35"""
         
-        self.__sorted = self.__l
+        self.__sorted = self.__list
         if v is not None:
             self.__sorted.sort(key = v)
             
@@ -1152,20 +1075,22 @@ def all(name: str = "all", mode: __.Union[_AllMode, __.AVT_Callable[[str], bool]
     
 _builtin_classes = (int, float, complex, filter, memoryview, bytearray, bytes, str, slice, map, range, bool, list, tuple, set, frozenset, dict, object, reversed, enumerate, zip)
 
-class _ParamNoDefault(Abstract):
+class ParamNoDefault(Abstract):
     """
-    Availability: >= 0.3.51
+    Availability: >= 0.3.51 \\
+    https://aveyzan.xyz/aveytense#aveytense.util.ParamNoDefault
     
     Used to denote parameters without default value with final \\
-    properties ending with `withDefaults` suffix, in `~.util.ParamVar`.
+    properties ending with `withDefaults` suffix, in `aveytense.util.ParamVar`.
+    
+    Public since 0.3.74
     """
     
 class _BuiltinParamVar:
     """
     Availability: >= 0.3.51
     
-    Used in `~.util.ParamVar` to receive parameters from inbuilt functions. \\
-    Noteworthy none of these have annotations.
+    Used in `aveytense.util.ParamVar` to receive parameters from inbuilt functions. Note: none of these have annotations.
     """
     
     def __init__(self, f):
@@ -1182,7 +1107,7 @@ class _BuiltinParamVar:
         
         # 0.3.51
         # If only we were able to do much...
-        # Inbuilt functions are supported, but question beg inbuilt methods, which in most
+        # Inbuilt functions are supported, but a question beg inbuilt methods, which in most
         # cases return signature (*args, **kwargs) with no useful signature information.
         _unsanitized_signature_ = getattr(f, "__text_signature__", None)
         _SPACES_ = [" " * 0b111][0]
@@ -1214,17 +1139,17 @@ class _BuiltinParamVar:
             error = TypeError("unable to retrieve signature")
             raise error
         
-    @finalproperty
+    @property
     def signature(self): # 0.3.51
         
         return "(" + self.__signature.replace("=", " = ")
         
-    @finalproperty
+    @property
     def all(self): # 0.3.51
         
         return tuple([_param_sanitize(p) for p in self.__gleaned_params if p not in ("/", "*")])
         
-    @finalproperty
+    @property
     def allDefaults(self): # 0.3.51
         
         _return_ = [("", StopIteration.value)]
@@ -1232,17 +1157,17 @@ class _BuiltinParamVar:
         _return_.extend([(_param_sanitize(p), p[_reckon(_param_sanitize(p, True)):]) for p in self.__gleaned_params if _param_sanitize(p, True).endswith("=")])
         return tuple(_return_)
     
-    @finalproperty
+    @property
     def allWithDefaults(self): # 0.3.51
         
-        return tuple([(p, _ParamNoDefault if p not in dict(self.allDefaults) else dict(self.allDefaults)[p]) for p in self.all])
+        return tuple([(p, ParamNoDefault if p not in dict(self.allDefaults) else dict(self.allDefaults)[p]) for p in self.all])
     
-    @finalproperty
+    @property
     def allNoDefaults(self): # 0.3.51
         
         return tuple([p for p in self.all if p not in dict(self.allDefaults)])
     
-    @finalproperty
+    @property
     def positional(self): # 0.3.51
         
         _return_ = [""]
@@ -1258,22 +1183,22 @@ class _BuiltinParamVar:
             
         return tuple(_return_)
     
-    @finalproperty
+    @property
     def positionalDefaults(self): # 0.3.51
         
         return tuple([p for p in self.allDefaults if p[0] in self.positional])
     
-    @finalproperty
+    @property
     def positionalWithDefaults(self): # 0.3.51
         
-        return tuple([(p, _ParamNoDefault if p not in dict(self.positionalDefaults) else dict(self.positionalDefaults)[p]) for p in self.positional])
+        return tuple([(p, ParamNoDefault if p not in dict(self.positionalDefaults) else dict(self.positionalDefaults)[p]) for p in self.positional])
     
-    @finalproperty
+    @property
     def positionalNoDefaults(self): # 0.3.51
         
         return tuple([p for p in self.positional if p not in dict(self.positionalDefaults)])
     
-    @finalproperty
+    @property
     def keyword(self): # 0.3.51
         
         _marker_ = 0
@@ -1288,42 +1213,42 @@ class _BuiltinParamVar:
             
         return tuple([_param_sanitize(p) for p in self.__gleaned_params[_marker_:] if not p.startswith("**")])
     
-    @finalproperty
+    @property
     def keywordDefaults(self): # 0.3.51
         
         return tuple([p for p in self.allDefaults if p[0] in self.keyword])
     
-    @finalproperty
+    @property
     def keywordWithDefaults(self): # 0.3.51
         
-        return tuple([(p, _ParamNoDefault if p not in dict(self.keywordDefaults) else dict(self.keywordDefaults)[p]) for p in self.keyword])
+        return tuple([(p, ParamNoDefault if p not in dict(self.keywordDefaults) else dict(self.keywordDefaults)[p]) for p in self.keyword])
     
-    @finalproperty
+    @property
     def keywordNoDefaults(self): # 0.3.51
         
         return tuple([p for p in self.keyword if p not in dict(self.keywordDefaults)])
     
-    @finalproperty
+    @property
     def universal(self): # 0.3.51
         
         return tuple([p for p in self.all if p not in (*self.positional, *self.keyword) and not p.startswith(("*", "/"))])
     
-    @finalproperty
+    @property
     def universalDefaults(self): # 0.3.51
         
         return tuple([p for p in self.allDefaults if p[0] in self.universal])
     
-    @finalproperty
+    @property
     def universalWithDefaults(self): # 0.3.51
         
-        return tuple([(p, _ParamNoDefault if p not in dict(self.universalDefaults) else dict(self.universalDefaults)[p]) for p in self.universal])
+        return tuple([(p, ParamNoDefault if p not in dict(self.universalDefaults) else dict(self.universalDefaults)[p]) for p in self.universal])
     
-    @finalproperty
+    @property
     def universalNoDefaults(self): # 0.3.51
         
         return tuple([p for p in self.universal if p not in dict(self.universalDefaults)])
     
-    @finalproperty
+    @property
     def variable(self): # 0.3.51
         
         _return_ = [("", "")]
@@ -1479,16 +1404,17 @@ class ParamVar:
         error = TypeError("unable to delete property {}".format(self.func.__name__))
         raise error
     
-    @finalproperty
+    @property
     def builtin(self):
         """
-        Availability: >= 0.3.52
+        Availability: >= 0.3.52 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.builtin
         
         Returns `True` if function is inbuilt.
         """
         return self.__builtin is not None
     
-    @finalproperty
+    @property
     def signature(self): # 0.3.42
         """
         Availability: >= 0.3.42 \\
@@ -1496,133 +1422,123 @@ class ParamVar:
         
         Returns function's signature
         """
+            
+        # 0.3.51
+        if self.__builtin is not None:
+            return self.__builtin.signature
         
-        if _sys.version_info >= (0, 3, 44):
+        _signature_ = "("
+        
+        # inverting keys and values pairs, because <args> and <kwargs> are normally values (not keys) in dictionary (in tuples: second item)
+        # trick with indexes may be needed - whether ~.variable is empty, indexes aren't accessed
+        _variable_ = {e[1]: e[0] for e in self.variable}
+        
+        # on terminals quotes are omitted, so we will be including them to indicate these values are strings
+        # 0.3.45: + present ellipsis as '...'
+        _quote_ = lambda x: "..." if x is ... else str(x) if type(x) is not str else "\"{}\"".format(x)
+        
+        # 0.3.47, 0.3.49
+        # doing it with __future__.annotations and values of globals() is not preferred idea
+        # better catch the error when subscripting
+        _quoted_annotations_ = False
+        
+        if _sys.version_info < (3, 9):
             
-            # 0.3.51
-            if self.__builtin is not None:
-                return self.__builtin.signature
+            from collections.abc import Sequence
             
-            _signature_ = "("
-            
-            # inverting keys and values pairs, because <args> and <kwargs> are normally values (not keys) in dictionary (in tuples: second item)
-            # trick with indexes may be needed - whether ~.variable is empty, indexes aren't accessed
-            _variable_ = {e[1]: e[0] for e in self.variable}
-            
-            # on terminals quotes are omitted, so we will be including them to indicate these values are strings
-            # 0.3.45: + present ellipsis as '...'
-            _quote_ = lambda x: "..." if x is ... else str(x) if type(x) is not str else "\"{}\"".format(x)
-            
-            # 0.3.47, 0.3.49
-            # doing it with __future__.annotations and values of globals() is not preferred idea
-            # better catch the error when subscripting
-            _quoted_annotations_ = False
-            
-            if _sys.version_info < (3, 9):
+            try:
+                _e_ = Sequence[str] # type: ignore
+                _e_ = _e_
                 
-                from collections.abc import Sequence
-                
-                try:
-                    _e_ = Sequence[str] # type: ignore
-                    _e_ = _e_
-                    
-                except:
-                    _quoted_annotations_ = True
-            
-            # 0.3.47: Faster to do it than do the same with dict(~.annotations). 'True' and 'False' cannot be deduced in type annotation, they need use with
-            # typing.Literal, hence ... if self...get(x, False)
-            # 0.3.52: Un-stringify type annotations
-            # 0.3.53: Check whether 'globals' in eval() can be passed as a keyword
-            if not _quoted_annotations_:
-                _receive_annotation_ = lambda x = "": ": " + str(__.eval(self.func.__annotations__[x], globals = self.func.__globals__)) if self.func.__annotations__.get(x, False) is not False else ""
-            else:
-                _receive_annotation_ = lambda x = "": ": \"{}\"".format(str(__.eval(self.func.__annotations__[x], globals = self.func.__globals__))) if self.func.__annotations__.get(x, False) is not False else ""
-                    
-            # 0.3.48
-            # Fixed annotations (these only applied to parameters with default value)
-            
-            # pep 570, Py>=3.8
-            if self.positionalCount > 0:
-                
-                _positional_defaults = dict(self.positionalDefaults)
-                _annotations_ = [e + _receive_annotation_(e) + (" = " + _quote_(_positional_defaults[e]) if e in _positional_defaults else "") for e in self.positional]
-                
-                _signature_ += ", ".join(_annotations_) + ", /, "
-                
-            if self.universalCount > 0:
-                
-                _universal_defaults = dict(self.universalDefaults)
-                _annotations_ = [e + _receive_annotation_(e) + (" = " + _quote_(_universal_defaults[e]) if e in _universal_defaults else "") for e in self.universal]
-                
-                _signature_ += ", ".join(_annotations_) + ", "
-                
-            if "<args>" in _variable_:
-                
-                if not _signature_.endswith(", ") and self.positionalCount > 0: # >= 0.3.45
-                    _signature_ += ", "
-                
-                _signature_ += "*{}, ".format(_variable_["<args>"] + _receive_annotation_(_variable_["<args>"]))
-            
-            # pep 3102, Py>=3.0
-            if self.keywordCount > 0:
-                
-                _keyword_defaults = dict(self.keywordDefaults)
-                _annotations_ = [e + _receive_annotation_(e) + (" = " + _quote_(_keyword_defaults[e]) if e in _keyword_defaults else "") for e in self.keyword]
-                
-                if "<args>" not in _variable_:
-                    _signature_ += "*, "
-                    
-                _signature_ += ", ".join(_annotations_)
-                
-            if "<kwargs>" in _variable_:
-                
-                if not _signature_.endswith(", ") and (any([e > 0 for e in (self.positionalCount, self.universalCount, self.keywordCount)]) or "<args>" in _variable_):
-                    _signature_ += ", "
-                
-                _signature_ += "**{}, ".format(_variable_["<kwargs>"] + _receive_annotation_(_variable_["<kwargs>"]))
-            
-            if _signature_.endswith(", "):
-                _signature_ = _signature_[: _reckon(_signature_) - 2]
-                
-            _signature_ += ")"
-            
-            # 0.3.48
-            # Return type annotation
-            _return_ = dict(self.annotations).get("return", False)
-            
-            # if not that, 'None' would be excluded too
-            if _return_ is not False:
-                _signature_ += " -> {}".format(_return_)
-            
+            except:
+                _quoted_annotations_ = True
+        
+        # 0.3.47: Faster to do it than do the same with dict(~.annotations). 'True' and 'False' cannot be deduced in type annotation, they need use with
+        # typing.Literal, hence ... if self...get(x, False)
+        # 0.3.52: Un-stringify type annotations
+        # 0.3.53: Check whether 'globals' in eval() can be passed as a keyword
+        if not _quoted_annotations_:
+            _receive_annotation_ = lambda x = "": ": " + str(__.eval(self.func.__annotations__[x], globals = self.func.__globals__)) if self.func.__annotations__.get(x, False) is not False else ""
         else:
+            _receive_annotation_ = lambda x = "": ": \"{}\"".format(str(__.eval(self.func.__annotations__[x], globals = self.func.__globals__))) if self.func.__annotations__.get(x, False) is not False else ""
+                
+        # 0.3.48
+        # Fixed annotations (these only applied to parameters with default value)
         
-            import inspect, re
+        # pep 570, Py>=3.8
+        if self.positionalCount > 0:
             
-            _signature_ = str(inspect.signature(self.func))
-            _signature_ = re.sub(r"=", " = ", _signature_)
+            _positional_defaults = dict(self.positionalDefaults)
+            _annotations_ = [e + _receive_annotation_(e) + (" = " + _quote_(_positional_defaults[e]) if e in _positional_defaults else "") for e in self.positional]
+            
+            _signature_ += ", ".join(_annotations_) + ", /, "
+            
+        if self.universalCount > 0:
+            
+            _universal_defaults = dict(self.universalDefaults)
+            _annotations_ = [e + _receive_annotation_(e) + (" = " + _quote_(_universal_defaults[e]) if e in _universal_defaults else "") for e in self.universal]
+            
+            _signature_ += ", ".join(_annotations_) + ", "
+            
+        if "<args>" in _variable_:
+            
+            if not _signature_.endswith(", ") and self.positionalCount > 0: # >= 0.3.45
+                _signature_ += ", "
+            
+            _signature_ += "*{}, ".format(_variable_["<args>"] + _receive_annotation_(_variable_["<args>"]))
+        
+        # pep 3102, Py>=3.0
+        if self.keywordCount > 0:
+            
+            _keyword_defaults = dict(self.keywordDefaults)
+            _annotations_ = [e + _receive_annotation_(e) + (" = " + _quote_(_keyword_defaults[e]) if e in _keyword_defaults else "") for e in self.keyword]
+            
+            if "<args>" not in _variable_:
+                _signature_ += "*, "
+                
+            _signature_ += ", ".join(_annotations_)
+            
+        if "<kwargs>" in _variable_:
+            
+            if not _signature_.endswith(", ") and (any([e > 0 for e in (self.positionalCount, self.universalCount, self.keywordCount)]) or "<args>" in _variable_):
+                _signature_ += ", "
+            
+            _signature_ += "**{}, ".format(_variable_["<kwargs>"] + _receive_annotation_(_variable_["<kwargs>"]))
+        
+        if _signature_.endswith(", "):
+            _signature_ = _signature_[: _reckon(_signature_) - 2]
+            
+        _signature_ += ")"
+        
+        # 0.3.48
+        # Return type annotation
+        _return_ = dict(self.annotations).get("return", False)
+        
+        # if not that, 'None' would be excluded too
+        if _return_ is not False:
+            _signature_ += " -> {}".format(_return_)
             
         return _signature_
     
-    @finalproperty
+    @property
     def firstParam(self): # 0.3.61
         """
         Availability: >= 0.3.61
         
         If function is actually a non-static method, returns first parameter bound to either class instance or class itself (like `self` and `cls`).
-        
         Returns `None` otherwise
         """
         
         if self.__no_first == 1:
             return self.func.__code__.co_varnames[0]
         
-    @finalproperty
+    @property
     def all(self): # 0.3.42
         """
         Availability: >= 0.3.42 \\
         https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.all
         
-        Returns all arguments, positioned as they appear in the signature.
+        Returns a tuple with all arguments, positioned as they appear in the signature.
         Earlier, this property returned arguments in the following way: positional-only,
         universal, keyword-only, variable argument, variable keyword argument.
         
@@ -1657,13 +1573,13 @@ class ParamVar:
             
         return _all_
     
-    @finalproperty
+    @property
     def allDefaults(self): # 0.3.42
         """
         Availability: >= 0.3.42 \\
         https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.allDefaults
         
-        Returns tuple holding tuples with pair of items with content, respectively:
+        Returns a tuple holding tuples with pair of items with content, respectively:
         - all arguments
         - their default values
         
@@ -1682,13 +1598,13 @@ class ParamVar:
         
         return self.positionalDefaults + self.universalDefaults + self.keywordDefaults
     
-    @finalproperty
+    @property
     def allWithDefaults(self): # 0.3.51
         """
         Availability: >= 0.3.51 \\
         https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.allWithDefaults
         
-        Returns tuple holding tuples with pair of items with content, respectively:
+        Returns a tuple holding tuples with pair of items with content, respectively:
         - all arguments
         - their default values (internal class if default value in some is not present)
         
@@ -1703,16 +1619,16 @@ class ParamVar:
         Convertible to `dict`
         """
         
-        return tuple([(p, _ParamNoDefault if p not in dict(self.allDefaults) else dict(self.allDefaults)[p]) for p in self.all])
+        return tuple([(p, ParamNoDefault if p not in dict(self.allDefaults) else dict(self.allDefaults)[p]) for p in self.all])
         
     
-    @finalproperty
+    @property
     def allNoDefaults(self): # 0.3.44
         """
         Availability: >= 0.3.44 \\
         https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.allNoDefaults
         
-        Returns tuple holding all kind of parameters whose don't have a default value.
+        Returns a tuple holding all kind of parameters whose don't have a default value.
         Empty whether there are none. Examples::
         
             def f1(p1, p2, /, p3, p4 = 75, *, p5, p6, **p7): ...
@@ -1723,12 +1639,13 @@ class ParamVar:
         
         return tuple([e for e in self.all if e not in dict(self.allDefaults)])
     
-    @finalproperty
+    @property
     def positional(self): # 0.3.42
         """
-        Availability: >= 0.3.42
+        Availability: >= 0.3.42 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.positional
         
-        Returns tuple holding all positional-only arguments. Empty whether there are none. Examples::
+        Returns a tuple holding all positional-only arguments. Empty whether there are none. Examples::
         
             def f1(p1, p2, p3, p4 = 54, p5 = "", /): ...
             # ("p1", "p2", "p3", "p4", "p5")
@@ -1792,12 +1709,13 @@ class ParamVar:
             
         return _tuple_[: _tuple_end_marker_]
     
-    @finalproperty
+    @property
     def positionalDefaults(self): # 0.3.42
         """
-        Availability: >= 0.3.42
+        Availability: >= 0.3.42 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.positionalDefaults
         
-        Returns tuple holding tuples with pair of items with content, respectively:
+        Returns a tuple holding tuples with pair of items with content, respectively:
         - positional-only arguments
         - their default values
         
@@ -1825,16 +1743,17 @@ class ParamVar:
             
             return tuple([(_positional_[i], _defaults_[i]) for i in range(min(_reckon(_positional_), _reckon(_defaults_)))])[::-1]
                 
-        a = [("", StopIteration.value)]
+        a = [("", _AnyObjectHinter)]
         a.clear()
         return tuple(a)
     
-    @finalproperty
+    @property
     def positionalWithDefaults(self): # 0.3.51
         """
-        Availability: >= 0.3.51
+        Availability: >= 0.3.51 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.positionalWithDefaults
         
-        Returns tuple holding tuples with pair of items with content, respectively:
+        Returns a tuple holding tuples with pair of items with content, respectively:
         - positional-only arguments
         - their default values (internal class if default value in some is not present)
         
@@ -1853,14 +1772,15 @@ class ParamVar:
         Convertible to `dict`
         """
         
-        return tuple([(p, _ParamNoDefault if p not in dict(self.positionalDefaults) else dict(self.positionalDefaults)[p]) for p in self.positional])
+        return tuple([(p, ParamNoDefault if p not in dict(self.positionalDefaults) else dict(self.positionalDefaults)[p]) for p in self.positional])
     
-    @finalproperty
+    @property
     def positionalNoDefaults(self): # 0.3.44
         """
-        Availability: >= 0.3.44
+        Availability: >= 0.3.44 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.positionalNoDefaults
         
-        Returns tuple holding all positional-only arguments whose don't have a default value. \\
+        Returns a tuple holding all positional-only arguments whose don't have a default value. \\
         Empty whether there are none. Examples::
         
             def f1(p1, p2, p3, p4 = 54, p5 = "", /): ...
@@ -1873,12 +1793,13 @@ class ParamVar:
         
         return tuple([e for e in self.positional if e not in dict(self.positionalDefaults)]) 
     
-    @finalproperty
+    @property
     def keyword(self): # 0.3.42
         """
-        Availability: >= 0.3.42
+        Availability: >= 0.3.42 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.keyword
         
-        Returns tuple holding all keyword-only arguments.
+        Returns a tuple holding all keyword-only arguments.
         Empty whether there are none. Example::
         
             def f(p1, *, p2 = 66, p3 = "", p4, **p5): ...
@@ -1895,10 +1816,11 @@ class ParamVar:
         c = self.func.__code__
         return tuple([_return_param(self.func, e) for e in c.co_varnames[c.co_argcount : c.co_argcount + c.co_kwonlyargcount]])
     
-    @finalproperty
+    @property
     def keywordDefaults(self): # 0.3.42
         """
-        Availability: >= 0.3.42
+        Availability: >= 0.3.42 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.keywordDefaults
         
         Returns tuple holding tuples with pair of items with content, respectively:
         - keyword-only arguments
@@ -1918,16 +1840,17 @@ class ParamVar:
         
         if self.func.__kwdefaults__ is None:
             
-            a = [("", StopIteration.value)]
+            a = [("", _AnyObjectHinter)]
             a.clear()
             return tuple(a)
     
         return tuple([(_return_param(self.func, k), self.func.__kwdefaults__[k]) for k in self.func.__kwdefaults__])
     
-    @finalproperty
+    @property
     def keywordWithDefaults(self): # 0.3.51
         """
-        Availability: >= 0.3.51
+        Availability: >= 0.3.51 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.keywordWithDefaults
         
         Returns tuple holding tuples with pair of items with content, respectively:
         - keyword-only arguments
@@ -1941,13 +1864,14 @@ class ParamVar:
             
         Convertible to `dict`
         """
-        return tuple([(p, _ParamNoDefault if p not in dict(self.keywordDefaults) else dict(self.keywordDefaults)[p]) for p in self.keyword]) # >= 0.3.52: missing return statement
+        return tuple([(p, ParamNoDefault if p not in dict(self.keywordDefaults) else dict(self.keywordDefaults)[p]) for p in self.keyword]) # >= 0.3.52: missing return statement
         
     
-    @finalproperty
+    @property
     def keywordNoDefaults(self): # 0.3.44
         """
-        Availability: >= 0.3.44
+        Availability: >= 0.3.44 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.keywordNoDefaults
         
         Returns tuple holding all keyword arguments whose don't have a default value.
         Empty if there are none. Example::
@@ -1957,10 +1881,11 @@ class ParamVar:
         """
         return tuple([e for e in self.keyword if e not in dict(self.keywordDefaults)])
     
-    @finalproperty
+    @property
     def universal(self): # 0.3.42
         """
-        Availability: >= 0.3.42
+        Availability: >= 0.3.42 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.universal
         
         Returns tuple holding all universal arguments. *Universal* arguments are
         arguments that can have their values assigned either by position or their
@@ -1991,10 +1916,11 @@ class ParamVar:
             _left = self.__no_first if c.co_posonlyargcount - self.__no_first <= 0 else c.co_posonlyargcount - self.__no_first
             return tuple([e for e in c.co_varnames[_left : c.co_argcount] if e not in self.positional])
     
-    @finalproperty
+    @property
     def universalDefaults(self): # 0.3.42
         """
-        Availability: >= 0.3.42
+        Availability: >= 0.3.42 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.universalDefaults
         
         Returns tuple holding tuples with pair of items with content, respectively:
         - universal arguments
@@ -2022,14 +1948,15 @@ class ParamVar:
             
             return tuple([(_universal_[i], _defaults_[i]) for i in range(min(_reckon(_universal_), _reckon(_defaults_))) if (_universal_[i], _defaults_[i]) not in self.positionalDefaults])[::-1]
         
-        a = [("", StopIteration.value)]
+        a = [("", _AnyObjectHinter)]
         a.clear()
         return tuple(a)
     
-    @finalproperty
+    @property
     def universalWithDefaults(self): # 0.3.51
         """
-        Availability: >= 0.3.51
+        Availability: >= 0.3.51 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.universalWithDefaults
         
         Returns tuple holding tuples with pair of items with content, respectively:
         - universal arguments
@@ -2047,12 +1974,13 @@ class ParamVar:
         Convertible to `dict`
         """
         
-        return tuple([(p, _ParamNoDefault if p not in dict(self.universalDefaults) else dict(self.universalDefaults)[p]) for p in self.universal])
+        return tuple([(p, ParamNoDefault if p not in dict(self.universalDefaults) else dict(self.universalDefaults)[p]) for p in self.universal])
                 
-    @finalproperty
+    @property
     def universalNoDefaults(self): # 0.3.44
         """
-        Availability: >= 0.3.44
+        Availability: >= 0.3.44 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.universalNoDefaults
         
         Returns tuple holding all universal arguments whose don't have a default value.
         Empty if there are none. Examples::
@@ -2064,10 +1992,11 @@ class ParamVar:
         """
         return tuple([e for e in self.universal if e not in dict(self.universalDefaults)])
     
-    @finalproperty
+    @property
     def annotated(self): # 0.3.42
         """
-        Availability: >= 0.3.42
+        Availability: >= 0.3.42 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.annotated
         
         Returns tuple holding names of arguments whose have been annotated a type. Such
         parameter can be type annotated since Python 3.5. Example::
@@ -2087,10 +2016,11 @@ class ParamVar:
         
         return tuple([_return_param(self.func, k) for k in self.all if k in self.func.__annotations__ and k != "return"])
     
-    @finalproperty
+    @property
     def annotatedDefaults(self): # 0.3.44
         """
-        Availability: >= 0.3.44
+        Availability: >= 0.3.44 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.annotatedDefaults
         
         Returns tuple holding tuples with pair of items with content, respectively:
         - type-annotated arguments
@@ -2105,31 +2035,27 @@ class ParamVar:
         
         Convertible to `dict`
         """
+            
+        _list_ = [("", (_AnyObjectHinter, _AnyObjectHinter))]
+        _list_.clear()
         
-        if _sys.version_info >= (0, 3, 47):
-            
-            _list_ = [("", (StopIteration.value, StopIteration.value))]
-            _list_.clear()
-            
-            # 0.3.51
-            if self.__builtin is not None:
-                return tuple(_list_)
-            
-            _defaults_ = dict(self.allDefaults)
-            
-            for e in self.annotated:
-                if e in _defaults_:
-                    _list_.append((e, (__.eval(self.func.__annotations__[e], globals = self.func.__globals__), _defaults_[e])))
-                    
+        # 0.3.51
+        if self.__builtin is not None:
             return tuple(_list_)
         
-        else:
-            return tuple([e for e in self.allDefaults if e[0] in self.annotated])
+        _defaults_ = dict(self.allDefaults)
         
-    @finalproperty
+        for e in self.annotated:
+            if e in _defaults_:
+                _list_.append((e, (__.eval(self.func.__annotations__[e], globals = self.func.__globals__), _defaults_[e])))
+                
+        return tuple(_list_)
+        
+    @property
     def annotatedWithDefaults(self): # 0.3.51
         """
-        Availability: >= 0.3.51
+        Availability: >= 0.3.51 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.annotatedWithDefaults
         
         Returns tuple holding tuples with pair of items with content, respectively:
         - type-annotated arguments
@@ -2144,12 +2070,13 @@ class ParamVar:
         Convertible to `dict`
         """
         
-        return tuple([(p, _ParamNoDefault if p not in dict(self.annotatedDefaults) else dict(self.annotatedDefaults)[p]) for p in self.annotated])
+        return tuple([(p, ParamNoDefault if p not in dict(self.annotatedDefaults) else dict(self.annotatedDefaults)[p]) for p in self.annotated])
     
-    @finalproperty
+    @property
     def annotatedNoDefaults(self): # 0.3.44
         """
-        Availability: >= 0.3.44
+        Availability: >= 0.3.44 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.annotatedNoDefaults
         
         Returns tuple holding names of arguments whose have been annotated a type,
         but do not have a default value. Empty if there are none. Example::
@@ -2165,7 +2092,7 @@ class ParamVar:
         _defaults_ = dict(self.annotatedDefaults)
         return tuple([e for e in self.annotated if e not in _defaults_])
     
-    @finalproperty
+    @property
     def annotations(self): # 0.3.42
         """
         Availability: >= 0.3.42 \\
@@ -2178,8 +2105,7 @@ class ParamVar:
         """
         
         # Code revamp 0.3.47
-        _list_ = [("", StopIteration.value)]
-        _list_.clear()
+        _list_: __.AVT_List[__.AVT_Tuple[str, __.AnnotationForm]] = []
         
         # 0.3.51
         if self.__builtin is not None:
@@ -2193,10 +2119,11 @@ class ParamVar:
                 
         return tuple(_list_)
         
-    @finalproperty
+    @property
     def variable(self): # 0.3.42 
         """
-        Availability: >= 0.3.42
+        Availability: >= 0.3.42 \\
+        https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.variable
         
         Returns tuple holding variable argument and variable keyword argument - both in separate
         internal 2-item tuples (second item being one of keywords: `"<args>"` and `"<kwargs>"`).
@@ -2221,7 +2148,7 @@ class ParamVar:
         c = self.func.__code__
         f = _CodeFlags()
         
-        _filter_ = tuple([e for e in self.all if e not in self.positional and e not in self.universal and e not in self.keyword]) # 0.3.46
+        _filter_ = tuple([e for e in self.all if e not in (self.positional + self.universal + self.keyword)]) # 0.3.46
         
         if c.co_flags & f.varargs and c.co_flags & f.varkeywords:
             
@@ -2229,7 +2156,7 @@ class ParamVar:
             # < 0.3.45: self.allCount, self.allCount + 1
             # < 0.3.46: self.allCount - 2, self.allCount - 1
             # >= 0.3.46
-            return tuple([(_filter_[0], "<args>"), (_filter_[1], "<kwargs>")]) 
+            return __.cast(__.AVT_Tuple[__.AVT_Tuple[str, str], ...], ((_filter_[0], "<args>"), (_filter_[1], "<kwargs>")))
         
         else:
             
@@ -2240,15 +2167,13 @@ class ParamVar:
                 self.__vartype = " <kwargs>"
                 
             else:
-                a = [("", "")]
-                a.clear()
-                return tuple(a)
+                return __.cast(__.AVT_Tuple[__.AVT_Tuple[str, str], ...], ())
             
             # < 0.3.45: self.allCount
             # >= 0.3.46
-            return tuple([(_filter_[0], __.cast(str, self.__vartype).lstrip())]) 
+            return __.cast(__.AVT_Tuple[__.AVT_Tuple[str, str], ...], (_filter_[0], self.__vartype.lstrip()))
         
-    @finalproperty
+    @property
     def positionalCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2257,7 +2182,7 @@ class ParamVar:
         
         return _reckon(self.positional)
     
-    @finalproperty
+    @property
     def positionalDefaultsCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2266,7 +2191,7 @@ class ParamVar:
         
         return _reckon(self.positionalDefaults)
     
-    @finalproperty
+    @property
     def positionalNoDefaultsCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2275,7 +2200,7 @@ class ParamVar:
         
         return _reckon(self.positionalNoDefaults)
     
-    @finalproperty
+    @property
     def universalCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2284,7 +2209,7 @@ class ParamVar:
         
         return _reckon(self.universal)
     
-    @finalproperty
+    @property
     def universalDefaultsCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2293,7 +2218,7 @@ class ParamVar:
         
         return _reckon(self.universalDefaults)
     
-    @finalproperty
+    @property
     def universalNoDefaultsCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2302,7 +2227,7 @@ class ParamVar:
         
         return _reckon(self.universalNoDefaults)
     
-    @finalproperty
+    @property
     def keywordCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2311,7 +2236,7 @@ class ParamVar:
         
         return _reckon(self.keyword)
     
-    @finalproperty
+    @property
     def keywordDefaultsCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2320,7 +2245,7 @@ class ParamVar:
         
         return _reckon(self.keywordDefaults)
     
-    @finalproperty
+    @property
     def keywordNoDefaultsCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2329,7 +2254,7 @@ class ParamVar:
         
         return _reckon(self.keywordNoDefaults)
     
-    @finalproperty
+    @property
     def allCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2338,7 +2263,7 @@ class ParamVar:
         
         return _reckon(self.all)
     
-    @finalproperty
+    @property
     def allDefaultsCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2347,7 +2272,7 @@ class ParamVar:
         
         return _reckon(self.allDefaults)
     
-    @finalproperty
+    @property
     def allNoDefaultsCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2356,7 +2281,7 @@ class ParamVar:
         
         return _reckon(self.allNoDefaults)
     
-    @finalproperty
+    @property
     def annotatedCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2365,7 +2290,7 @@ class ParamVar:
         
         return _reckon(self.annotated)
     
-    @finalproperty
+    @property
     def annotatedDefaultsCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2374,7 +2299,7 @@ class ParamVar:
         
         return _reckon(self.annotatedDefaults)
     
-    @finalproperty
+    @property
     def annotatedNoDefaultsCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2383,7 +2308,7 @@ class ParamVar:
         
         return _reckon(self.annotatedNoDefaults)
     
-    @finalproperty
+    @property
     def variableCount(self): # 0.3.44
         """
         Availability: >= 0.3.44
@@ -2719,68 +2644,21 @@ def simpleEnum(etype: type[_T_enum] = __.Enum, boundary: __.Optional[__.FlagBoun
     import enum
     return __.cast(__.AVT_Callable[[type[__.Any]], type[_T_enum]], enum._simple_enum(etype, boundary = boundary, use_args = useArgs))
             
-if __name__ == "__main__":
-    error = RuntimeError("This file is not for compiling, consider importing it instead.")
-    raise error
 
-if False: # < 0.3.50
-    
-    class StrictEnum:
-        """
-        Availability: >= 0.3.43 \\
-        *Experimental*
-        
-        This class decorator allows to create enumerators similar as these in TypeScript.
-        """
-        
-        def __init_subclass__(cls):
-            
-            # attributes that are callable are lambda functions    
-            _is_attribute_ = lambda x: not isinstance(x, (__.FunctionType, __.MethodType, property)) and not (isinstance(x, __.FunctionType) and "<lambda>" in str(x))
-            
-            if _sys.version_info >= (3, 13):
-                _dont_permit_ = ("__module__", )
-            
-            cls = __.Enum(cls.__name__, [(k, type(cls.__dict__[k])) for k in cls.__dict__ if _is_attribute_(cls.__dict__[k])])
-
-
-Any: __.TypeAlias = __.Any # >= 0.3.43
-"""
-Availability: >= 0.3.43
-
-`typing.Any`
-"""
-
-if False:
-    
-    class Unbound:
-        """
-        @since 0.3.44 (in code)
-        
-        Indicates unbound variable. Once referenced, throws an error
-        """
-        
-        def __init__(self):
-            pass
-        
-        def __get__(self, instance, owner = None):
-            
-            if instance is not None:
-                error = UnboundLocalError("cannot access local variable '{}' where it is not associated with a value")
-                raise error
-            
-            return type(self) 
-        
 def uniquelist(iterable: __.AVT_Iterable[_T] = ..., /):
     """
     Availability: >= 0.3.48 \\
     https://aveyzan.xyz/aveytense#aveytense.util.uniquelist
     
-    Returns version of an iterable object without duplicate items and changing order, as a list
+    Returns version of an iterable object without duplicate items and changing order, as a list object
     """
         
     if iterable is Ellipsis:
         return __.cast(__.AVT_List[_T], [])
+    
+    if not isinstance(iterable, __.Iterable):
+        error = TypeError("expected an iterable object")
+        raise error
     
     _list_ = list(iterable)
     _new_list_: __.AVT_List[_T] = []
@@ -2797,12 +2675,74 @@ def uniquetuple(iterable: __.AVT_Iterable[_T_cov] = ..., /):
     Availability: >= 0.3.48 \\
     https://aveyzan.xyz/aveytense#aveytense.util.uniquetuple
     
-    Returns version of an iterable object without duplicate items and changing order, as a tuple
+    Returns version of an iterable object without duplicate items and changing order, as a tuple object
     
     Alias to `tuple(~.uniquelist(i))`
     """
         
     return tuple(uniquelist(iterable))
+
+def uniquedict(mapping: __.AVT_Mapping[_KT, _VT] = ..., /):
+    """
+    Availability: >= 0.3.74 \\
+    https://aveyzan.xyz/aveytense#aveytense.util.uniquedict
+    
+    Returns version of a mapping object without duplicate values and changing order, as a dict object
+    """
+    
+    if mapping is Ellipsis:
+        return __.cast(__.AVT_Dict[_KT, _VT], {})
+    
+    if not isinstance(mapping, __.Mapping):
+        error = TypeError("expected a mapping object")
+        raise error
+    
+    _items_ = list(mapping.items())
+    _new_dict_: __.AVT_Dict[_KT, _VT] = {}
+    
+    for e in _items_:
+        
+        if e[1] not in _new_dict_.values():
+            _new_dict_.update([e])
+    
+    return _new_dict_
+
+def uniquestr(string: str, /):
+    """
+    Availability: >= 0.3.74 \\
+    https://aveyzan.xyz/aveytense#aveytense.util.uniquestr
+    
+    Returns version of a string without duplicate characters and changing order as another string.
+    
+    NOTE: this is not the same as `"".join(set(string))`
+    """
+    
+    if not isinstance(string, str):
+        error = TypeError("expected a string")
+        raise error
+    
+    return "".join(uniquelist(string))
+
+def indexeddict(i: __.Iterable[_T], /, negative = False):
+    """
+    Availability: >= 0.3.74 \\
+    https://aveyzan.xyz/aveytense#aveytense.util.indexeddict
+    
+    Returns a new dictionary with every item indexes being keys, and every item from an iterable object being values
+    """
+    
+    
+    d: __.AVT_Dict[int, _T] = {}
+    l = len(list(i))
+    
+    for index, item in enumerate(i):
+        
+        if negative:
+            d.update({-l + index: item})
+        else:
+            d.update({index: item})
+        
+    return d
 
 class Flags(_Immutable):
     """
@@ -2847,7 +2787,6 @@ CodeFlags = Flags.code
 """Availability: >= 0.3.53"""
 TypeFlags = Flags.type
 """Availability: >= 0.3.53"""
-    
     
 __all__ = sorted([k for k in globals() if not k.startswith("_")]) # 0.3.41: sorted()
 __all_deprecated__ = sorted([k for k in globals() if hasattr(globals()[k], "__deprecated__")])
