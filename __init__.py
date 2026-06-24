@@ -35,8 +35,8 @@ import re as _re
 import time as _time
 import types as _types
 import uuid as _uuid
-import warnings as _warnings
 
+from ._collection import _Missing
 from ._collection import _constants as _cl
 from ._collection._primal import *
 from ._collection._extensions import Any as _Any
@@ -157,7 +157,6 @@ Color = RGB = None
 
 if extensions.TYPE_CHECKING:
     from ._collection._extensions import (
-        _AVT_Slice,
         _PrideMonth2026AbroadConvectType,
         _PrideMonth2026AbroadStart,
         _PrideMonth2026AbroadStop,
@@ -171,12 +170,32 @@ if extensions.TYPE_CHECKING:
     _Color: extensions.TypeAlias = extensions.Union[extensions.ColorType, RGB]
     _ColorStylingType: extensions.TypeAlias = extensions.Union[_ColorStyling, _ColorAdvancedStyling]
     _Mode: extensions.TypeAlias = extensions.Union[bool, _cl.ModeSelection, extensions.Literal["and", "or"]] # 0.3.36, deprecated
-    _Pattern: extensions.TypeAlias = extensions.PatternType[extensions.AnyStr] # 0.3.42
-    _Target: extensions.TypeAlias = extensions.Union[str, bytes] # 0.3.42
+    if _sys.version_info >= (3, 15):
+        _Slice: extensions.TypeAlias = extensions.Union[
+            slice[_T_start_cov, _T_stop_cov, _T_step_cov],
+            AVT_Slice[_T_start_cov, _T_stop_cov, _T_step_cov]
+        ]
+    else:
+        _Slice: extensions.TypeAlias = extensions.AVT_Slice[_T_start_cov, _T_stop_cov, _T_step_cov]
 
 _SequenceLikeTypes = (extensions.Sequence, extensions.AbstractSet, extensions.ValuesView)
 
-if _sys.version_info >= (3, 10):
+if _sys.version_info >= (3, 15):
+    _SliceTypes = (slice,)
+else:
+    _SliceTypes = (slice, extensions.AVT_Slice)
+    
+if _sys.version_info >= (3, 14):
+    _MemoryViewTypes = (memoryview,)
+else:
+    _MemoryViewTypes = (memoryview, extensions.AVT_MemoryView)
+    
+if _sys.version_info >= (3, 12):
+    _ArrayTypes = (extensions.array,)
+else:
+    _ArrayTypes = (extensions.array, extensions.AVT_Array)
+
+if _sys.version_info >= (3, 10) and _sys.version_info < (3, 14):
     _UnionTypes = (extensions.TypingUnionType, extensions.UnionType)
 else:
     _UnionTypes = (extensions.TypingUnionType,)
@@ -211,23 +230,26 @@ class AbroadType(metaclass = _AbroadType):
     Only usable for `isinstance()` function to check whether the object is the result of the `abroad()` function
     """
     __init__ = None
+    
+def _is_sequence_like(v) -> extensions.AVT_TypeIs[extensions.SequenceLike[extensions.Any]]: # >= 0.3.75
+    return isinstance(v, _SequenceLikeTypes) and not isinstance(v, extensions.Mapping)
 
 def _check_if_sequence_like(v, msg: str, /): # >= 0.3.74
-    if not isinstance(v, _SequenceLikeTypes):
+    if not _is_sequence_like(v):
         error = TypeError(msg)
         raise error
     
 def _check_if_sequence_like_with_specific_item_type(v, types, msg: str, /): # >= 0.3.74
     seq = list(v) if not isinstance(v, list) else v
     if reckon(seq) > 0 and not all([isinstance(x, types) for x in seq]):
-        error = TypeError(msg)
+        error = ValueError(msg)
         raise error
     
 def _start_end_helper1(v) -> extensions.AVT_TypeIs[extensions.Union[str, extensions.SequenceLike[str]]]: # >= 0.3.74
-    return isinstance(v, str) or (isinstance(v, _SequenceLikeTypes) and all(isinstance(x, str) for x in list(v)))
+    return isinstance(v, str) or (_is_sequence_like(v) and all(isinstance(x, str) for x in list(v)))
 
 def _start_end_helper2(v) -> extensions.AVT_TypeIs[extensions.Union[extensions.ReadableBuffer, extensions.SequenceLike[extensions.ReadableBuffer]]]: # >= 0.3.74
-    return isinstance(v, extensions.ReadableBuffer) or (isinstance(v, _SequenceLikeTypes) and all(isinstance(x, extensions.ReadableBuffer) for x in list(v)))
+    return isinstance(v, extensions.ReadableBuffer) or (_is_sequence_like(v) and all(isinstance(x, extensions.ReadableBuffer) for x in list(v)))
 
 def _is_hexadecimal(target: str, /):
     
@@ -292,7 +314,7 @@ def _is_binary(target: str, /):
         
     return True
 
-def _is_bool_callback(v: _Any, /) -> extensions.TypeIs[extensions.AVT_Callable[[_Any], bool]]:
+def _is_bool_callback(v: _Any, /) -> extensions.AVT_TypeIs[extensions.AVT_Callable[[_Any], bool]]:
     
     # Unfortunately, it may not be possible to check if specific function has desired amount of parameters of correct types.
     # Best practice would be checking function annotation and passed types to parameters, so it will work correctly.
@@ -304,7 +326,7 @@ def _is_bool_callback(v: _Any, /) -> extensions.TypeIs[extensions.AVT_Callable[[
     # 0.3.53: allow any functions excluding lambda expressions only.
     return callable(v) and v.__code__.co_argcount == 1 and v.__code__.co_kwonlyargcount == 0 and v.__defaults__ is None
         
-def _is_try_callback(v: _Any, /) -> extensions.TypeIs[extensions.AVT_Callable[[], _Any]]: # 0.3.58
+def _is_try_callback(v: _Any, /) -> extensions.AVT_TypeIs[extensions.AVT_Callable[[], _Any]]: # 0.3.58
     
     return callable(v) and v.__code__.co_argcount == 0 and v.__code__.co_kwonlyargcount == 0 and v.__defaults__ is None
         
@@ -340,12 +362,13 @@ def _get_all_params(f: extensions.AnyCallable, /):
 def _get_all_item_types(i: extensions.AVT_Iterable[extensions.T], /, distinct = True): # 0.3.51
     
     if not _is_iterable(i):
-        error = TypeError("expected an iterable")
+        error = TypeError("expected an iterable object")
         raise error
     
     # 0.3.52: Deduce 'typing.Any' from itself and 'StopIteration.value' (type hints 'typing.Any')
     # 0.3.53: The 'distinct' parameter
     
+    # we just invoke either, both return the same type
     if distinct:
         t = util.uniquetuple
     else:
@@ -765,21 +788,15 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     def __repr__(self): # 0.3.40
         return "<{} defined in line {}, id {}>".format(self.__str__(), self.__frame, id(self))
     
-    if versionInfo >= (0, 3, 43) and versionInfo < (0, 3, 45) and False:
+    @staticmethod
+    @property
+    def none():
+        """
+        Availability: >= 0.3.32
         
-        none = None
-        """@since 0.3.32"""
-        
-    else:
-    
-        @_util.finalproperty
-        def none(self):
-            """
-            Availability: >= 0.3.32
-            
-            This property is console-specific, and simply returns `None`.
-            """
-            return None
+        This property is console-specific, and simply returns `None`.
+        """
+        return None
     
     @classmethod
     def license(cls): # declare here instead of overriding license() built-in if wildcard import was used
@@ -802,6 +819,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         )
     
     @classmethod
+    @extensions.deprecated("Deprecated since 0.3.75, will be removed in 0.3.78.")
     def toList(cls, v: extensions.Union[extensions.AVT_Iterable[extensions.T], extensions.AVT_AsyncIterable[extensions.T], extensions.ListConvertible[extensions.T], extensions.TupleConvertible[extensions.T], extensions.SetConvertible[extensions.T]], /):
         """
         Availability: >= 0.3.26rc3
@@ -1457,10 +1475,10 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         if isinstance(v, memoryview):
             
             _inspect_formats_ = {
-                ["?"]: bool,
-                ["b", "B", "@b", "@B", "h", "H", "@h", "@H", "i", "I", "@i", "@I", "l", "L", "@l", "@L", "q", "Q", "@q", "@Q", "P", "@P"]: int,
-                ["f", "@f", "d", "@d"]: float,
-                ["w"]: bytes
+                tuple("?"): bool,
+                tuple(["b", "B", "@b", "@B", "h", "H", "@h", "@H", "i", "I", "@i", "@I", "l", "L", "@l", "@L", "q", "Q", "@q", "@Q", "P", "@P"]): int,
+                tuple(["f", "@f", "d", "@d"]): float,
+                tuple("w"): bytes
             }
             
             for key in _inspect_formats_:
@@ -1484,19 +1502,19 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         if not cls.isType(type, (int, float, str)):
             return False
         
-        if isinstance(v, extensions.array):
+        if isinstance(v, _ArrayTypes):
             
             _inspect_typecodes_ = {
-                ["b", "B", "h", "H", "i", "I", "l", "L", "q", "Q"]: int,
-                ["f", "d"]: float
+                tuple("bBhHiIlLqQ"): int,
+                tuple("fd"): float
             }
             
             if _sys.version_info >= (3, 16):
-                _inspect_typecodes_.update({ ["w"]: str })
+                _inspect_typecodes_.update({ ("w",): str })
             elif _sys.version_info >= (3, 13):
-                _inspect_typecodes_.update({ ["u", "w"]: str })
+                _inspect_typecodes_.update({ ("u", "w"): str })
             else:
-                _inspect_typecodes_.update({ ["u"]: str })
+                _inspect_typecodes_.update({ ("u",): str })
             
             for key in _inspect_typecodes_:
                 if v.typecode in key and _inspect_typecodes_[key] is type:
@@ -1608,17 +1626,17 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         startType: extensions.Union[extensions.AVT_Type[_T_start_cov], extensions.SequenceLike[extensions.AVT_Type[_T_start_cov]], None] = None,
         stopType: extensions.Union[extensions.AVT_Type[_T_stop_cov], extensions.SequenceLike[extensions.AVT_Type[_T_stop_cov]], None] = None,
         stepType: extensions.Union[extensions.AVT_Type[_T_step_cov], extensions.SequenceLike[extensions.AVT_Type[_T_step_cov]], None] = None
-    ) -> extensions.TypeIs[_AVT_Slice[_T_start_cov, _T_stop_cov, _T_step_cov]]: 
+    ) -> extensions.TypeIs[_Slice[_T_start_cov, _T_stop_cov, _T_step_cov]]: 
         """
         Availability: >= 0.3.41 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isSlice
         
         Determine whether a value is a slice object.
         
-        - 0.3.69: extensions.Types of `start`, `stop` and `step` can now be inspected, removed support for multiple objects
+        - 0.3.69: Types of `start`, `stop` and `step` can now be inspected, removed support for multiple objects
         """
         
-        return isinstance(v, slice) and (
+        return isinstance(v, _SliceTypes) and (
             cls.isType(type(v.start), extensions.NoneType if startType is None else startType) and
             cls.isType(type(v.stop), extensions.NoneType if stopType is None else stopType) and
             cls.isType(type(v.step), extensions.NoneType if stepType is None else stepType)
@@ -2315,73 +2333,6 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         error = TypeError("expected parameters 'target' and 'prefix' to have the following values, respectively: string + string/sequence-like object with strings | bytes/bytearray object + buffer object/sequence-like object with buffer objects")
         raise error
-                        
-    if _version.VERSION_INFO >= (0, 3, 78) and False: # >= 18.03.2025
-        
-        @classmethod
-        def replace(self, target: _Target, pattern: extensions.Union[_Pattern, extensions.AVT_Tuple[str, ...]], value: extensions.Union[_Target, extensions.AVT_Callable[[_re.Match[_Target]], _Target], extensions.AVT_Tuple[str, ...]], count = -1, flags: extensions.FlagsType = 0):
-            
-            if not self.isInteger(count):
-                
-                error = TypeError("expected 'count' to be an integer")
-                raise error
-            
-            if type(flags) not in (int, _re.RegexFlag):
-                
-                error = TypeError("expected 'flags' to be an integer or enum member of 're.RegexFlag'")
-                raise error
-            
-            if self.isString(target):
-                
-                # comply with re.sub()
-                _count = 0 if count == -1 else count
-                
-                if flags in (0, _re.NOFLAG):
-                    
-                    _new = target
-                    
-                    if self.isString(pattern):
-                        
-                        if self.isString(value):
-                        
-                            return target.replace(pattern, value, count)
-                        
-                        elif self.isTuple(value, str):
-                            
-                            for s in value:
-                                
-                                _new = _new.replace(pattern, s, count)
-                                
-                            return _new
-                    
-                    elif self.isTuple(pattern, str):
-                        
-                        if self.isString(value):
-                        
-                            for s in pattern:
-                                
-                                _new = _new.replace(s, value, count)
-                                
-                            return _new
-                        
-                        elif self.isTuple(value, str):
-                            
-                            for s1 in pattern:
-                                
-                                for s2 in value:
-                                    
-                                    _new = _new.replace(s1, s2, count)
-                                    
-                            return _new
-                
-                if (
-                    (self.isString(pattern) or (isinstance(pattern, extensions.Pattern) and extensions.get_args(pattern) == (str,))) and
-                    (self.isString(value) or (callable(value) and reckon(_get_all_params(value)) == 1))
-                ):
-                    
-                    # typing.Any is deduced
-                    a = _re.sub(pattern, value, target, _count, flags)
-                    return str(a)
     
     # >= 0.3.45: Annotation in parameter 'm'
     @classmethod
@@ -3581,6 +3532,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             
             error = TypeError("expected mapping objects only, generator/async generator object + iterable/async iterable objects, or iterable objects only")
             raise error
+                
     
     # OVERLOAD 0.3.34
     @classmethod
@@ -3634,7 +3586,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             error = ValueError("parameter 'mode' provides invalid mode")
             raise error
         
-        if isinstance(v, (str, abroad, extensions.Sequence, extensions.AbstractSet, extensions.Mapping)) and reckon(v) == 0:
+        if isinstance(v, (str, abroad, *_SequenceLikeTypes, extensions.Mapping)) and reckon(v) == 0:
             return 0
         
         if cls.isString(v):
@@ -3688,7 +3640,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                     
             return o
                     
-        elif isinstance(v, (extensions.Sequence, extensions.AbstractSet)):
+        elif isinstance(v, _SequenceLikeTypes):
             
             _v = list(v)
             
@@ -4032,17 +3984,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 error = TypeError("expected types only")
                 raise error
             
-            if _sys.version_info >= (3, 10): # extract from _prepare_union_() internal function from Tense.getGeneric()
-                    
-                _union_: extensions.UnionType = v
-                for e in _:
-                    _union_ = _union_ | e
-                return _union_
-                
-            else:
-                
-                # typing.Union[*v] throws SyntaxError before Python 3.10, use eval() instead
-                return cls.cast(extensions.eval("__.Union[{}]".format(", ".join([t.__qualname__ for t in (v, *_)])), globals = globals()), extensions.TypingUnionType)
+            # changeover 0.3.75
+            u = v
+            for t in _:
+                u = extensions.Union[t, u]
+            return u
         
         if isinstance(v, bool):
                 
@@ -4159,7 +4105,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     @classmethod
     def extract(cls, i, /, condition = ...):
         """
-        Availability: >= 0.3.52
+        Availability: >= 0.3.52 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.extract
         
         Extracts items from a mapping or iterable which satisfy given `condition`, and returns them in a dictionary or list.
         If no condition given, returns shallow copy of given iterable/mapping as a list/dictionary.
@@ -4279,7 +4226,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         Re-implement PEP 616 (implemented in Python 3.9)
         
-        Return copy of string or bytes object if prefix was not found,
+        Return copy of a string or bytes object if prefix was not found,
         otherwise return copy without specific prefix.
         
         - 0.3.60: Added support for `bytearray` objects
@@ -4312,7 +4259,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         Re-implement PEP 616 (implemented in Python 3.9)
         
-        Return copy of string or bytes object if suffix was not found,
+        Return copy of a string or bytes object if suffix was not found,
         otherwise return copy without specific suffix.
         
         - 0.3.60: Added support for `bytearray` objects
@@ -4327,6 +4274,115 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             raise error
         
     @classmethod
+    @extensions.overload
+    def replace(cls, target: str, oldNew: extensions.AVT_Mapping[extensions.Union[str, extensions.SequenceLike[str]], extensions.Union[str, extensions.SequenceLike[extensions.Union[str, int]]]], /) -> str: ...
+    
+    @classmethod
+    @extensions.overload
+    def replace(
+        cls,
+        target: bytearray,
+        oldNew: extensions.AVT_Mapping[
+            extensions.Union[extensions.ReadableBuffer, extensions.SequenceLike[extensions.ReadableBuffer]],
+            extensions.Union[extensions.ReadableBuffer, extensions.SequenceLike[extensions.Union[extensions.ReadableBuffer, int]]]
+        ],
+        /
+    ) -> bytearray: ...
+    
+    @classmethod
+    @extensions.overload
+    def replace(
+        cls,
+        target: bytes,
+        oldNew: extensions.AVT_Mapping[
+            extensions.Union[extensions.ReadableBuffer, extensions.SequenceLike[extensions.ReadableBuffer]],
+            extensions.Union[extensions.ReadableBuffer, extensions.SequenceLike[extensions.Union[extensions.ReadableBuffer, int]]]
+        ],
+        /
+    ) -> bytes: ...
+        
+    @classmethod
+    def replace(cls, target, oldNew, /):
+        """
+        Availability: >= 0.3.75
+        
+        Discontinued class method before 0.3.75 set to be public in 0.3.78. Enhanced version of `[str/bytes/bytearray].replace()` method.
+        
+        - `target` - A string, `bytes` or `bytearray` object.
+        - `oldNew` - A mapping-like object that can hold immutable sequence object (like tuple due to *keys* requiring to be hashable) with
+        strings or bytes-like objects (depends what is passed in `target`) or themselves as *keys*, and *values* equal string/bytes-like object
+        or sequence object with 1-2 items. The first item must be string/bytes-like object, and the second, optional, an integer equal -1 or greater than 0
+        """
+        
+        
+        if not isinstance(oldNew, extensions.Mapping):
+            error = TypeError("the 'oldNew' argument must be a mapping object")
+            raise error
+        
+        if reckon(oldNew) == 0:
+            error = ValueError("the 'oldNew' argument must have at least one key-value pair")
+            raise error
+        
+        if cls.isString(target):
+            t = str
+            error1 = TypeError("expected a string or a sequence-like object with strings per key in the mapping object argument 'oldNew'")
+            error2 = ValueError("every key in the mapping object argument 'oldNew' must be a non-empty string or a non-empty sequence-like object with non-empty strings")
+            error3 = ValueError("every value in the mapping object argument 'oldNew' must be a non-empty string or non-empty sequence-like object with 1-2 items (string, integer equal -1 or is positive)")
+        elif cls.isBytes(target) or cls.isByteArray(target):
+            t = extensions.ReadableBuffer
+            error1 = TypeError("expected a bytes-like object or a sequence-like object with bytes-like objects per key in the mapping object argument 'oldNew'")
+            error2 = ValueError("every key in the mapping object argument 'oldNew' must be a non-empty bytes-like object or a non-empty sequence-like objects with non-empty bytes-like objects")
+            error3 = ValueError("every value in the mapping object argument 'oldNew' must be a non-empty bytes-like object or non-empty sequence-like object with 1-2 items (bytes-like object, integer equal -1 or positive)")
+        else:
+            error = TypeError("the 'target' argument is neither a string, a 'bytes' nor a 'bytearray' object")
+            raise error
+        
+        # 'keys' is actually 'list[tuple[<type of 't'>, ...]]' in type hinting, and 'values': 'list[tuple[<type of 't'>, int]]'
+        # no adding additional complexity in this code
+        keys, values = (list(zip()), list(zip()))
+        
+        # part 1 of deducing empty entries
+        for x in oldNew.keys():
+            if isinstance(x, t):
+                keys.append((x,))
+            elif _is_sequence_like(x) and cls.isTuple(tuple(x), t):
+                keys.append(tuple(x))
+            else:
+                raise error1
+            
+        for x in oldNew.values():
+            if isinstance(x, t):
+                values.append((x, -1))
+            elif _is_sequence_like(x) and reckon(x) == 1 and cls.isTuple(tuple(x), t):
+                values.append(tuple(x) + (-1,))
+            elif _is_sequence_like(x) and cls.isTuple2(tuple(x), (t, int)):
+                values.append(tuple(x))
+            else:
+                raise error3
+            
+        # part 2 of deducing empty entries
+        keysFilter = list(filter(lambda x: all(reckon(y) > 0 for y in x), keys))
+        valuesFilter = list(filter(lambda x: reckon(x) == 2 and (x[1] == -1 or x[1] > 0), values))
+        
+        print(keys, keysFilter, values, valuesFilter)
+        
+        if reckon(keys) != reckon(keysFilter):
+            raise error2
+        
+        if reckon(values) != reckon(valuesFilter):
+            raise error3
+        
+        del keysFilter, valuesFilter
+        
+        result = target
+        
+        for i in abroad(keys):
+            for s in keys[i]:
+                result = result.replace(s, values[i][0], values[i][1])
+            
+        return result
+        
+    @classmethod
     def chr(cls, o: extensions.SequenceLike[extensions.Union[int, extensions.Indexable]], /):
         """
         Availability: >= 0.3.71 \\
@@ -4337,7 +4393,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         For empty sequence-like objects, an error is thrown. At least one integer must be included within the object.
         """
         
-        if not isinstance(o, _SequenceLikeTypes):
+        if not _is_sequence_like(o):
             error = TypeError("expected a sequence-like object")
             raise error
         
@@ -4351,7 +4407,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         for nextO in ol:
             
-            if int(nextO) not in abroad(0, _sys.maxunicode + 1):
+            if not Math.isInRange(int(nextO), 0, _sys.maxunicode):
                 error = ValueError("expected every integer to comply with 0 <= n <= {}".format(_sys.maxunicode))
                 raise error
             
@@ -4639,7 +4695,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             return _copy.copy(x)
     
     @classmethod
-    def deepcopy(cls, x: extensions.T, memo: extensions.Optional[extensions.AVT_Dict[int, _Any]] = None) -> extensions.T:
+    def deepcopy(cls, x: extensions.T, memo: extensions.Optional[extensions.AVT_Dict[int, extensions.Any]] = None) -> extensions.T:
         """
         Availability: >= 0.3.34
         
@@ -4782,30 +4838,19 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         non-generic types.
         """
         
-        # inspect union expressions (>=3.10)
-        def _prepare_union_(*v: type, default: extensions.T = _Any):
+        # 0.3.75: Remove unsafe eval() function invocations!
+        def _prepare_union_(*types: type, default: extensions.T = _Any):
             
-            if _sys.version_info >= (3, 10):
+            if reckon(types) > 0:
                 
-                if reckon(v) > 0:
-                    
-                    _union_: extensions.UnionType = v[0]
+                u = types[0]
                 
-                    for e in v[1:]:
-                        _union_ = _union_ | e
-                        
-                    return _union_
-
-                else:
-                    return default # replace with 'None' on 0.3.53
+                for t in types[1:]:
+                    u = extensions.Union[u, t]
+                return u
                 
             else:
-                
-                if reckon(v) > 0:
-                    return cls.cast(eval("__.Union[{}]".format(", ".join([t.__qualname__ for t in v])), globals()), extensions.TypingUnionType)
-                
-                else:
-                    return default
+                return default
         
         # use 'types.GenericAlias' if >=3.9 else 'typing._GenericAlias'
         if _sys.version_info >= (3, 9):
@@ -5105,7 +5150,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             
         elif isinstance(v, extensions.AsyncIterable): # 0.3.53 // collections.abc.AsyncIterator (one type param) and AsyncGenerator (2 type params)
             
-            _list_from_async_ = cls.toList(v)
+            _list_from_async_ = list(_extract_from_async_iterable(v))
             
             if isinstance(v, extensions.AsyncGenerator):
                 
@@ -5243,8 +5288,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         args = v.__args__
         
         if extractOrigins:
-            newargs = [StopIteration.value] # list[Any]
-            newargs.clear()
+            newargs = list(zip()) # list[Any]
             for arg in args:
                 if isinstance(arg, _GenericTypes):
                     newargs.append(arg.__origin__)
@@ -5256,7 +5300,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use 'print()' inbuilt function instead")
-    def print(cls, *values: object, separator: extensions.Optional[str] = " ", ending: extensions.Optional[str] = "\n", file: extensions.Union[extensions.Writable[str], extensions.Flushable, None] = None, flush = False, reprFirst = False):
+    def print(cls, *values: object, separator: extensions.Optional[str] = " ", ending: extensions.Optional[str] = "\n", file: extensions.Union[extensions.Writable[str], extensions.Flusher, None] = None, flush = False, reprFirst = False):
         """
         Availability: >= 0.3.25
         
@@ -5282,101 +5326,92 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     # >= 0.3.34: overloads
     @classmethod
-    @extensions.overload # 0.3.66: ValuesView
-    def random(cls, x: extensions.Union[extensions.SizeableItemGetter[extensions.T], extensions.SequenceLike[extensions.T], extensions.AVT_Mapping[_Any, extensions.T]], /) -> extensions.T: ...
-    
-    @classmethod
     @extensions.overload # 0.3.64: AbroadInitializer
     def random(cls, x: extensions.Union[int, abroad], /) -> int: ... 
     
     @classmethod
     @extensions.overload # 0.3.66: UUID
-    def random(cls, x: extensions.AVT_Type[_uuid.UUID], /) -> _uuid.UUID: ... 
+    def random(cls, x: extensions.AVT_Type[_uuid.UUID], /) -> _uuid.UUID: ...
+    
+    @classmethod
+    @extensions.overload
+    def random(cls, x: str, length: int = 10, /) -> str: ...
     
     @classmethod
     @extensions.overload
     def random(cls, x: int, y: int, /) -> int: ...
     
     @classmethod
-    def random(cls, x, y = None, /):
+    def random(cls, x, y = _Missing, /):
         """
         Availability: >= 0.3.24 \\
         Standard: >= 0.3.25
         
-        With one parameter, invoke `Tense.pick(x)` or return an integer from range [0, x). If this parameter is type alias for `uuid.UUID`, return random UUID.
-        With two parameters, returns an integer in specified range [x, y] or [y, x] if x > y.
+        With one parameter:
+        - return an integer in range `<0; x)`
+        - return an integer from abroad sequence
         
         - 0.3.25: ?
         - 0.3.26rc2: Added support for `tkinter.IntVar`
         - 0.3.31: Revoked support for `tkinter.IntVar`
         """
-        if cls.isNone(y):
+        
+        import random
+        
+        if y is _Missing:
             
             import uuid
             
             if cls.isInteger(x):
                 
                 if x <= 1:
-                    error = ValueError("expected a positive integer above 1")
+                    error = ValueError("expected a positive integer argument above 1 in the first parameter")
                     raise error
                 
                 # lack of same overloads as in 'range' is less convincing, because 'x' is
                 # theoretically considered value of 'start' parameter, not 'stop'
-                return _random.randrange(x)
+                return random.randrange(x)
             
             elif cls.isAbroad(x): # 0.3.64: AbroadInitializer
-                return cls.pick(list(x))
+                return random.choice(x)
             
-            elif cls.isType(x, uuid.UUID): # 0.3.66: UUID
+            elif x is uuid.UUID: # 0.3.66: UUID
                 return uuid.uuid4()
             
-            elif isinstance(x, (extensions.SizeableItemGetter, *_SequenceLikeTypes, extensions.Mapping)): # 0.3.54: Mapping; 0.3.66: ValuesView
-                return cls.pick(x)
+            elif cls.isString(x): # 0.3.75
+                return "".join([random.choice(x) for _ in abroad(10)])
+            
+            else:
+                error = TypeError("expected an integer, type of 'UUID', abroad sequence or a string in the first argument")
+                raise error
             
         else:
             
-            a = cls.cast([x, y], extensions.AVT_List[int])
+            if not cls.isInteger(y):
+                error = TypeError("expected an integer argument in the second parameter")
+                raise error
             
-            if cls.isList(a, int):
-                    
-                _x, _y = a[0], a[1]
+            if cls.isInteger(x):
                 
                 if x > y:
-                    _x, _y = _y, _x
+                    return random.randint(y, x)
+                else:
+                    return random.randint(x, y)
                 
-                return _random.randint(_x, _y)
-            
-        error = TypeError("no matching function signature")
-        raise error
-    
-    if False:
-        @classmethod
-        def randomWithout(self, from_: int, to_: int, /, exclude: extensions.Union[range, abroad, None] = None):
-            """
-            Availability: >= 0.3.52
-            
-            Equivalent to `~.Tense.pick(~.Tense.random(<from>, <oneBeforeStartPoint>), ~.Tense.random(<oneAfterEndpoint>, <to>))`.
-            
-            where `<oneBeforeStartPoint>` and `<oneAfterEndpoint>` are determined by `exclude` 2-item tuple
-            """
-            
-            if not self.isInteger(from_, to_):
-                error = TypeError("expected integers only in parameters '{}' and '{}'".format(*_get_all_params(self.randomWithout))[:2])
-                raise error
-            
-            if not isinstance(exclude, (type(None), range, abroad)):
-                error = TypeError("expected 'range' or 'abroad' object, or 'None' in parameter '{}'".format(_get_all_params(self.randomWithout))[2])
-                raise error
-            
-            if isinstance(exclude, range):
+            elif cls.isString(x):
                 
-                if exclude.start > exclude.stop:
-                    error = ValueError("conflict with points. expected: 'from_' < 'exclude_start' < 'exclude_stop' < 'to_'")
+                if y <= 1:
+                    error = ValueError("expected a positive integer argument above 1 in the second parameter")
                     raise error
                 
-                return self.pick((self.random(from_, exclude.start + 1), self.random(exclude.stop + 1, to_)))
+                return "".join([random.choice(x) for _ in abroad(y)])
+            
+            else:
+                error = TypeError("expected an integer or a string in the first argument")
+                raise error
                 
     @classmethod
+    @extensions.deprecated("Deprecated since 0.3.75, will be removed in 0.3.78.")
     def randomString(cls, lower = True, upper = True, digits = True, special = True, length = 10):
         """
         Availability: >= 0.3.9; < 0.3.24; >= 0.3.25
@@ -5391,28 +5426,21 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         - `special` - determine, if you want to include all remaining chars accessible normally via English keyboard. Defaults to `True`
         - `length` - allows to specify the length of returned string. Defaults to `10`.
         """
-        # code change 0.3.34
-        conv = [""]
-        conv.clear()
+        
+        # code change 0.3.75
         ret = ""
         
         if lower:
-            conv.extend([e for e in constants.STRING_LOWER])
-                
+            ret += constants.STRING_LOWER
         if upper:
-            conv.extend([e for e in constants.STRING_UPPER])
-                
+            ret += constants.STRING_UPPER
         if digits:
-            conv.extend([e for e in constants.STRING_DIGITS])
-                
+            ret += constants.STRING_DIGITS
         if special:
-            conv.extend([e for e in constants.STRING_SPECIAL])
+            ret += constants.STRING_SPECIAL
         
-        # there no matter if negative or positive
-        for _ in abroad(length):
-            ret += cls.pick(conv)
-            
-        return ret
+        # must be positive
+        return cls.random(ret, length)
     
     @classmethod
     @extensions.overload
@@ -5449,7 +5477,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
                 error = TypeError("expected at least one item in a(n) sequence/set/abroad object / one pair in a mapping/dictionary")
                 raise error
             
-            if cls.isAbroad(i) or isinstance(i, _SequenceLikeTypes):
+            if cls.isAbroad(i) or _is_sequence_like(i):
                 _i = list(i)
             elif isinstance(i, extensions.Mapping):
                 _i = list(i.values())
@@ -5590,7 +5618,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         _seq = list(seq)
         
-        for _i in cls.abroadNegative(1, _seq):
+        for _i in abroad.negative(1, _seq):
             
             if condition is not None and condition(_seq[_i]):
                 return _seq[_i]

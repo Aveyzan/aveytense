@@ -32,6 +32,7 @@ Core of `aveytense.extensions`; import this module instead
 # | 3.12 | 3.12.10 | 3.12.11* |
 
 from __future__ import annotations
+from . import _Immutable, _Final, _Missing
 from ._exceptions import _ErrorHandler as _E
 from ._typeparams import (
     # TypeVar: >= 0.3.26b3
@@ -393,7 +394,8 @@ TypingExtensionsVersionInfo = TypingExtensionsVersionInfo()
 
 def _prevent_unused_imports(*_): pass # 0.3.55a2, nothing, only prevent unused imports
 
-def _check_methods(C: type, *methods: str): # 0.3.72, re-implement this if using typing_extensions version incompatible with Py3.8
+# 0.3.72, re-implement this if using typing_extensions version incompatible with Py3.8
+def _check_methods(C: type, *methods: str): 
     mro = C.__mro__
     for method in methods:
         for B in mro:
@@ -1208,8 +1210,11 @@ else:
 # Python 3.15. 'typing_extensions' forgot one detail: set their
 # internal value for PEP 728 check to 'False'. I will redo this
 # statement in latest version, if anything changes with this PEP.
+#
+# For 'frozendict' check PEP 814
 if _sys.version_info >= (3, 15):
     
+    from builtins import frozendict
     from typing import (
         # 0.3.37
         TypedDict as TypedDict,
@@ -1220,6 +1225,104 @@ if _sys.version_info >= (3, 15):
     ) 
     
 else:
+    
+    if TYPE_CHECKING:
+        from _typeshed import SupportsKeysAndGetItem as _KeyItemGetter
+    
+    class frozendict(AVT_Mapping[KT, VT], _Immutable, _Final):
+        """
+        Availability: >= 0.3.75 \\
+        https://aveyzan.xyz/aveytense#aveytense.extensions.frozendict
+        
+        Represents an immutable dictionary. Inherits from `collections.abc.Mapping`.
+        Since Python 3.15, it equals Python's implementation of this class.
+        
+        Type hinting note: generic class with 2 type parameters.
+        """
+        
+        __dict: AVT_Dict[KT, VT]
+        
+        # overloads from 'dict'
+        @overload
+        def __init__(self) -> None: ...
+        @overload
+        def __init__(self: frozendict[str, VT], **kwargs: VT) -> None: ...  # pyright: ignore[reportInvalidTypeVarUse]
+        @overload
+        def __init__(self, map: _KeyItemGetter[KT, VT], /) -> None: ...
+        @overload
+        def __init__(
+            self: frozendict[Union[str, KT], VT],  # pyright: ignore[reportInvalidTypeVarUse]
+            map: _KeyItemGetter[str, VT],
+            /,
+            **kwargs: VT,
+        ) -> None: ...
+        @overload
+        def __init__(self, iterable: AVT_Iterable[AVT_Tuple[KT, VT]], /) -> None: ...
+        @overload
+        def __init__(
+            self: frozendict[Union[str, KT], VT],  # pyright: ignore[reportInvalidTypeVarUse]
+            iterable: AVT_Iterable[AVT_Tuple[str, VT]],
+            /,
+            **kwargs: VT,
+        ) -> None: ...
+        
+        def __init__(self, *args, **kwargs): # >= 0.3.75
+            from . import _mangle
+            object.__setattr__(self, _mangle(self, "__dict"), type.__call__(dict, *args, **kwargs))
+            
+        def __str__(self): # >= 0.3.75
+            return "{}({})".format(type(self).__name__, self.__dict)
+            
+        def __repr__(self): # >= 0.3.75
+            from . import _ReprStr
+            return _ReprStr.format(type(self).__qualname__, id(self))
+            
+        def get(self, key: KT, default: T = None): # >= 0.3.75
+            return self.__dict.get(key, default)
+            
+        def keys(self): # >= 0.3.75
+            return self.__dict.keys()
+        
+        def items(self): # >= 0.3.75
+            return self.__dict.items()
+        
+        def values(self): # >= 0.3.75
+            return self.__dict.values()
+        
+        def __contains__(self, key: object): # >= 0.3.75
+            return key in self.__dict
+        
+        def __getitem__(self, key: KT): # >= 0.3.75
+            return self.__dict.__getitem__(key)
+        
+        def __eq__(self, other: object): # >= 0.3.75
+            return type(other) is type(self) and other.__dict == self.__dict
+        
+        def __len__(self): # >= 0.3.75
+            return len(self.__dict)
+        
+        def __iter__(self): # >= 0.3.75
+            return iter(self.__dict)
+        
+        # Backporting PEP 584 (Py3.9+, see https://peps.python.org/pep-0584) for Python 3.8.
+        # These methods below are provided by 'dict', Mapping ABC doesn't provide these.
+        def __or__(self, other: _KeyItemGetter[KT2, VT2]): # >= 0.3.75
+            _newdict = cast(
+                AVT_Dict[
+                    Union[KT, KT2],
+                    Union[VT, VT2]
+                ],
+                self.__dict.copy()
+            )
+            _newdict.update(other)
+            return frozendict(_newdict)
+        
+        def __ror__(self, other: _KeyItemGetter[KT2, VT2]): # >= 0.3.75
+            return self.__or__(other)
+        
+        # This doesn't exist in Mapping ABC either. 'dict' has it so we re-declare it
+        def copy(self): # >= 0.3.75
+            return frozendict(self.__dict)
     
     from typing import (
         # ?
@@ -1464,6 +1567,7 @@ class Incomplete:
 # Let's be honest, I was having trouble re-creating these classes with type annotations.
 # In reality none of these are protocols, because these get appropriate values assigned later,
 # these definitions are only for correct type hinting
+@deprecated("Deprecated since 0.3.75, will be removed in 0.3.78")
 class AnyMeta(Protocol):
     """
     Availability: >= 0.3.52
@@ -1478,7 +1582,8 @@ class AnyMeta(Protocol):
 @final
 class DictKeys(AVT_KeysView[KT_cov], Generic[KT_cov, VT_cov]):
     """
-    Availability: >= 0.3.53
+    Availability: >= 0.3.53 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.DictKeys
     
     Generic version of class `_collections_abc.dict_keys` (generic only in stub files)
     """
@@ -1494,7 +1599,8 @@ class DictKeys(AVT_KeysView[KT_cov], Generic[KT_cov, VT_cov]):
 @final
 class DictValues(AVT_ValuesView[VT_cov], Generic[KT_cov, VT_cov]):
     """
-    Availability: >= 0.3.53
+    Availability: >= 0.3.53 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.DictValues
     
     Generic version of class `_collections_abc.dict_values` (generic only in stub files)
     """
@@ -1506,7 +1612,8 @@ class DictValues(AVT_ValuesView[VT_cov], Generic[KT_cov, VT_cov]):
 @final
 class DictItems(AVT_ItemsView[KT_cov, VT_cov]):
     """
-    Availability: >= 0.3.53
+    Availability: >= 0.3.53 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.DictItems
     
     Generic version of class `_collections_abc.dict_items` (generic only in stub files)
     """
@@ -1537,7 +1644,8 @@ if False: # < 0.3.57
     
 class SpecialForm(metaclass = _SpecialFormMeta):
     """
-    Availability: >= 0.3.52
+    Availability: >= 0.3.52 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SpecialForm
     
     Use this class to find, if a type is actually a special form from `typing`
     """
@@ -1552,16 +1660,18 @@ class TypingNoDefaultType:
     
 class TypingTupleType(tuple):
     """
-    Availability: >= 0.3.53
+    Availability: >= 0.3.53 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.TypingTupleType
     
     Internal class for deprecated type alias `typing.Tuple`
     """
 
 class TypingGenericType(Protocol):
     """
-    Availability: >= 0.3.52
+    Availability: >= 0.3.52 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.TypingGenericType
     
-    Internal class for generic aliases before `types.GenericAlias` (>=Py3.9)
+    The base class for almost all internal classes that build special forms in the `typing` library.
     """
     _name: Optional[str] # ?
     _inst: bool # ?
@@ -1603,9 +1713,12 @@ class TypingGenericType(Protocol):
 
 class TypingAnnotatedType(TypingGenericType, Protocol):
     """
-    Availability: >= 0.3.52
+    Availability: >= 0.3.52 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.TypingAnnotatedType
     
-    Internal class for `typing.Annotated` class
+    The type of `typing.Annotated`.
+    
+    This should be used only in inspections, not really in production code.
     """
     __iter__: None
     @property
@@ -1623,9 +1736,12 @@ class TypingAnnotatedType(TypingGenericType, Protocol):
     
 class TypingCallableType(TypingGenericType, Protocol):
     """
-    Availability: >= 0.3.52
+    Availability: >= 0.3.52 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.TypingCallableType
     
-    Internal class for `collections.abc.Callable` class
+    The type of `typing.Callable`.
+    
+    This should be used only in inspections, not really in production code.
     """
     __iter__: None
     def __repr__(self) -> str: ...
@@ -1633,17 +1749,23 @@ class TypingCallableType(TypingGenericType, Protocol):
     
 class TypingConcatenateType(TypingGenericType, Protocol):
     """
-    Availability: >= 0.3.52
+    Availability: >= 0.3.52 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.TypingConcatenateType
     
-    Internal class for `typing.Concatenate` class
+    The type of `typing.Concatenate`.
+    
+    This should be used only in inspections, not really in production code.
     """
     def copy_with(self, args: Any) -> Self: ...
     
 class TypingLiteralType(TypingGenericType, Protocol):
     """
-    Availability: >= 0.3.52
+    Availability: >= 0.3.52 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.TypingLiteralType
     
-    Internal class for `typing.Literal` class
+    The type of `typing.Literal`.
+    
+    This should be used only in inspections, not really in production code.
     """
     def __eq__(self, other: Self) -> bool: ...
     def __hash__(self) -> int: ...
@@ -1652,9 +1774,12 @@ if _sys.version_info >= (3, 9):
     
     class TypingSpecialGenericType(Protocol):
         """
-        Availability: >= 0.3.59
+        Availability: >= 0.3.59 \\
+        https://aveyzan.xyz/aveytense#aveytense.extensions.TypingSpecialGenericType
         
-        Internal special generic alias type, especially for deprecated aliases of `collections.abc` in `typing`
+        The type of the deprecated generic classes from the `typing` library.
+    
+        This should be used only in inspections, not really in production code.
         """
         __iter__: None
         __slots__: None # undocumented
@@ -1686,19 +1811,26 @@ if _sys.version_info >= (3, 9):
 else:
     class TypingSpecialGenericType(TypingGenericType, Protocol):
         """
-        Availability: >= 0.3.59
+        Availability: >= 0.3.59 \\
+        https://aveyzan.xyz/aveytense#aveytense.extensions.TypingSpecialGenericType
         
-        Internal special generic alias type, especially for aliases of `collections.abc` in `typing`
+        The type of the deprecated generic classes from the `typing` library.
+    
+        This should be used only in inspections, not really in production code.
         """
         ...
     
 class TypingUnionType(TypingGenericType, Protocol):
     """
-    Availability: >= 0.3.52
+    Availability: >= 0.3.52 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.TypingUnionType
     
-    Internal class for `typing.Union` class.
+    The type of `typing.Union` before Python 3.14. Since Python 3.14 equivalent to `typing.Union`
     
-    Since Python 3.14 this type alias equals `typing.Union`
+    This should be used only in inspections, not really in production code.
+    
+    This allows to use `isinstance()` without any deviations regardless of the used Python version. However,
+    in case of `types.UnionType` (Python 3.10+), use `Tense.isUnion()` class method to check for both.
     """
     __iter__: None
     def __eq__(self, other: Self) -> bool: ...
@@ -1713,7 +1845,7 @@ class TypingUnpackType(TypingGenericType, Protocol):
     """
     Availability: >= 0.3.52
     
-    Retrieves internal class for `typing.Unpack` class
+    Retrieves internal class for the `typing.Unpack` class
     """
     def __repr__(self) -> str: ...
     def __getitem__(self, args: Any) -> Self: ...
@@ -1819,51 +1951,6 @@ else:
                 
             for e in _list:
                 yield e
-                
-### Private AVT Types ###
-
-@runtime
-class _AVT_Slice(Protocol[_T_start_cov, _T_stop_cov, _T_step_cov]):
-    """
-    Availability: >= 0.3.55
-    
-    An internal protocol class holding body-less `slice` members. Equivalent to ordinary `slice` at runtime.
-    """
-    
-    @property
-    def start(self) -> _T_start_cov: ...
-    @property
-    def step(self) -> _T_step_cov: ...
-    @property
-    def stop(self) -> _T_stop_cov: ...
-    
-    @overload
-    def __new__(cls, start: None, stop: None = None, step: None = None, /) -> _AVT_Slice[Any, Any, Any]: ...
-    @overload
-    def __new__(cls, stop: T2, /) -> _AVT_Slice[Any, T2, Any]: ...
-    @overload
-    def __new__(cls, start: T1, stop: None, step: None = None, /) -> _AVT_Slice[T1, Any, Any]: ...
-    @overload
-    def __new__(cls, start: None, stop: T2, step: None = None, /) -> _AVT_Slice[Any, T2, Any]: ...
-    @overload
-    def __new__(cls, start: T1, stop: T2, step: None = None, /) -> _AVT_Slice[T1, T2, Any]: ...
-    @overload
-    def __new__(cls, start: None, stop: None, step: T3, /) -> _AVT_Slice[Any, Any, T3]: ...
-    @overload
-    def __new__(cls, start: T1, stop: None, step: T3, /) -> _AVT_Slice[T1, Any, T3]: ...
-    @overload
-    def __new__(cls, start: None, stop: T2, step: T3, /) -> _AVT_Slice[Any, T2, T3]: ...
-    @overload
-    def __new__(cls, start: T1, stop: T2, step: T3, /) -> _AVT_Slice[T1, T2, T3]: ...
-    
-    def __eq__(self, value: object, /) -> bool: ...
-    
-    if _sys.version_info >= (3, 12):
-        def __hash__(self) -> int: ...
-    else:
-        __hash__: ClassVar[None]  # type: ignore[assignment]
-
-    def indices(self, len: Indexable, /) -> AVT_Tuple[int, int, int]: ...
 
 ### AVT Types ###
 
@@ -1891,93 +1978,238 @@ class AVT_Filter(filter, Generic[T]):
     """Availability: >= 0.3.55b1 // Generic version of `filter`"""
     
 class AVT_Map(map, Generic[T]):
-    """Availability: >= 0.3.55b1 // Generic version of `map`"""
+    """
+    Availability: >= 0.3.55b1 // Generic version of `map` \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.AVT_Map
+    """
 
 if _sys.version_info >= (3, 14):
     from builtins import memoryview as AVT_MemoryView
     
 else:
-    class AVT_MemoryView(Generic[_T_memoryview]):
-        """Availability: >= 0.3.54 // Generic version of `memoryview`"""
+    
+    class AVT_MemoryView(AVT_Sequence[_T_memoryview], _Final):
+        """
+        Availability: >= 0.3.54 // Generic version of `memoryview` \\
+        https://aveyzan.xyz/aveytense#aveytense.extensions.AVT_MemoryView
         
-        def __new__(cls, obj: ReadableBuffer) -> AVT_MemoryView:
-            return memoryview(obj)
+        Since Python 3.14 it is a type alias for `memoryview`
+        """
+        
+        __slots__ = ("_AVT_MemoryView__memoryview",)
+        
+        # 'memoryview' is generic since Python 3.14, but if we only use it in
+        # annotations, this shall work fine. better than using 'typing._SpecialGenericAlias'
+        # internal class in this case. I will actually need to re-declare this
+        # 'typing' class to exclude the deprecation warnings
+        __memoryview: memoryview[_T_memoryview]
+        
+        def __init__(self, obj: ReadableBuffer):
+            
+            if not isinstance(obj, ReadableBuffer):
+                error = TypeError("expected a buffer")
+                raise error
+            
+            self.__memoryview = memoryview(obj)
+            
+        def __str__(self):
+            # mimicking
+            h = hex(id(self))[2:]
+            if len(h) < 16:
+                h = "0" * (16 - len(h)) + h
+            
+            return "<memory at {}>".format("0x" + h.upper())
+            
         @property
-        def format(self) -> str: ...
+        def format(self):
+            """
+            A string containing the format (in struct module style)
+            for each element in the view.
+            """
+            return self.__memoryview.format
+        
         @property
-        def itemsize(self) -> int: ...
+        def itemsize(self):
+            """The size in bytes of each element of the memoryview."""
+            return self.__memoryview.itemsize
+        
         @property
-        def shape(self) -> Optional[AVT_Tuple[int, ...]]: ...
+        def shape(self):
+            """
+            A tuple of ndim integers giving the shape of the memory
+            as an N-dimensional array.
+            """
+            return self.__memoryview.shape
+            
         @property
-        def strides(self) -> Optional[AVT_Tuple[int, ...]]: ...
+        def strides(self):
+            """
+            A tuple of ndim integers giving the size in bytes to access
+            each element for each dimension of the array.
+            """
+            return self.__memoryview.strides
+        
         @property
-        def suboffsets(self) -> Optional[AVT_Tuple[int, ...]]: ...
+        def suboffsets(self):
+            """A tuple of integers used internally for PIL-style arrays."""
+            return self.__memoryview.suboffsets
+        
+        
         @property
-        def readonly(self) -> bool: ...
+        def readonly(self):
+            """A bool indicating whether the memory is read only."""
+            return self.__memoryview.readonly
+        
         @property
-        def ndim(self) -> int: ...
+        def ndim(self):
+            """An integer indicating how many dimensions of a multi-dimensional
+            array the memory represents."""
+            return self.__memoryview.ndim
+        
         @property
-        def obj(self) -> ReadableBuffer: ...
+        def obj(self):
+            """The underlying object of the memoryview."""
+            return self.__memoryview.obj
+        
         @property
-        def c_contiguous(self) -> bool: ...
+        def c_contiguous(self):
+            """A bool indicating whether the memory is C contiguous"""
+            return self.__memoryview.c_contiguous
+        
         @property
-        def f_contiguous(self) -> bool: ...
+        def f_contiguous(self):
+            """A bool indicating whether the memory is Fortran contiguous."""
+            return self.__memoryview.f_contiguous
+        
         @property
-        def contiguous(self) -> bool: ...
+        def contiguous(self):
+            """A bool indicating whether the memory is contiguous."""
+            return self.__memoryview.contiguous
+        
         @property
-        def nbytes(self) -> int: ...
-        def __enter__(self) -> Self: ...
+        def nbytes(self):
+            """
+            The amount of space in bytes that the array would use in
+            a contiguous representation.
+            """
+            return self.__memoryview.nbytes
+        
+        def __enter__(self):
+            return self.__memoryview.__enter__()
+        
         def __exit__(
             self,
             exc_type: Optional[AVT_Type[BaseException]],  # noqa: PYI036 # This is the module declaring BaseException
             exc_val: Optional[BaseException],
             exc_tb: Optional[TracebackType],
-            /,
-        ) -> None: ...
+            /
+        ):
+            """Release the underlying buffer exposed by the memoryview object."""
+            self.__memoryview.__exit__(exc_type, exc_val, exc_tb)
+        
         @overload
-        def cast(self, format: Literal["c", "@c"], shape: Union[AVT_List[int], AVT_Tuple[int, ...]] = ...) -> AVT_MemoryView[bytes]: ...
+        def cast(self, format: Literal["c", "@c"], shape: Union[AVT_List[int], AVT_Tuple[int, ...]] = ...) -> _AVT_MemoryView[bytes]: ...
         @overload
-        def cast(self, format: Literal["f", "@f", "d", "@d"], shape: Union[AVT_List[int], AVT_Tuple[int, ...]] = ...) -> AVT_MemoryView[float]: ...
+        def cast(self, format: Literal["f", "@f", "d", "@d"], shape: Union[AVT_List[int], AVT_Tuple[int, ...]] = ...) -> _AVT_MemoryView[float]: ...
         @overload
-        def cast(self, format: Literal["?"], shape: Union[AVT_List[int], AVT_Tuple[int, ...]] = ...) -> AVT_MemoryView[bool]: ...
+        def cast(self, format: Literal["?"], shape: Union[AVT_List[int], AVT_Tuple[int, ...]] = ...) -> _AVT_MemoryView[bool]: ...
         @overload
-        def cast(self, format: Literal['b', 'B', '@b', '@B', 'h', 'H', '@h', '@H', 'i', 'I', '@i', '@I', 'l', 'L', '@l', '@L', 'q', 'Q', '@q', '@Q', 'P', '@P'], shape: Union[AVT_List[int], AVT_Tuple[int, ...]] = ...) -> AVT_MemoryView: ...
+        def cast(self, format: Literal['b', 'B', '@b', '@B', 'h', 'H', '@h', '@H', 'i', 'I', '@i', '@I', 'l', 'L', '@l', '@L', 'q', 'Q', '@q', '@Q', 'P', '@P'], shape: Union[AVT_List[int], AVT_Tuple[int, ...]] = ...) -> _AVT_MemoryView: ...
+        def cast(self, format, shape = _Missing):
+            
+            if shape is _Missing:
+                return _AVT_MemoryView(self.__memoryview.cast(format))
+            else:
+                return _AVT_MemoryView(self.__memoryview.cast(format, shape))
+            
         @overload
         def __getitem__(self, key: Union[Indexable, AVT_Tuple[Indexable, ...]], /) -> _T_memoryview: ...
         @overload
-        def __getitem__(self, key: slice, /) -> AVT_MemoryView[_T_memoryview]: ...
-        def __contains__(self, x: object, /) -> bool: ...
-        def __iter__(self) -> Iterator[_T_memoryview]: ...
-        def __len__(self) -> int: ...
-        def __eq__(self, value: object, /) -> bool: ...
-        def __hash__(self) -> int: ...
+        def __getitem__(self, key: slice, /) -> _AVT_MemoryView[_T_memoryview]: ...
+        def __getitem__(self, key, /):
+            return self.__memoryview.__getitem__(key)
+        
+        def __contains__(self, x):
+            return x in self.__memoryview
+        
+        def __iter__(self):
+            return iter(self.__memoryview)
+        
+        def __len__(self):
+            return len(self.__memoryview)
+        
+        def __eq__(self, value: object, /):
+            return value == self.__memoryview
+        
+        def __hash__(self):
+            return hash(self.__memoryview)
+        
         @overload
         def __setitem__(self, key: slice, value: ReadableBuffer, /) -> None: ...
         @overload
         def __setitem__(self, key: Union[Indexable, AVT_Tuple[Indexable, ...]], value: _T_memoryview, /) -> None: ...
-        if _sys.version_info >= (3, 10):
-            def tobytes(self, order: Optional[Literal["C", "F", "A"]] = "C") -> bytes: ...
-        else:
-            def tobytes(self, order: Optional[Literal["C", "F", "A"]] = None) -> bytes: ...
-
-        def tolist(self) -> AVT_List[int]: ...
-        if _sys.version_info >= (3, 8):
-            def toreadonly(self) -> AVT_MemoryView: ...
-        def release(self) -> None: ...
-        def hex(self, sep: Union[str, bytes] = ..., bytes_per_sep: Indexable = ...) -> str: ...
-        def __buffer__(self, flags: int, /) -> AVT_MemoryView: ...
-        def __release_buffer__(self, buffer: AVT_MemoryView, /) -> None: ...
-
-        # These are inherited from the Sequence ABC, but don't actually exist on memoryview.
-        # See https://github.com/python/cpython/issues/125420
+        def __setitem__(self, key, value, /):
+            self.__memoryview.__setitem__(key, value)
         
-        # I will be following this restriction, however, I advise you to use the tolist() method first,
-        # then use either of these methods below for older versions of Python, like view.tolist().count(int.from_bytes(b"a", "little"))
-        # (assuming we have 'view' with value memoryview(b"abcd"), then 1 would be returned in this case).
-        # view.index() and view.count(), despite these are formally defined on Python 3.14, may be buggy,
-        # so using tolist() before these methods is strongly encouraged.
-        index: ClassVar[None]  # type: ignore[assignment]
-        count: ClassVar[None]  # type: ignore[assignment]
+        # Python 3.9 and older had 'None' as 'order' default value
+        def tobytes(self, order: Optional[Literal["C", "F", "A"]] = "C"):
+            """
+            Return the data in the buffer as a byte string.
+
+            Order can be {'C', 'F', 'A'}. When order is 'C' or 'F', the data of the
+            original array is converted to C or Fortran order. For contiguous views,
+            'A' returns an exact copy of the physical memory. In particular, in-memory
+            Fortran order is preserved. For non-contiguous views, the data is converted
+            to C first. order=None is the same as order='C'.
+            """
+            return self.__memoryview.tobytes(order)
+        
+        def tolist(self):
+            """Return the data in the buffer as a list of elements."""
+            return self.__memoryview.tolist()
+        
+        # Python 3.8+
+        def toreadonly(self):
+            """Return a readonly version of the memoryview."""
+            return self.__memoryview.toreadonly()
+        
+        def release(self):
+            """Release the underlying buffer exposed by the memoryview object."""
+            return self.__memoryview.release()
+        
+        def hex(self, sep: Union[str, bytes] = _Missing, bytes_per_sep: Indexable = 1):
+            """
+            Return the data in the buffer as a str of hexadecimal numbers.
+
+            - `sep` - An optional single character or byte to separate hex bytes.
+            - `bytes_per_sep` - How many bytes between separators. Positive values count from the
+            right, negative values count from the left.
+            """
+            
+            if sep is _Missing:
+                return self.__memoryview.hex(bytes_per_sep=bytes_per_sep)
+            else:
+                return self.__memoryview.hex(sep, bytes_per_sep)
+            
+        if _sys.version_info >= (3, 12):
+            
+            def __buffer__(self, flags: int, /):
+                return self.__memoryview.__buffer__(flags)
+            def __release_buffer__(self, buffer: AVT_MemoryView, /):
+                self.__memoryview.__release_buffer__(self.__memoryview)
+        
+        # Python 3.14 backported methods
+        def index(self, value: object, start: Indexable = 0, stop: Indexable = _sys.maxsize, /):
+            """
+            Return first index of value.
+
+            Raises ValueError if the value is not present.
+            """
+            return self.__memoryview.tolist().index(value, start, stop)
+        
+        def count(self, value: object, /):
+            """Return number of occurrences of value."""
+            return self.__memoryview.tolist().count(value)
 
 if _sys.version_info >= (3, 10): 
     from types import UnionType as AVT_UnionType # >= 0.3.55a1
@@ -1987,48 +2219,90 @@ else:
 class AVT_Reversed(reversed, Generic[T]):
     """Availability: >= 0.3.55b1 // Generic version of `reversed`"""
 
-class AVT_Slice(Generic[_T_start_cov, _T_stop_cov, _T_step_cov]):
-    """
-    Availability: >= 0.3.55b1 // Generic version of `slice`
+# >> https://github.com/python/cpython/issues/128335
+if _sys.version_info >= (3, 15): 
+    from builtins import slice as AVT_Slice # >= 0.3.55b1
     
-    `slice` is a non-subscriptable final class. In this case this class only defines `__new__()` method, which returns `slice` object.
-    This object cannot be, however, *subscripted*.
-    
-    Instead consider using `AVT_Slice[Start?, Stop?, Step?]`
-    """
-    
-    # Any instead of None is misleading, all I do here is keeping it in sync with 'slice' built-in
-    @overload
-    def __new__(cls, start: None, stop: None = None, step: None = None, /) -> _AVT_Slice[Any, Any, Any]: ...
-    @overload
-    def __new__(cls, stop: T2, /) -> _AVT_Slice[Any, T2, Any]: ...
-    @overload
-    def __new__(cls, start: T1, stop: None, step: None = None, /) -> _AVT_Slice[T1, Any, Any]: ...
-    @overload
-    def __new__(cls, start: None, stop: T2, step: None = None, /) -> _AVT_Slice[Any, T2, Any]: ...
-    @overload
-    def __new__(cls, start: T1, stop: T2, step: None = None, /) -> _AVT_Slice[T1, T2, Any]: ...
-    @overload
-    def __new__(cls, start: None, stop: None, step: T3, /) -> _AVT_Slice[Any, Any, T3]: ...
-    @overload
-    def __new__(cls, start: T1, stop: None, step: T3, /) -> _AVT_Slice[T1, Any, T3]: ...
-    @overload
-    def __new__(cls, start: None, stop: T2, step: T3, /) -> _AVT_Slice[Any, T2, T3]: ...
-    @overload
-    def __new__(cls, start: T1, stop: T2, step: T3, /) -> _AVT_Slice[T1, T2, T3]: ...
-    
-    def __new__(cls, *args):
+else:
+
+    class AVT_Slice(Generic[_T_start_cov, _T_stop_cov, _T_step_cov], _Final):
+        """
+        Availability: >= 0.3.55b1 // Generic version of `slice` \\
+        https://aveyzan.xyz/aveytense#aveytense.extensions.AVT_Slice
         
-        if len(args) not in (1, 2, 3):
-            error = TypeError("expected 1-3 arguments, got {}".format(len(args)))
-            raise error
+        Since Python 3.15 it is a type alias for `slice`
+        """
         
-        if len(args) == 1:
-            return slice(args[0])
-        elif len(args) == 2:
-            return slice(args[0], args[1])
-        else:
-            return slice(args[0], args[1], args[2])
+        __slots__ = ("_AVT_Slice__slice",)
+        
+        # 'slice' is generic since Python 3.15, but if we only use it in
+        # annotations, this shall work fine
+        __slice: slice[_T_start_cov, _T_stop_cov, _T_step_cov]
+        
+        @overload
+        def __init__(cls, start: None, stop: None = None, step: None = None, /) -> None: ...
+        @overload
+        def __init__(cls, stop: _T_stop_cov, /) -> None: ...
+        @overload
+        def __init__(cls, start: _T_start_cov, stop: None, step: None = None, /) -> None: ...
+        @overload
+        def __init__(cls, start: None, stop: _T_stop_cov, step: None = None, /) -> None: ...
+        @overload
+        def __init__(cls, start: _T_start_cov, stop: _T_stop_cov, step: None = None, /) -> None: ...
+        @overload
+        def __init__(cls, start: None, stop: None, step: _T_step_cov, /) -> None: ...
+        @overload
+        def __init__(cls, start: _T_start_cov, stop: None, step: _T_step_cov, /) -> None: ...
+        @overload
+        def __init__(cls, start: None, stop: _T_stop_cov, step: _T_step_cov, /) -> None: ...
+        @overload
+        def __init__(cls, start: _T_start_cov, stop: _T_stop_cov, step: _T_step_cov, /) -> None: ...
+        
+        def __init__(self, *args):
+            
+            if len(args) not in (1, 2, 3):
+                error = TypeError("expected 1-3 arguments, got {}".format(len(args)))
+                raise error
+            
+            if len(args) == 1:
+                self.__slice = slice(args[0])
+            elif len(args) == 2:
+                self.__slice = slice(args[0], args[1])
+            else:
+                self.__slice = slice(args[0], args[1], args[2])
+        
+        @property
+        def start(self) -> _T_start_cov:
+            return self.__slice.start
+
+        @property
+        def stop(self) -> _T_stop_cov:
+            return self.__slice.stop
+        
+        @property
+        def step(self) -> _T_step_cov:
+            return self.__slice.step
+        
+        def __str__(self):
+            return "{}({}, {}, {})".format(type(self).__name__, self.start, self.stop, self.step)
+                
+        def __eq__(self, value: object, /):
+            return self.__slice.__eq__(value)
+    
+        if _sys.version_info >= (3, 12):
+            def __hash__(self):
+                return hash(self.__slice)
+
+        def indices(self, len: Indexable, /):
+            """
+            S.indices(len) -> (start, stop, stride)
+
+            Assuming a sequence of length len, calculate the start and stop
+            indices, and the stride length of the extended slice described by
+            S. Out of bounds indices are clipped in a manner consistent with the
+            handling of normal slices.
+            """
+            return self.__slice.indices(len)
         
 if _sys.version_info >= (3, 8): # TE>=4.10, Py3.8+
     from typing_extensions import TypeIs as AVT_TypeIs # 0.3.56
@@ -2382,6 +2656,7 @@ class Descriptor(
     ...
 
 @runtime
+@deprecated("Deprecated since 0.3.75, will be removed in 0.3.78.")
 class FinalDescriptor(Protocol[T_cov]):
     """
     Availability: >= 0.3.44 \\
@@ -2503,6 +2778,7 @@ class BytearrayConvertible(Protocol):
     def __bytearray__(self) -> bytearray: ...
 
 @runtime
+@deprecated("Deprecated since 0.3.75, will be removed in 0.3.78.")
 class ListConvertible(Protocol[T_cov]):
     """
     Availability: >= 0.3.26rc3 \\
@@ -2514,7 +2790,9 @@ class ListConvertible(Protocol[T_cov]):
     # to 0.3.63 as __tlist__, to 0.3.27a3 as __list__
     def toList(self) -> AVT_List[T_cov]: ...
 
+
 @runtime
+@deprecated("Deprecated since 0.3.75, will be removed in 0.3.78.")
 class TupleConvertible(Protocol[T_cov]):
     """
     Availability: >= 0.3.26rc3 \\
@@ -2527,6 +2805,7 @@ class TupleConvertible(Protocol[T_cov]):
     def toTuple(self) -> AVT_Tuple[T_cov, ...]: ...
 
 @runtime
+@deprecated("Deprecated since 0.3.75, will be removed in 0.3.78.")
 class SetConvertible(Protocol[T_cov]):
     """
     Availability: >= 0.3.26rc3 \\
@@ -3444,7 +3723,7 @@ class Formattable(Protocol):
     def __format__(self, format_spec: str = "") -> str: ...
 
 @runtime
-class Flushable(Protocol): # _typeshed.SupportsFlush
+class Flusher(Protocol): # _typeshed.SupportsFlush
     """
     Availability: >= 0.3.27b1
 
@@ -3771,7 +4050,7 @@ class Viewable(Protocol[T_cov]):
     """
     
     def __len__(self) -> int: ...
-    def __iter__(self) -> Iterator[T_cov]: ...
+    def __iter__(self) -> AVT_Iterator[T_cov]: ...
 
 @runtime
 class ViewableItemGetter(Protocol[KT, VT_cov]):
@@ -3781,7 +4060,7 @@ class ViewableItemGetter(Protocol[KT, VT_cov]):
     """
     
     def __len__(self) -> int: ...
-    def __iter__(self) -> Iterator[KT]: ...
+    def __iter__(self) -> AVT_Iterator[KT]: ...
     def __getitem__(self, key: KT, /) -> VT_cov: ...
 
 ### Array Typecode & Memoryview Format Types ###
@@ -3827,11 +4106,28 @@ FileTextMode: TypeAlias = Union[FileTextModeUpdating, FileTextModeReading, FileT
 FileMode: TypeAlias = Union[FileBinaryMode, FileTextMode] # 0.3.26b3; < 0.3.41; >= 0.3.72
 FileType: TypeAlias = Union[int, FilePath] # >= 0.3.26b3 // _typeshed.StrOrBytesPath
 
-### Private classes from typing.py ###
+### Buffer Types ###
+# All of these 3 are referred from _typeshed stub file. If anything changes, the next version will apply new changes.
+
+ReadableBuffer: TypeAlias = _Buffer # >= 0.3.44 // _typeshed.ReadableBuffer
+ReadOnlyBuffer: TypeAlias = _Buffer # >= 0.3.44 // _typeshed.ReadOnlyBuffer
+WriteableBuffer: TypeAlias = _Buffer # >= 0.3.44 // _typeshed.WriteableBuffer
+
+### _typeshed Stub File Exclusive ###
+
+AnnotationForm = Any # >= 0.3.48 // _typeshed.AnnotationForm (backport before 3.14)
+AnnotateFunc: TypeAlias = AVT_Callable[[Format], AVT_Dict[str, AnnotationForm]] # >= 0.3.57 // _typeshed.AnnotateFunc (backport before 3.14)
+EvaluateFunc: TypeAlias = AVT_Callable[[Format], AnnotationForm] # >= 0.3.59 // _typeshed.EvaluateFunc (backport before 3.14)
+Incomplete = Any # >= 0.3.60 // _typeshed.Incomplete
+MaybeNone = Any # >= 0.3.57 // _typeshed.MaybeNone
+Unused: TypeAlias = object # >= 0.3.44 // _typeshed.Unused
+
+### Internal Classes From typing.py ###
 # Use these with isinstance() to determine if these are desired special forms.
+# Not intended in any other use.
 
 TypingAnnotatedType = type(Annotated[int, "$"]) # >= 0.3.52
-TypingCallableType = type(AVT_Callable[..., Any]) # >= 0.3.52 // 'typing._GenericAlias': < Py3.9
+TypingCallableType = type(AVT_Callable[..., Any]) # >= 0.3.52
 TypingConcatenateType = type(Concatenate[int, P]) # >= 0.3.52 // TypeError occurred until 0.3.53 ('typing.ParamSpec' missing before Py3.11, ellipsis was used instead)
 TypingGenericType = type(TypeGuard[int]) # >= 0.3.52
 TypingLiteralType = type(Literal[0]) # >= 0.3.52
@@ -3961,8 +4257,7 @@ FalseUnion: TypeAlias = Union[T, Literal[False]]
 import time as _time
 
 # *** uppercased
-AnnotationForm = Any # >= 0.3.48 // _typeshed.AnnotationForm (backport before 3.14)
-AnnotateFunc: TypeAlias = AVT_Callable[[Format], AVT_Dict[str, AnnotationForm]] # >= 0.3.57 // _typeshed.AnnotateFunc (backport before 3.14)
+
 AnyCallable: TypeAlias = AVT_Callable[..., Any] # >= 0.3.26rc3
 if _sys.version_info >= (3, 10): # >= 0.3.60 // builtins._ClassInfo
     ClassInfoType = Union[type, UnionType, AVT_Tuple[ClassInfoType, ...]] # type: ignore
@@ -3981,7 +4276,7 @@ del _coroutine
 DecimalComparableType: TypeAlias = Union[Decimal, float, _Rational] # >= 0.3.60
 DecimalNewType: TypeAlias = Union[Decimal, float, str, AVT_Tuple[int, AVT_Sequence[int], int]] # >= 0.3.60
 DecimalType: TypeAlias = Union[int, Decimal] # >= 0.3.60
-EvaluateFunc: TypeAlias = AVT_Callable[[Format], AnnotationForm] # >= 0.3.59 // _typeshed.EvaluateFunc (backport before 3.14)
+
 FlagsType: TypeAlias = Union[int, RegexFlag] # >= 0.3.60
 FloatOrInteger: TypeAlias = Union[int, float] # >= 0.3.25
 Hash: TypeAlias = _hashlib.HASH # >= 0.3.44
@@ -3992,24 +4287,46 @@ else:
 HaveCodeType: TypeAlias = Union[MethodType, FunctionType, CodeType, type, AVT_Callable[..., Any]] # >= 0.3.60 // type from dis.dis()
 Hmac: TypeAlias = _hmac.HMAC # >= 0.3.44
 InComparable: TypeAlias = AVT_Container # >= 0.3.26rc1
-Incomplete = Any # >= 0.3.60 // _typeshed.Incomplete
 Interface = Protocol # >= 0.3.44
 LenOperable: TypeAlias = Sized # >= 0.3.26rc1
-MaybeNone = Any # >= 0.3.57 // _typeshed.MaybeNone
 OptionalCallable: TypeAlias = Optional[AVT_Callable[P, T]] # >= 0.3.26rc3
 Pack = Concatenate
 PatternType: TypeAlias = Union[AnyStr, AVT_Pattern[AnyStr]] # >= 0.3.60 // type from re.match()
-ReadableBuffer: TypeAlias = _Buffer # >= 0.3.44 // _typeshed.ReadableBuffer
-ReadOnlyBuffer: TypeAlias = _Buffer # >= 0.3.44 // _typeshed.ReadOnlyBuffer
 RichComparable: TypeAlias = Union[LeastComparable[Any], GreaterComparable[Any]] # >= ?
+
+# Unfortunately, it is impossible to make this type alias as a class due to the fact
+# the Mapping ABC inherits from the Collection ABC. That implementation would look like this:
+#
+#   class SequenceLike(Protocol[T]):
+#       def __len__(self) -> int: ...
+#       def __contains__(self, x: object) -> bool: ...
+#       def __iter__(self) -> AVT_Iterator[T]: ... 
+#
+# ...however, it will be correct for Mapping ABC too.
+# Another technique in mind was 'class SequenceLike(Sequence[T], AbstractSet[T], ValuesView[T]): ...', but this is
+# where it gets anomalous with type hinting, because all the methods from all these ABCs will need to be included.
+# If there was a PEP that would cover optional definitions in a protocol runtime, this would be defined as a class
+# instead. However, another PEP would be needed to not type hint correctly when an instance of Mapping ABC is used.
+# Finally, the last trick was bound with use of an unofficial boolean attribute '__is_sequence_like__'. We will keep
+# it like this for now.
+
 SequenceLike: TypeAlias = Union[AVT_Sequence[T], AVT_AbstractSet[T], AVT_ValuesView[T]]
 """Availability: >= 0.3.54 // Renamed 0.3.69 from `TrueSequence` // https://aveyzan.xyz/aveytense#aveytense.extensions.SequenceLike"""
-Sizeable: TypeAlias = Sized # >= 0.3.26rc3
+
+@runtime
+@deprecated("Deprecated since 0.3.75, up for removal in 0.3.78")
+class Sizeable(Sized, Protocol):
+    """
+    Availability: >= 0.3.26rc3 \\
+    Deprecated: >= 0.3.75
+    """
+
+# I was actually thinking to retract from re-defining 'typing.Text' since its from Python 2
+# Not doing this in favor of this module purpose.
 Text: TypeAlias = str # >= 0.3.58
-TimeTable: TypeAlias = AVT_Tuple[int, int, int, int, int, int, int, int, int] # >= 0.3.70
-Unused: TypeAlias = object # >= 0.3.44 // _typeshed.Unused
+
+TimeTable: TypeAlias = AVT_Tuple[int, int, int, int, int, int, int, int, int] # >= 0.3.70 // time._TimeTable
 Uuid: TypeAlias = UUID # >= 0.3.54
-WriteableBuffer: TypeAlias = _Buffer # >= 0.3.44 // _typeshed.WriteableBuffer
 
 # *** lowercased
 cached_property = cachedproperty
@@ -4042,9 +4359,10 @@ del _collections_abc, _abc, _enum, _hashlib, hashlib, _hmac, _time, _typing, _ty
 
 def int_bit_count(i: int, /): # -> int
     """
-    Availability: >= 0.3.60
+    Availability: >= 0.3.60 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.int_bit_count
     
-    `int.bit_count()` (>=3.10) since Python 3.8
+    `int.bit_count()` (>=3.10) available for Python 3.8 and 3.9
     """
     
     if not isinstance(i, int):
@@ -4063,7 +4381,8 @@ def int_to_bytes(
     signed: bool = False
 ): # -> bytes
     """
-    Availability: >= 0.3.60
+    Availability: >= 0.3.60 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.int_to_bytes
     
     `int.to_bytes()` (backporting update for default value of `length` and `byteorder` parameters from Python 3.11)
     """
@@ -4083,7 +4402,8 @@ def int_from_bytes(
     signed: bool = False
 ): # -> int
     """
-    Availability: >= 0.3.60
+    Availability: >= 0.3.60 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.int_from_bytes
     
     `int.from_bytes()` (backporting update for default value of `byteorder` parameter before Python 3.11)
     """
@@ -4104,7 +4424,8 @@ def str_replace(
     count: Indexable = -1
 ): # -> str
     """
-    Availability: >= 0.3.60
+    Availability: >= 0.3.60 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.str_replace
     
     `str.replace()` (backporting update for `count` parameter from Python 3.13 - from positional-only to universal parameter)
     """
@@ -4121,7 +4442,8 @@ def str_removeprefix(
     /
 ): # -> str
     """
-    Availability: >= 0.3.60
+    Availability: >= 0.3.60 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.str_removeprefix
     
     `str.removeprefix()` (backporting the method before Python 3.9; see PEP 616)
     """
@@ -4144,7 +4466,8 @@ def str_removesuffix(
     /
 ): # -> str
     """
-    Availability: >= 0.3.60
+    Availability: >= 0.3.60 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.str_removesuffix
     
     `str.removesuffix()` (backporting the method before Python 3.9; see PEP 616)
     """
@@ -4176,7 +4499,8 @@ def bt_removeprefix(b: bytes, prefix: ReadableBuffer, /) -> bytes: ...
 def bt_removeprefix(b: bytearray, prefix: ReadableBuffer, /) -> bytearray: ...
 def bt_removeprefix(b, prefix, /):
     """
-    Availability: >= 0.3.60
+    Availability: >= 0.3.60 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.bt_removeprefix
     
     `[bytes|bytearray].removeprefix()` (backporting the method before Python 3.9; see PEP 616)
     """
@@ -4200,7 +4524,8 @@ def bt_removesuffix(b: bytes, suffix: ReadableBuffer, /) -> bytes: ...
 def bt_removesuffix(b: bytearray, suffix: ReadableBuffer, /) -> bytearray: ...
 def bt_removesuffix(b, suffix, /):
     """
-    Availability: >= 0.3.60
+    Availability: >= 0.3.60 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.bt_removesuffix
     
     `[bytes|bytearray].removesuffix()` (backporting the method before Python 3.9; see PEP 616)
     """
@@ -4219,7 +4544,8 @@ def bt_removesuffix(b, suffix, /):
     
 def aiter(i: _AsyncIterOperable[_T_anext_cov], /):
     """
-    Availability: >= 0.3.60
+    Availability: >= 0.3.60 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.aiter
     
     Backported version of the `aiter()` (Python 3.10+) inbuilt function.
     """
@@ -4231,16 +4557,15 @@ def aiter(i: _AsyncIterOperable[_T_anext_cov], /):
     else:
         return i.__aiter__()
 
-class _NoDefault: ... # >= 0.3.72
-
 @overload
 def anext(i: AsyncNextOperable[T], /) -> AVT_Awaitable[T]: ...
 @overload
 async def anext(i: AsyncNextOperable[T1], default: T2, /) -> Union[T1, T2]: ...
 
-def anext(i: AsyncNextOperable[T1], default: T2 = _NoDefault, /):
+def anext(i: AsyncNextOperable[T1], default: T2 = _Missing, /):
     """
-    Availability: >= 0.3.60
+    Availability: >= 0.3.60 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.anext
     
     Backported version of the `anext()` (Python 3.10+) inbuilt function.
     
@@ -4252,7 +4577,7 @@ def anext(i: AsyncNextOperable[T1], default: T2 = _NoDefault, /):
         import builtins
         
         # 0.3.73
-        if default is _NoDefault:
+        if default is _Missing:
             return builtins.anext(i)
         else:
             return builtins.anext(i, default)
@@ -4262,7 +4587,7 @@ def anext(i: AsyncNextOperable[T1], default: T2 = _NoDefault, /):
         try:
             return i.__anext__()
         except StopAsyncIteration:
-            if default is not _NoDefault:
+            if default is not _Missing:
                 async def _re_anext(default: T2, /):
                     return default
                 return _re_anext(default)
@@ -4273,9 +4598,10 @@ def anext2(i: AsyncNextOperable[T], /) -> T: ...
 @overload
 def anext2(i: AsyncNextOperable[T1], default: T2, /) -> Union[T1, T2]: ...
     
-def anext2(i: AsyncNextOperable[T1], default: T2 = _NoDefault, /):
+def anext2(i: AsyncNextOperable[T1], default: T2 = _Missing, /):
     """
-    Availability: >= 0.3.73
+    Availability: >= 0.3.73 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.anext2
     
     Backported version of the `anext()` (Python 3.10+) inbuilt function, except it extracts actual value from an awaitable object.
     
@@ -4290,7 +4616,7 @@ def anext2(i: AsyncNextOperable[T1], default: T2 = _NoDefault, /):
             
             import builtins
             
-            if default is _NoDefault:
+            if default is _Missing:
                 return await builtins.anext(i)
             else:
                 return await builtins.anext(i, default)
@@ -4299,7 +4625,7 @@ def anext2(i: AsyncNextOperable[T1], default: T2 = _NoDefault, /):
             try:
                 return await i.__anext__()
             except StopAsyncIteration:
-                if default is not _NoDefault:
+                if default is not _Missing:
                     return default
                 raise StopAsyncIteration
     
@@ -4313,7 +4639,8 @@ def eval(
     locals: Optional[AVT_Mapping[str, object]] = None
 ):
     """
-    Availability: >= 0.3.60
+    Availability: >= 0.3.60 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.eval
     
     Equivalent to the `eval()` inbuilt function, just with changed signature: parameters `globals` and `locals` were positional-only prior to Python 3.13
     """
@@ -4332,7 +4659,8 @@ if _sys.version_info >= (3, 11):
         closure: Optional[AVT_Tuple[CellType, ...]] = None
     ):
         """
-        Availability: >= 0.3.60
+        Availability: >= 0.3.60 \\
+        https://aveyzan.xyz/aveytense#aveytense.extensions.exec
 
         Equivalent to the `exec()` inbuilt function, just with changed signature: parameters `globals` and `locals` were positional-only prior to Python 3.13
         
@@ -4351,7 +4679,8 @@ else:
         locals: Optional[AVT_Mapping[str, object]] = None
     ):
         """
-        Availability: >= 0.3.60
+        Availability: >= 0.3.60 \\
+        https://aveyzan.xyz/aveytense#aveytense.extensions.exec
 
         Equivalent to the `exec()` inbuilt function, just with changed signature: parameters `globals` and `locals` were positional-only prior to Python 3.13
         
@@ -4360,6 +4689,27 @@ else:
             
         import builtins
         builtins.exec(source, globals, locals)
+        
+@overload
+def reduce(function: AVT_Callable[[T, S], T], iterable: AVT_Iterable[S], /, initial: S) -> T: ...
+
+@overload
+def reduce(function: AVT_Callable[[T, T], T], iterable: AVT_Iterable[T], /) -> T: ...
+        
+def reduce(function, iterable, /, initial = _Missing):
+    """
+    Availability: >= 0.3.75 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.reduce
+    
+    Equivalent to `functools.reduce()`; backported changed from Python 3.14 regarding the `initial` parameter.
+    """
+    
+    import functools
+    
+    if initial is _Missing:
+        return functools.reduce(function, iterable)
+    else:
+        return functools.reduce(function, iterable, initial)
 
 __all__ = sorted([k for k in globals() if not k.startswith("_")])
 __all_deprecated__ = sorted([k for k in range(len(__all__)) if hasattr(__all__[k], "__deprecated__")]) # 0.3.44

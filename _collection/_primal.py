@@ -120,14 +120,6 @@ def _int_float_fallback(v, /): # 0.3.71
         return _extensions.cast(int, v.__int__())
     elif isinstance(v, _extensions.Indexable):
         return _extensions.cast(int, v.__index__())
-
-def _sign(v, /): # 0.3.74
-    
-    if not isinstance(v, (int, float)):
-        error = TypeError("expected a number")
-        raise error
-    
-    return 1 if v > 0 else -1
     
 # declarations
 
@@ -445,6 +437,51 @@ class abroad:
         
         return set(self.__list)
     
+    def __mod__(self, other: str): # 0.3.75
+        
+        if isinstance(other, str):
+            
+            s = ""
+            
+            if other.count("{}") == 1:
+                
+                for e in self.__list:
+                    s += other.format(e)
+            
+            else:
+                
+                for e in self.__list:
+                    s += str(e) + other
+                    
+            return s
+                    
+        else:
+            error = TypeError("expected a string as a right operand")
+            raise error
+
+    def __rmod__(self, other: str): # 0.3.75
+        
+        if isinstance(other, str):
+            
+            s = ""
+            
+            if other.count("{}") == 1:
+                
+                for e in self.__list:
+                    s += other.format(e)
+                    
+            else:
+                
+                for e in self.__list:
+                    s += other + str(e)
+                    
+            return s
+                    
+        else:
+            error = TypeError("expected a string as a left operand")
+            raise error
+
+    
     def count(self, value: int, /): # 0.3.74
         return self.__list.count(value)
     
@@ -454,7 +491,8 @@ class abroad:
     @staticmethod
     def fromComplex(c: _extensions.Union[complex, _extensions.ComplexConvertible], /, step: _PrideMonth2026AbroadStep = 1):
         """
-        Availability: >= 0.3.74
+        Availability: >= 0.3.74 \\
+        https://aveyzan.xyz/aveytense#aveytense.abroad.fromComplex
         
         A static method creating instance of class `abroad`, with behavior for `complex` objects improved
         """
@@ -484,7 +522,8 @@ class abroad:
     @staticmethod
     def negative(start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
         """
-        Availability: >= 0.3.74
+        Availability: >= 0.3.74 \\
+        https://aveyzan.xyz/aveytense#aveytense.abroad.negative
         
         A static method creating instance of class `abroad`, converting `start` and `stop` to negative.
         """
@@ -507,7 +546,8 @@ class abroad:
     @staticmethod
     def positive(start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
         """
-        Availability: >= 0.3.74
+        Availability: >= 0.3.74 \\
+        https://aveyzan.xyz/aveytense#aveytense.abroad.positive
         
         A static method creating instance of class `abroad`, converting `start` and `stop` to positive.
         """

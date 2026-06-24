@@ -9,28 +9,35 @@ from __future__ import annotations
 import abc as _abc
 import sys as _sys
 
-from . import _extensions as __
+from . import _extensions
 from ._exceptions import _ErrorHandler as _E
 from ._typeparams import (
     T as _T,
     T_cov as _T_cov,
     P as _P,
     KT as _KT,
-    VT as _VT
+    VT as _VT,
+    KT2 as _KT2,
+    VT2 as _VT2
 )
+
+if _extensions.TYPE_CHECKING:
+    from _typeshed import SupportsKeysAndGetItem as _KeyItemGetter
 
 __name__ = "aveytense.util"
 
-_ch = __.eval # checker
+_ch = _extensions.eval # checker
 
-_T_func = __.TypeVar("_T_func", bound = __.AVT_Callable[..., __.Any])
-_T_enum = __.TypeVar("_T_enum", bound = __.Enum)
+_T_func = _extensions.TypeVar("_T_func", bound = _extensions.AVT_Callable[..., _extensions.Any])
+_T_enum = _extensions.TypeVar("_T_enum", bound = _extensions.Enum)
 
+# That's 'None' at runtime. 'typing.Any' for type hinting purposes while not wanting to type hint with ':' or 'typing.cast()'.
+# I would also use other alternatives, but this seems creative enough
 _AnyObjectHinter = StopIteration().value
 
-_RichComparable: __.TypeAlias = __.RichComparable
-_OptionSelection: __.TypeAlias = __.Literal["frozen", "final", "abstract", "no_reassign", "forced_abstract"] # 0.3.27rc2
-_AllMode: __.TypeAlias = __.Literal[
+_RichComparable: _extensions.TypeAlias = _extensions.RichComparable
+_OptionSelection: _extensions.TypeAlias = _extensions.Literal["frozen", "final", "abstract", "no_reassign", "forced_abstract"] # 0.3.27rc2
+_AllMode: _extensions.TypeAlias = _extensions.Literal[
     "clear",
     "lowercased",
     "lowercased_clear",
@@ -51,7 +58,7 @@ _AllMode: __.TypeAlias = __.Literal[
     "all"
 ] # 0.3.53
 
-def _reckon(i: __.AVT_Iterable[_T], /):
+def _reckon(i: _extensions.AVT_Iterable[_T], /):
     
     _i = 0
     
@@ -105,27 +112,27 @@ def _return_param(f = object(), s = ""): # 0.3.47
     """
     
     # 0.3.50: callable(...) and __name__ != __qualname__
-    if isinstance(f, __.MethodType) or (callable(f) and f.__name__ != f.__qualname__):
+    if isinstance(f, _extensions.MethodType) or (callable(f) and f.__name__ != f.__qualname__):
         
-        _class_ = "_" +  __.str_removesuffix(f.__qualname__, "." + f.__name__)
+        _class_ = "_" +  _extensions.str_removesuffix(f.__qualname__, "." + f.__name__)
         
         if s.startswith(_class_ + "__") and not s.endswith("__"):
-            return __.str_removeprefix(s, _class_)
+            return _extensions.str_removeprefix(s, _class_)
             
     return s
 
 def _check_if_callable(f): # 0.3.51
     
-    return callable(f) or isinstance(f, __.partial)
+    return callable(f) or isinstance(f, _extensions.partial)
 
 def _check_if_builtin(f): # 0.3.51
     
     return isinstance(f, (
-        __.BuiltinFunctionType,
-        __.ClassMethodDescriptorType,
-        __.MethodDescriptorType,
-        __.MethodWrapperType,
-        __.WrapperDescriptorType
+        _extensions.BuiltinFunctionType,
+        _extensions.ClassMethodDescriptorType,
+        _extensions.MethodDescriptorType,
+        _extensions.MethodWrapperType,
+        _extensions.WrapperDescriptorType
     ))
 
 def _param_sanitize(param = "", includeEqualSign = False): # 0.3.51
@@ -158,7 +165,7 @@ class _Immutable:
         
         cls._members = [""]
         
-        def __setattr__(self: __.Self, name: str, value: __.Any):
+        def __setattr__(self: _extensions.Self, name: str, value: _extensions.Any):
             
             if hasattr(self, "__qualname__"):
                 
@@ -174,7 +181,7 @@ class _Immutable:
                 self._members.append(name)
                 setattr(self, name, value)
             
-        def __delattr__(self: __.Self, name: str):
+        def __delattr__(self: _extensions.Self, name: str):
             
             if name in (*self._members[1:], "_members"):
                 error = TypeError("cannot delete member '{}'".format(name))
@@ -189,7 +196,7 @@ class _Immutable:
 class _TenseImmutableMeta(type, _Immutable):
     """Availability: >= 0.3.58"""
     
-__._prevent_unused_imports(_TenseImmutableMeta) # used in aveytense.Tense
+_extensions._prevent_unused_imports(_TenseImmutableMeta) # used in aveytense.Tense
             
 class _TypeFlags:
     """Availability: >= 0.3.53"""
@@ -458,7 +465,7 @@ class _InternalHelper:
     Class responsible to shorten code for several classes such as `Final` and `Abstract`
     """
     
-    def __new__(cls, t: __.AVT_Type[_T], o: _OptionSelection, /):
+    def __new__(cls, t: _extensions.AVT_Type[_T], o: _OptionSelection, /):
         
         _reassignment_operators = {
             "__iadd__": "+=",
@@ -510,7 +517,7 @@ class _InternalHelper:
             
         def _no_re(op: str): # no reassignment; must return callback so assigned attributes can be methods
             
-            def _no_re_internal(self: __.Self, other: _T):
+            def _no_re_internal(self: _extensions.Self, other: _T):
                 
                 _op = "with operator {}".format(op)
                 _E(102, _op)
@@ -566,24 +573,7 @@ class _InternalHelper:
                 _E(120, key)    
         
         return t
-
-def _extend(*dicts: __.AVT_Dict[str, __.Any]):
-    """
-    Availability: >= 0.3.53
     
-    Used to keep compatibility with previous Python versions that doesn't support the `|` operator on dictionaries.
-    
-    Exclusive to `Flags.__all__`, in normal code you can use `Tense.extend()`
-    """
-    
-    _list_ = [""]
-    _list_.clear()
-    
-    for e in dicts:
-        _list_.extend([k for k in e if not k.startswith("_")])
-        
-    return _list_
-
 class Abstract:
     """
     Availability: >= 0.3.26b3 \\
@@ -625,7 +615,7 @@ class Abstract:
             from abc import abstractmethod as _a
             return _a(f)
 
-def abstract(t: __.AVT_Type[_T], /): # <- 0.3.41 slash
+def abstract(t: _extensions.AVT_Type[_T], /): # <- 0.3.41 slash
     """
     Availability: >= 0.3.27a5 (formally)
     
@@ -682,7 +672,7 @@ class Final:
                 
             return _f(f)
     
-def final(t: __.AVT_Type[_T], /): # <- 0.3.41 slash
+def final(t: _extensions.AVT_Type[_T], /): # <- 0.3.41 slash
     """
     Availability: >= 0.3.26b3 \\
     https://aveyzan.xyz/aveytense#aveytense.util.final
@@ -700,8 +690,8 @@ def finalmethod(f: _T_func, /): # <- 0.3.41 slash
     
     else:
         
-        if isinstance(f, __.MethodType):
-            return __.cast(_T_func, __.final(f))
+        if isinstance(f, _extensions.MethodType):
+            return _extensions.cast(_T_func, _extensions.final(f))
         
         else:
             error = TypeError("expected a method")
@@ -712,7 +702,8 @@ def finalmethod(f: _T_func, /): # <- 0.3.41 slash
 # does is because of descriptor methods __get__, __set__ and __delete__
 # 18.03.2025
 
-class finalproperty(__.Generic[_T]):
+@_extensions.deprecated("Deprecated since 0.3.75, will be removed in 0.3.78. Use '@property' instead")
+class finalproperty(_extensions.Generic[_T]):
     """
     Availability: >= 0.3.37 \\
     https://aveyzan.xyz/aveytense#aveytense.util.finalproperty
@@ -738,7 +729,7 @@ class finalproperty(__.Generic[_T]):
         print(R().val) # 42
     """
     
-    def __init__(self, f: __.AVT_Callable[[__.Any], _T], /):
+    def __init__(self, f: _extensions.AVT_Callable[[_extensions.Any], _T], /):
         
         if isinstance(f, staticmethod):
             f = f.__func__
@@ -754,11 +745,11 @@ class finalproperty(__.Generic[_T]):
         
         return "<final-property '{}'>".format(self.__func.__qualname__) # < 0.3.44; >= 0.3.69
         
-    @__.overload
-    def __get__(self, instance: None, owner: __.Optional[type] = None) -> finalproperty[_T]: ...
+    @_extensions.overload
+    def __get__(self, instance: None, owner: _extensions.Optional[type] = None) -> finalproperty[_T]: ...
     
-    @__.overload
-    def __get__(self, instance: __.Any, owner: __.Optional[type] = None) -> _T: ...
+    @_extensions.overload
+    def __get__(self, instance: _extensions.Any, owner: _extensions.Optional[type] = None) -> _T: ...
         
     def __get__(self, instance, owner = None):
         
@@ -784,14 +775,14 @@ class finalproperty(__.Generic[_T]):
 
 if False: # >= 0.3.43
     
-    class finalstaticproperty(__.Generic[_T]):
+    class finalstaticproperty(_extensions.Generic[_T]):
         
-        def __init__(self, f: __.Callable[[], _T], /):
+        def __init__(self, f: _extensions.Callable[[], _T], /):
             
             if isinstance(f, staticmethod):
                 f = f.__func__
             
-            if not callable(f) or (f.__code__.co_argcount != 0 or f.__code__.co_kwonlyargcount != 0):
+            if not callable(f) or (f.__code_extensions.co_argcount != 0 or f.__code_extensions.co_kwonlyargcount != 0):
                 error = TypeError("expected callable with no parameters")
                 raise error
             
@@ -818,7 +809,7 @@ if False: # >= 0.3.43
 
 if False: # < 0.3.52
     @final
-    class ClassLike(__.Generic[_P, _T]):
+    class ClassLike(_extensions.Generic[_P, _T]):
         """
         Availability: >= 0.3.27a3
         
@@ -833,7 +824,7 @@ if False: # < 0.3.52
             a = test() # returns 42
 
         """
-        def __init__(self, f: __.AVT_Callable[_P, _T]):
+        def __init__(self, f: _extensions.AVT_Callable[_P, _T]):
             self.f = f
             
         def __call__(self, *args: _P.args, **kwds: _P.kwargs):
@@ -883,21 +874,21 @@ class AbstractFinal:
         "Availability: >= 0.3.27rc1. Error is thrown, because class may not be subclassed"
         _ch(_ih(11))
 
-@__.dataclass(init = False, repr = False, eq = False, frozen = True) # 0.3.74
-class SortedList(__.Generic[_T]):
+@_extensions.dataclass(init = False, repr = False, eq = False, frozen = True) # 0.3.74
+class SortedList(_extensions.Generic[_T]):
     """
     Availability: >= 0.3.35
     
-    Creates a sorted list. Note this class doesn't inherit from `list` builtin itself.
+    Creates a sorted list. Note this class doesn't inherit from the `list` builtin itself.
     """
     
     # The types are genuine and these attributes exist actually.
-    __list: __.AVT_List[_T]
-    __sorted: __.AVT_List[_T]
+    __list: _extensions.AVT_List[_T]
+    __sorted: _extensions.AVT_List[_T]
     
-    def __init__(self, i: __.AVT_Iterable[_T], /, key: __.Optional[__.AVT_Callable[[_T], _RichComparable]] = None, reverse = False): # 0.3.35
+    def __init__(self, i: _extensions.AVT_Iterable[_T], /, key: _extensions.Optional[_extensions.AVT_Callable[[_T], _RichComparable]] = None, reverse = False): # 0.3.35
 
-        if not isinstance(i, __.Iterable):
+        if not isinstance(i, _extensions.Iterable):
             error = ValueError("expected an iterable object")
             raise error
         
@@ -914,12 +905,12 @@ class SortedList(__.Generic[_T]):
     def __len__(self): # 0.3.35
         return len(self.__sorted)
     
-    @__.overload
+    @_extensions.overload
     def __getitem__(self, index: int, /) -> _T: ...
-    @__.overload
-    def __getitem__(self, index: slice, /) -> __.AVT_List[_T]: ...
+    @_extensions.overload
+    def __getitem__(self, index: slice, /) -> _extensions.AVT_List[_T]: ...
     
-    def __getitem__(self, index: __.Union[int, slice], /): # 0.3.35
+    def __getitem__(self, index: _extensions.Union[int, slice], /): # 0.3.35
         return self.__sorted[index]
     
     def __contains__(self, item: _T, /): # 0.3.35
@@ -943,14 +934,14 @@ class SortedList(__.Generic[_T]):
         if v:
             self.__sorted.reverse()
             
-    def setKey(self, v: __.Optional[__.AVT_Callable[[_T], _RichComparable]] = None, /):
+    def setKey(self, v: _extensions.Optional[_extensions.AVT_Callable[[_T], _RichComparable]] = None, /):
         """Availability: >= 0.3.35"""
         
         self.__sorted = self.__list
         if v is not None:
             self.__sorted.sort(key = v)
             
-def all(name: str = "all", mode: __.Union[_AllMode, __.AVT_Callable[[str], bool]] = "clear", deprecatedInclude: bool = False, deprecatedName: __.Optional[str] = None):
+def all(name: str = "all", mode: _extensions.Union[_AllMode, _extensions.AVT_Callable[[str], bool]] = "clear", deprecatedInclude: bool = False, deprecatedName: _extensions.Optional[str] = None):
     """
     Availability: >= 0.3.53
     
@@ -970,7 +961,7 @@ def all(name: str = "all", mode: __.Union[_AllMode, __.AVT_Callable[[str], bool]
         actions about the name are performed as with `name` parameter
     """
         
-    def _internals(t: __.AVT_Type[_T], /):
+    def _internals(t: _extensions.AVT_Type[_T], /):
         
         if not isinstance(t, type):
             error = TypeError("expected a class")
@@ -986,7 +977,7 @@ def all(name: str = "all", mode: __.Union[_AllMode, __.AVT_Callable[[str], bool]
             error = TypeError("the 'name' parameter must be a boolean value")
             raise error
         
-        if not isinstance(deprecatedName, (str, __.NoneType)):
+        if not isinstance(deprecatedName, (str, _extensions.NoneType)):
             error = TypeError("the 'deprecatedName' parameter must be a string or 'None'")
             raise error
     
@@ -1049,7 +1040,7 @@ def all(name: str = "all", mode: __.Union[_AllMode, __.AVT_Callable[[str], bool]
         elif mode == "uppercased_private":
             _dict_.update({ _name_: sorted([k for k in t.__dict__ if k.isupper() and k.startswith("__") and not k.endswith("__")]) })
             
-        elif callable(mode) and mode.__code__.co_argcount == 1 and mode.__defaults__ is None:
+        elif callable(mode) and mode.__code_extensions.co_argcount == 1 and mode.__defaults__ is None:
             _dict_.update({ _name_: sorted([k for k in t.__dict__ if mode(k) ]) })
             
         else:
@@ -1067,9 +1058,9 @@ def all(name: str = "all", mode: __.Union[_AllMode, __.AVT_Callable[[str], bool]
             else:
                 _deprecated_name_ = "__{}_deprecated__".format(_name_.strip().strip("_"))
             
-            _dict_.update({ _deprecated_name_: sorted([k for k in t.__dict__ if hasattr(t.__dict__[k], "__deprecated__") or isinstance(t.__dict__[k], __.deprecated)]) })
+            _dict_.update({ _deprecated_name_: sorted([k for k in t.__dict__ if hasattr(t.__dict__[k], "__deprecated__") or isinstance(t.__dict__[k], _extensions.deprecated)]) })
         
-        return __.cast(__.AVT_Type[_T], type(t.__name__, t.__bases__, _dict_))
+        return _extensions.cast(_extensions.AVT_Type[_T], type(t.__name__, t.__bases__, _dict_))
     
     return _internals
     
@@ -1096,11 +1087,11 @@ class _BuiltinParamVar:
     def __init__(self, f):
         
         if not isinstance(f, ( # these are defined since Python 3.7 (except 'BuiltinFunctionType')
-            __.BuiltinFunctionType,
-            __.ClassMethodDescriptorType,
-            __.MethodDescriptorType,
-            __.MethodWrapperType,
-            __.WrapperDescriptorType 
+            _extensions.BuiltinFunctionType,
+            _extensions.ClassMethodDescriptorType,
+            _extensions.MethodDescriptorType,
+            _extensions.MethodWrapperType,
+            _extensions.WrapperDescriptorType 
         )):
             error = TypeError("provided object is not a builtin")
             raise error
@@ -1129,8 +1120,8 @@ class _BuiltinParamVar:
             
             _revoke_first_ = _unsanitized_signature_[: _await_comma(_unsanitized_signature_) + 1]
             
-            _signature_ = __.str_removeprefix(__.str_removeprefix(_unsanitized_signature_,  _revoke_first_), "/, ").replace("\n" + _SPACES_, "")
-            _signature2_ = __.str_removesuffix(_signature_, ")").split(", ")
+            _signature_ = _extensions.str_removeprefix(_extensions.str_removeprefix(_unsanitized_signature_,  _revoke_first_), "/, ").replace("\n" + _SPACES_, "")
+            _signature2_ = _extensions.str_removesuffix(_signature_, ")").split(", ")
             
             self.__signature = _signature_ 
             self.__gleaned_params = list(filter(lambda x: _reckon(x) > 0, _signature2_))
@@ -1263,7 +1254,7 @@ class _BuiltinParamVar:
                 _return_.append((_param_sanitize(p), "<kwargs>"))
                 
         return tuple(_return_)
-    
+
 class ParamVar:
     """
     Availability: >= 0.3.42 \\
@@ -1281,62 +1272,67 @@ class ParamVar:
     specific signature. `f` must be any callable object
     """
     
-    def __init__(self, f: __.AVT_Callable[..., __.Any], i = 0, /): # 0.3.42
+    __builtin: _extensions.Optional[_BuiltinParamVar]
+    __func: _extensions.AVT_Callable[..., _extensions.Any]
+    __no_first: _extensions.Literal[0, 1]
+    __vartype: str
+    
+    def __init__(self, f: _extensions.AVT_Callable[..., _extensions.Any], i = 0, /): # 0.3.42
+        
+        _mangle = lambda x = "": "_{}".format(type(self).__name__) + x
         
         # Revamp 0.3.51. Sadly, inbuilt functions do not feature the __code__ attribute, what would be easier.
         _overloads_ = None
         
-        if _check_if_callable(f) or isinstance(getattr(f, "__code__", None), __.CodeType):
+        if _check_if_callable(f) or isinstance(getattr(f, "__code__", None), _extensions.CodeType):
             
             # AttributeError is thrown when trying to access non-overloaded functions, or overloaded, but without the __module__ attribute
             try:
-                _overloads_ = __.get_overloads(f)
-                
+                _overloads_ = _extensions.get_overloads(f)
             except AttributeError:
                 _overloads_ = None
-            
             if not isinstance(i, int) or (_overloads_ is not None and _reckon(_overloads_) > 0 and i not in range(_reckon(_overloads_))):
                 error = TypeError("expected an integer in second parameter. keep this parameter as-is, when function isn't overloaded." + \
                                 "otherwise, ensure the parameter value is in range <0; overloads_length>. " + \
                                 "this does not apply to inbuilt functions")
                 raise error
             
-            if _check_if_builtin(f) or not isinstance(getattr(f, "__code__", None), __.CodeType):
+            if _check_if_builtin(f) or not isinstance(getattr(f, "__code__", None), _extensions.CodeType):
                 
                 try:
-                    self.__builtin = _BuiltinParamVar(f)
+                    object.__setattr__(self, _mangle("__builtin"), _BuiltinParamVar(f))
                     
                 except TypeError:
                     error = TypeError("expected a callable object with a proper implementation. with type as value use '~.util.ParamVar.fromType()' static method")
                     raise error
                 
             else:
-                self.__builtin = None
+                object.__setattr__(self, _mangle("__builtin"), None)
                 
         else:
             error = TypeError("expected a callable object with a proper implementation")
             raise error
         
-        self.__vartype = ""
+        object.__setattr__(self, _mangle("__vartype"), "")
         
-        if isinstance(f, __.partial):
-            self.__func = f.func
-            
+        if isinstance(f, _extensions.partial):
+            object.__setattr__(self, _mangle("__func"), f.func)
         elif _overloads_ is not None and _reckon(_overloads_) > 0:
-            self.__func = __.cast(__.AVT_Callable[..., __.Any], _overloads_[i])
-            
+            object.__setattr__(self, _mangle("__func"), _overloads_[i])
         else:
-            self.__func = f
+            object.__setattr__(self, _mangle("__func"), f)
         
-        func = f.func if isinstance(f, __.partial) else f
+        func = f.func if isinstance(f, _extensions.partial) else f
         
         # 0.3.51: Less complexity in this statement. __name__ != __qualname__ is required to deduce if a function belongs to a class as an instance method,
         # passed to the constructor via class reference. If __name__ equals __qualname__, then function doesn't belong to a class and is in globally scope.
-        if (isinstance(func, __.MethodType) and not isinstance(func, staticmethod)) or isinstance(func, __.MethodDescriptorType) or (isinstance(func, __.FunctionType) and func.__name__ != func.__qualname__):
-            self.__no_first = 1
-        
+        if (isinstance(func, _extensions.MethodType) and not isinstance(func, staticmethod)) or \
+            isinstance(func, _extensions.MethodDescriptorType) or (
+            isinstance(func, _extensions.FunctionType) and func.__name__ != func.__qualname__
+            ):
+            object.__setattr__(self, _mangle("__no_first"), 1)
         else:
-            self.__no_first = 0
+            object.__setattr__(self, _mangle("__no_first"), 0)
         
     def __str__(self): # 0.3.42
         
@@ -1458,9 +1454,9 @@ class ParamVar:
         # 0.3.52: Un-stringify type annotations
         # 0.3.53: Check whether 'globals' in eval() can be passed as a keyword
         if not _quoted_annotations_:
-            _receive_annotation_ = lambda x = "": ": " + str(__.eval(self.func.__annotations__[x], globals = self.func.__globals__)) if self.func.__annotations__.get(x, False) is not False else ""
+            _receive_annotation_ = lambda x = "": ": " + str(_extensions.eval(self.func.__annotations__[x], globals = self.func.__globals__)) if self.func.__annotations_extensions.get(x, False) is not False else ""
         else:
-            _receive_annotation_ = lambda x = "": ": \"{}\"".format(str(__.eval(self.func.__annotations__[x], globals = self.func.__globals__))) if self.func.__annotations__.get(x, False) is not False else ""
+            _receive_annotation_ = lambda x = "": ": \"{}\"".format(str(_extensions.eval(self.func.__annotations__[x], globals = self.func.__globals__))) if self.func.__annotations_extensions.get(x, False) is not False else ""
                 
         # 0.3.48
         # Fixed annotations (these only applied to parameters with default value)
@@ -1678,7 +1674,7 @@ class ParamVar:
         
         # Parameters in a method have following syntax, as in private methods: _<class-name>__<param-name>.
         # Functions do not use this naming syntax
-        if isinstance(self.func, __.MethodType):
+        if isinstance(self.func, _extensions.MethodType):
             _tuple_ = _tuple_[self.__no_first :]
             _gen_ = (e for e in _tuple_)
             _list_ = [""]
@@ -1906,7 +1902,7 @@ class ParamVar:
         c = self.func.__code__
         
         # Code revamp 0.3.47; see self.positional
-        if isinstance(self.func, __.MethodType):
+        if isinstance(self.func, _extensions.MethodType):
             _tuple_ = c.co_varnames[self.__no_first : c.co_argcount]
             return tuple([_return_param(self.func, e) for e in _tuple_ if _return_param(self.func, e) not in self.positional])
             
@@ -2047,7 +2043,7 @@ class ParamVar:
         
         for e in self.annotated:
             if e in _defaults_:
-                _list_.append((e, (__.eval(self.func.__annotations__[e], globals = self.func.__globals__), _defaults_[e])))
+                _list_.append((e, (_extensions.eval(self.func.__annotations__[e], globals = self.func.__globals__), _defaults_[e])))
                 
         return tuple(_list_)
         
@@ -2105,7 +2101,7 @@ class ParamVar:
         """
         
         # Code revamp 0.3.47
-        _list_: __.AVT_List[__.AVT_Tuple[str, __.AnnotationForm]] = []
+        _list_: _extensions.AVT_List[_extensions.AVT_Tuple[str, _extensions.AnnotationForm]] = []
         
         # 0.3.51
         if self.__builtin is not None:
@@ -2115,7 +2111,7 @@ class ParamVar:
         
         for e in _annotated_:
             if e in self.func.__annotations__:
-                _list_.append((_return_param(self.func, e), __.eval(self.func.__annotations__[e], globals = self.func.__globals__)))
+                _list_.append((_return_param(self.func, e), _extensions.eval(self.func.__annotations__[e], globals = self.func.__globals__)))
                 
         return tuple(_list_)
         
@@ -2156,7 +2152,7 @@ class ParamVar:
             # < 0.3.45: self.allCount, self.allCount + 1
             # < 0.3.46: self.allCount - 2, self.allCount - 1
             # >= 0.3.46
-            return __.cast(__.AVT_Tuple[__.AVT_Tuple[str, str], ...], ((_filter_[0], "<args>"), (_filter_[1], "<kwargs>")))
+            return _extensions.cast(_extensions.AVT_Tuple[_extensions.AVT_Tuple[str, str], ...], ((_filter_[0], "<args>"), (_filter_[1], "<kwargs>")))
         
         else:
             
@@ -2167,11 +2163,11 @@ class ParamVar:
                 self.__vartype = " <kwargs>"
                 
             else:
-                return __.cast(__.AVT_Tuple[__.AVT_Tuple[str, str], ...], ())
+                return _extensions.cast(_extensions.AVT_Tuple[_extensions.AVT_Tuple[str, str], ...], ())
             
             # < 0.3.45: self.allCount
             # >= 0.3.46
-            return __.cast(__.AVT_Tuple[__.AVT_Tuple[str, str], ...], (_filter_[0], self.__vartype.lstrip()))
+            return _extensions.cast(_extensions.AVT_Tuple[_extensions.AVT_Tuple[str, str], ...], (_filter_[0], self.__vartype.lstrip()))
         
     @property
     def positionalCount(self): # 0.3.44
@@ -2378,10 +2374,10 @@ class MutableString:
         return _reckon(self.__str__())
     
     ### Indexes ###
-    @__.overload
-    def __getitem__(self, value: __.Union[int, slice]) -> str: ...
+    @_extensions.overload
+    def __getitem__(self, value: _extensions.Union[int, slice]) -> str: ...
     
-    @__.overload
+    @_extensions.overload
     def __getitem__(self, value: str) -> int: ...
     
     def __getitem__(self, value): # 0.3.42
@@ -2574,13 +2570,13 @@ class MutableString:
         del a[0]
         self.__str = a
         
-    def join(self, i: __.AVT_Iterable[__.Any], /, useRepr = False): # 0.3.45
+    def join(self, i: _extensions.AVT_Iterable[_extensions.Any], /, useRepr = False): # 0.3.45
         """
         Extension of `str.join()`, which accepts every iterable's type (unlike for mentioned method it is string iterable only), \\
         with setting `useRepr` that allows to use `repr()` instead of `str()` when set to `True`.
         """
         
-        if not isinstance(i, __.Iterable):
+        if not isinstance(i, _extensions.Iterable):
             error = TypeError("expected an iterable")
             raise error
         
@@ -2634,7 +2630,7 @@ class MutableString:
         raise error
     
         
-def simpleEnum(etype: type[_T_enum] = __.Enum, boundary: __.Optional[__.FlagBoundary] = None, useArgs = False):
+def simpleEnum(etype: type[_T_enum] = _extensions.Enum, boundary: _extensions.Optional[_extensions.FlagBoundary] = None, useArgs = False):
     """
     Availability: >= 0.3.42
     
@@ -2642,10 +2638,10 @@ def simpleEnum(etype: type[_T_enum] = __.Enum, boundary: __.Optional[__.FlagBoun
     """
     
     import enum
-    return __.cast(__.AVT_Callable[[type[__.Any]], type[_T_enum]], enum._simple_enum(etype, boundary = boundary, use_args = useArgs))
+    return _extensions.cast(_extensions.AVT_Callable[[type[_extensions.Any]], type[_T_enum]], enum._simple_enum(etype, boundary = boundary, use_args = useArgs))
             
 
-def uniquelist(iterable: __.AVT_Iterable[_T] = ..., /):
+def uniquelist(iterable: _extensions.AVT_Iterable[_T] = ..., /):
     """
     Availability: >= 0.3.48 \\
     https://aveyzan.xyz/aveytense#aveytense.util.uniquelist
@@ -2654,14 +2650,14 @@ def uniquelist(iterable: __.AVT_Iterable[_T] = ..., /):
     """
         
     if iterable is Ellipsis:
-        return __.cast(__.AVT_List[_T], [])
+        return _extensions.cast(_extensions.AVT_List[_T], [])
     
-    if not isinstance(iterable, __.Iterable):
+    if not isinstance(iterable, _extensions.Iterable):
         error = TypeError("expected an iterable object")
         raise error
     
     _list_ = list(iterable)
-    _new_list_: __.AVT_List[_T] = []
+    _new_list_: _extensions.AVT_List[_T] = []
     
     for e in _list_:
         
@@ -2670,7 +2666,7 @@ def uniquelist(iterable: __.AVT_Iterable[_T] = ..., /):
             
     return _new_list_
     
-def uniquetuple(iterable: __.AVT_Iterable[_T_cov] = ..., /):
+def uniquetuple(iterable: _extensions.AVT_Iterable[_T_cov] = ..., /):
     """
     Availability: >= 0.3.48 \\
     https://aveyzan.xyz/aveytense#aveytense.util.uniquetuple
@@ -2682,7 +2678,7 @@ def uniquetuple(iterable: __.AVT_Iterable[_T_cov] = ..., /):
         
     return tuple(uniquelist(iterable))
 
-def uniquedict(mapping: __.AVT_Mapping[_KT, _VT] = ..., /):
+def uniquedict(mapping: _extensions.AVT_Mapping[_KT, _VT] = ..., /):
     """
     Availability: >= 0.3.74 \\
     https://aveyzan.xyz/aveytense#aveytense.util.uniquedict
@@ -2691,14 +2687,14 @@ def uniquedict(mapping: __.AVT_Mapping[_KT, _VT] = ..., /):
     """
     
     if mapping is Ellipsis:
-        return __.cast(__.AVT_Dict[_KT, _VT], {})
+        return _extensions.cast(_extensions.AVT_Dict[_KT, _VT], {})
     
-    if not isinstance(mapping, __.Mapping):
+    if not isinstance(mapping, _extensions.Mapping):
         error = TypeError("expected a mapping object")
         raise error
     
     _items_ = list(mapping.items())
-    _new_dict_: __.AVT_Dict[_KT, _VT] = {}
+    _new_dict_: _extensions.AVT_Dict[_KT, _VT] = {}
     
     for e in _items_:
         
@@ -2723,16 +2719,15 @@ def uniquestr(string: str, /):
     
     return "".join(uniquelist(string))
 
-def indexeddict(i: __.Iterable[_T], /, negative = False):
+def indexeddict(i: _extensions.Iterable[_T], /, negative = False):
     """
     Availability: >= 0.3.74 \\
     https://aveyzan.xyz/aveytense#aveytense.util.indexeddict
     
-    Returns a new dictionary with every item indexes being keys, and every item from an iterable object being values
+    Returns a new dictionary object with every item indexes being keys, and every item from an iterable object being values
     """
     
-    
-    d: __.AVT_Dict[int, _T] = {}
+    d: _extensions.AVT_Dict[int, _T] = {}
     l = len(list(i))
     
     for index, item in enumerate(i):
@@ -2743,6 +2738,401 @@ def indexeddict(i: __.Iterable[_T], /, negative = False):
             d.update({index: item})
         
     return d
+
+@_extensions.overload
+def flexiblelist(o: _extensions.Iterable[_T], /) -> _extensions.AVT_List[_T]: ...
+@_extensions.overload
+def flexiblelist(o: _T) -> _extensions.AVT_List[_T]: ...
+
+def flexiblelist(o: object, /):
+    """
+    Availability: >= 0.3.75 \\
+    https://aveyzan.xyz/aveytense#aveytense.util.flexiblelist
+    
+    Returns a new list object. Unlike for the `list` constructor, if the argument isn't an iterable object, then
+    a new list object is returned with this argument as the first item, preventing any exceptions thrown.
+    """
+    
+    if not isinstance(o, _extensions.Iterable):
+        return [o]
+    else:
+        return list(o)
+    
+@_extensions.overload
+def flexibletuple(o: _extensions.Iterable[_T], /) -> _extensions.AVT_Tuple[_T, ...]: ...
+@_extensions.overload # that's actually tuple[_T] not tuple[_T, ...]
+def flexibletuple(o: _T) -> _extensions.AVT_Tuple[_T, ...]: ... 
+
+def flexibletuple(o: object, /):
+    """
+    Availability: >= 0.3.75 \\
+    https://aveyzan.xyz/aveytense#aveytense.util.flexibletuple
+    
+    Returns a new tuple object. Unlike for the `tuple` constructor, if the argument isn't an iterable object, then
+    a new tuple object is returned with this argument as the first item, preventing any exceptions thrown.
+    """
+    
+    if not isinstance(o, _extensions.Iterable):
+        return (o,)
+    else:
+        return tuple(o)
+    
+@_extensions.overload
+def flexibleset(o: _extensions.Iterable[_T], /) -> _extensions.AVT_Set[_T]: ...
+@_extensions.overload 
+def flexibleset(o: _T) -> _extensions.AVT_Set[_T]: ... 
+
+def flexibleset(o: object, /):
+    """
+    Availability: >= 0.3.75 \\
+    https://aveyzan.xyz/aveytense#aveytense.util.flexibleset
+    
+    Returns a new set object. Unlike for the `set` constructor, if the argument isn't an iterable object, then
+    a new set object is returned with this argument as the first item, preventing any exceptions thrown.
+    """
+    
+    if not isinstance(o, _extensions.Iterable):
+        return {o,}
+    else:
+        return set(o)
+    
+@_extensions.overload
+def flexiblefrozenset(o: _extensions.Iterable[_T], /) -> _extensions.AVT_FrozenSet[_T]: ...
+@_extensions.overload 
+def flexiblefrozenset(o: _T) -> _extensions.AVT_FrozenSet[_T]: ... 
+
+def flexiblefrozenset(o: object, /):
+    """
+    Availability: >= 0.3.75 \\
+    https://aveyzan.xyz/aveytense#aveytense.util.flexiblefrozenset
+    
+    Returns a new set object. Unlike for the `set` constructor, if the argument isn't an iterable object, then
+    a new set object is returned with this argument as the first item, preventing any exceptions thrown.
+    """
+    
+    return frozenset(flexiblelist(o))
+
+@_extensions.dataclass(init = False, eq = False, frozen = True)
+class pair(_extensions.Generic[_KT, _VT]):
+    """
+    Availability: >= 0.3.75 \\
+    https://aveyzan.xyz/aveytense#aveytense.util.pair
+    
+    An auxiliary class that creates pairs for dictionaries. It is *not* a dictionary
+    
+    New appended pairs cannot be deleted or re-set, unless it has the same *key*, its *value* is changed
+    
+    Type hinting note: generic class with 2 type parameters.
+    """
+    
+    __pairs: _extensions.AVT_List[_extensions.AVT_Tuple[_KT, _VT]]
+    
+    def __init__(self, key: _KT, value: _VT, /): # >= 0.3.75
+        
+        from . import _mangle
+        
+        object.__setattr__(self, _mangle(self, "__pairs"), [(key, value)])
+        
+    def __str__(self): # >= 0.3.75
+        return type(self).__name__ + str(tuple(self.__pairs))
+    
+    def __repr__(self): # >= 0.3.75
+        from . import _ReprStr
+        return _ReprStr.format(type(self).__qualname__, id(self))
+    
+    def __iter__(self): # >= 0.3.75
+        return iter(self.__pairs)
+    
+    def copy(self): # >= 0.3.75
+        c = type(self)(self.__pairs[0][0], self.__pairs[0][1])
+        c.__pairs.extend(self.__pairs[1:])
+        return c
+    
+    def __or__(self, other: _extensions.Union[pair[_KT2, _VT2], _extensions.AVT_Tuple[_KT2, _VT2]]): # >= 0.3.75
+        
+        def _override_last(l: _extensions.AVT_List[_extensions.AVT_Tuple[_KT, _VT]]):
+            l2 = l.copy()
+            l2.reverse()
+            k = [x[0] for x in l2]
+            v = [x[1] for x in l2]
+            l2.clear()
+            
+            for i, e in enumerate(k):
+                if e not in l2:
+                    l2.extend([e, v[i]]) 
+                
+            l2 = list(_extensions.batched(l2, 2))
+            l2.reverse()
+            return _extensions.cast(_extensions.AVT_List[_extensions.AVT_Tuple[_KT, _VT]], l2)
+        
+        if isinstance(other, tuple):
+            if _reckon(other) == 2:
+                p = pair(other[0], other[1])
+            else:
+                error = ValueError("expected 2-item tuple")
+                raise error
+        elif isinstance(other, pair):
+            p = other.copy()
+        else:
+            error = TypeError("expected a 'pair' instance or 2-item tuple")
+            raise error
+        
+        p = _extensions.cast(
+            pair[
+                _extensions.Union[_KT, _KT2],
+                _extensions.Union[_VT, _VT2]
+            ],
+            p
+        )
+        
+        l = _override_last(self.__pairs + p.__pairs)
+        p.__pairs.clear()
+        p.__pairs.extend(l)
+        return p
+    
+    def __ror__(self, other: _extensions.Union[pair[_KT2, _VT2], _extensions.AVT_Tuple[_KT2, _VT2]]): # >= 0.3.75
+        
+        def _override_last(l: _extensions.AVT_List[_extensions.AVT_Tuple[_KT, _VT]]):
+            l2 = l.copy()
+            l2.reverse()
+            k = [x[0] for x in l2]
+            v = [x[1] for x in l2]
+            l2.clear()
+            
+            for i, e in enumerate(k):
+                if e not in l2:
+                    l2.extend([e, v[i]]) 
+                
+            l2 = list(_extensions.batched(l2, 2))
+            l2.reverse()
+            return _extensions.cast(_extensions.AVT_List[_extensions.AVT_Tuple[_KT, _VT]], l2)
+        
+        if isinstance(other, tuple):
+            if _reckon(other) == 2:
+                p = pair(other[0], other[1])
+            else:
+                error = ValueError("expected 2-item tuple")
+                raise error
+        elif isinstance(other, pair):
+            p = other.copy()
+        else:
+            error = TypeError("expected a 'pair' instance or 2-item tuple")
+            raise error
+        p = _extensions.cast(
+            pair[
+                _extensions.Union[_KT, _KT2],
+                _extensions.Union[_VT, _VT2]
+            ],
+            p
+        )
+        
+        l = _override_last(p.__pairs + self.__pairs)
+        p.__pairs.clear()
+        p.__pairs.extend(l) 
+        return p
+    
+    @property
+    def pairs(self):
+        return self.__pairs
+
+@_extensions.dataclass(init = False, eq = False, repr = False, frozen = True)
+class simpledict(_extensions.AVT_Mapping[_KT, _VT]):
+    """
+    Availability: >= 0.3.75 \\
+    https://aveyzan.xyz/aveytense#aveytense.util.simpledict
+    
+    A mutable dictionary that doesn't require *keys* to be hashable objects.
+    Inherits from `collections.abc.Mapping` (doesn't fully follow all methods
+    from `collections.abc.MutableMapping`).
+    
+    This class itself does not create a dictionary object, it just
+    mimicks its behavior.
+    
+    Type hinting note: generic class with 2 type parameters.
+    """
+    
+    __keys: _extensions.AVT_List[_KT]
+    __values: _extensions.AVT_List[_VT]
+    __items: _extensions.AVT_List[_extensions.AVT_Tuple[_KT, _VT]]
+    
+    @_extensions.overload
+    def __init__(self) -> None: ...
+    @_extensions.overload
+    def __init__(self: simpledict[str, _VT], **kwargs: _VT) -> None: ...  # pyright: ignore[reportInvalidTypeVarUse]
+    @_extensions.overload
+    def __init__(self, map: _KeyItemGetter[_KT, _VT], /) -> None: ...
+    @_extensions.overload
+    def __init__(
+        self: simpledict[_extensions.Union[str, _KT], _VT],  # pyright: ignore[reportInvalidTypeVarUse]
+        map: _KeyItemGetter[str, _VT],
+        /,
+        **kwargs: _VT,
+    ) -> None: ...
+    @_extensions.overload
+    def __init__(
+        self,
+        iterable: _extensions.AVT_Iterable[_extensions.Union[
+            pair[_KT, _VT],
+            _extensions.AVT_Tuple[_KT, _VT]
+        ]],
+        /
+    ) -> None: ...
+    @_extensions.overload
+    def __init__(
+        self: simpledict[_extensions.Union[str, _KT], _VT],  # pyright: ignore[reportInvalidTypeVarUse]
+        iterable: _extensions.AVT_Iterable[_extensions.Union[
+            pair[_KT, _VT],
+            _extensions.AVT_Tuple[_KT, _VT]
+        ]],
+        /,
+        **kwargs: _VT,
+    ) -> None: ...
+    
+    # alright, there we go, we re-implement the constructor of 'dict'...
+    def __init__(self, i = None, **kwargs): # >= 0.3.75
+        
+        from . import _mangle
+        
+        keys, values, items = ([], [], [])
+        
+        if isinstance(i, _extensions.Iterable) and all(isinstance(x, pair) or (isinstance(x, tuple) and _reckon(x) == 2) for x in i):
+            
+            for x in i:
+                keys.append(x.pairs[0] if isinstance(x, pair) else x[0])
+                values.append(x.pairs[1] if isinstance(x, pair) else x[1])
+                
+        elif hasattr(i, "keys") and hasattr(i, "__getitem__"):
+            
+            keys = list(getattr(i, "keys", lambda: None)())
+            values = [i[k2] for k2 in i]
+            
+        elif i is None:
+            pass
+        
+        else:
+            raise TypeError
+            
+        if _reckon(kwargs) > 0:
+            
+            for k2 in kwargs:
+                keys.append(k2)
+                values.append(kwargs[k2])
+                
+        for i2, k2 in enumerate(keys):
+            items.append((k2, values[i2]))
+            
+        object.__setattr__(self, _mangle(self, "__keys"), keys)
+        object.__setattr__(self, _mangle(self, "__values"), values)
+        object.__setattr__(self, _mangle(self, "__items"), items)
+        
+    def __str__(self): # >= 0.3.75
+        
+        s = ""
+        
+        # mimicking the existence of 'dict'
+        if _reckon(self.__keys) == 0:
+            s = "{}"
+        
+        pattern = "{}: {}"
+        i = 0
+        
+        while _reckon(self.__items) > i:
+            
+            s += pattern.format(self.__keys[i], self.__values[i]) + ", "
+            i += 1
+            
+        s = "{" + _extensions.str_removesuffix(s, ", ") + "}"
+        
+        return "{}({})".format(type(self).__name__, s)
+    
+    def __repr__(self): # >= 0.3.75
+        from . import _ReprStr
+        return _ReprStr.format(type(self).__qualname__, id(self))
+    
+    def keys(self): # >= 0.3.75
+        return self.__keys
+    
+    def items(self): # >= 0.3.75
+        return self.__items
+    
+    def values(self): # >= 0.3.75
+        return self.__values
+    
+    def clear(self): # >= 0.3.75
+        self.__keys.clear()
+        self.__values.clear()
+        self.__items.clear()
+    
+    def __contains__(self, key: object): # >= 0.3.75
+        return key in self.__keys
+    
+    def __getitem__(self, key: _KT): # >= 0.3.75
+        if key in self:
+            return self.__values[self.__keys.index(key)]
+        else:
+            raise KeyError
+        
+    def __setitem__(self, key: _KT2, value: _VT2): # >= 0.3.75
+        
+        # rewrite and append when missing
+        if key in self:
+            self.__values[self.__keys.index(key)] = value
+            self.__items[self.__keys.index(key)] = (key, value)
+        else:
+            self.__keys.append(key)
+            self.__values.append(value)
+            self.__items.append((key, value))
+        
+    def __delitem__(self, key: _KT): # >= 0.3.75
+        if key in self:
+            del self.__keys[self.__keys.index(key)]
+            del self.__values[self.__keys.index(key)]
+            del self.__items[self.__keys.index(key)]
+        else:
+            raise KeyError
+        
+    def get(self, key: _KT, default: _T = None): # >= 0.3.75
+        
+        if key in self.__keys:
+            return self[key]
+        else:
+            return default
+    
+    def __eq__(self, other: object): # >= 0.3.75
+        return type(other) is type(self) and other.__items == self.__items
+    
+    def __len__(self): # >= 0.3.75
+        return len(self.__keys)
+    
+    def __iter__(self): # >= 0.3.75
+        return iter(self.__keys)
+    
+    # Backporting PEP 584 (Py3.9+, see https://peps.python.org/pep-0584) for Python 3.8.
+    # These methods below are provided by 'dict', MutableMapping ABC doesn't provide these.
+    def __or__(self, other: _KeyItemGetter[_KT2, _VT2]): # >= 0.3.75
+        
+        if hasattr(other, "keys") and hasattr(other, "__getitem__"):
+            
+            keys = self.__keys.copy()
+            values = self.__values.copy()
+            
+            for k in other.keys():
+                if k in self.__keys:
+                    values[self.__keys.index(k)] = other[k]
+                
+            items = [(keys[i], values[i]) for i in range(_reckon(keys))]
+            
+            return simpledict(items)
+        
+        else:
+            raise TypeError
+    
+    def __ror__(self, other: _KeyItemGetter[_KT2, _VT2]): # >= 0.3.75
+        return self.__or__(other)
+    
+    # This doesn't exist in MutableMapping ABC either. 'dict' has it so we re-declare it
+    def copy(self): # >= 0.3.75
+        return simpledict(self.__items)
 
 class Flags(_Immutable):
     """
@@ -2773,7 +3163,7 @@ class Flags(_Immutable):
     Receive type flags
     """
     
-    __all__ = sorted(_extend(vars(_BufferFlags), vars(_CodeFlags), vars(_TypeFlags)))
+    __all__ = sorted(list(_extensions.frozendict(vars(_BufferFlags)) | vars(_CodeFlags) | vars(_TypeFlags)))
     """
     Availability: >= 0.3.53
     

@@ -246,6 +246,7 @@ random = Tense.random
 randomString = Tense.randomString
 removePrefix = Tense.removePrefix
 removeSuffix = Tense.removeSuffix
+replace = Tense.replace
 reverse = Tense.reverse
 shuffle = Tense.shuffle
 sleep = Tense.sleep
