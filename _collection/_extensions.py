@@ -221,11 +221,20 @@ from typing import (
 from uuid import UUID as UUID # 0.3.26rc3
 import sys as _sys
 
+# not for export
+import _collections_abc
+import abc as _abc
+import _hashlib
+import hashlib
+import hmac as _hmac
+import typing as _typing
+import typing_extensions as _typing_ext
+
 __name__ = "aveytense.extensions"
 
 # In this part of the code, we are retrieving currently used version of 'typing_extensions', and
 # formalize the version like 'sys.version_info':
-class TypingExtensionsVersionInfo:
+class _typing_extensions_version_info:
     """
     Availability: >= 0.3.54
     
@@ -388,7 +397,14 @@ class TypingExtensionsVersionInfo:
             _level_ + str(self.serial) if _level_ is not None else ""
         ))
 
-TypingExtensionsVersionInfo = TypingExtensionsVersionInfo()
+typing_extensions_version_info = _typing_extensions_version_info()
+"""
+Availability: >= 0.3.54
+
+Version info for `typing_extensions`. Previously defined as `TypingExtensionsVersionInfo` before 0.3.76.
+"""
+
+del _typing_extensions_version_info
 
 ### Private functions and not for export ###
 
@@ -648,7 +664,7 @@ else:
         Protocol as Protocol
     )
     
-if TypingExtensionsVersionInfo >= (4, 8): # Py3.8+
+if typing_extensions_version_info >= (4, 8): # Py3.8+
     from typing_extensions import Doc as Doc
     
 # ****************** Py3.9: 10/2020 ************************
@@ -880,7 +896,7 @@ else:
     EllipsisType = cast(EllipsisType, type(Ellipsis))
     
     # backport 0.3.56, Py3.8+
-    if TypingExtensionsVersionInfo >= (4, 13):
+    if typing_extensions_version_info >= (4, 13):
         from typing_extensions import (
             get_annotations as get_annotations,
             # 0.3.57
@@ -943,7 +959,7 @@ else:
         reveal_type as revealType
     )
         
-    if TypingExtensionsVersionInfo >= (4, 2): # Py3.7+
+    if typing_extensions_version_info >= (4, 2): # Py3.7+
         
         from typing_extensions import (
             # 0.3.37
@@ -981,7 +997,7 @@ if _sys.version_info >= (3, 12):
     
 else:
     
-    if TypingExtensionsVersionInfo >= (4, 1): # Py3.6+
+    if typing_extensions_version_info >= (4, 1): # Py3.6+
         from typing_extensions import (
             
             # 0.3.26rc1
@@ -995,10 +1011,10 @@ else:
         )
     
     
-    if TypingExtensionsVersionInfo >= (4, 4): # Py3.7+
+    if typing_extensions_version_info >= (4, 4): # Py3.7+
         from typing_extensions import override as override # 0.3.37
     
-    if TypingExtensionsVersionInfo >= (4, 6): # Py3.7+
+    if typing_extensions_version_info >= (4, 6): # Py3.7+
         from typing_extensions import (
             # 0.3.37
             Buffer as _Buffer,
@@ -1081,7 +1097,7 @@ else:
         runtime_checkable as runtime_checkable,
     )
         
-    if TypingExtensionsVersionInfo >= (4, 7): # Py3.7+
+    if typing_extensions_version_info >= (4, 7): # Py3.7+
         
         from typing_extensions import (
             # 0.3.37
@@ -1104,13 +1120,13 @@ else:
                 raise TypeError(f"{tp!r} is not a Protocol")
             return frozenset(getattr(tp, "__protocol_attrs__", []))
         
-    if TypingExtensionsVersionInfo >= (4, 9): # Py3.8+
+    if typing_extensions_version_info >= (4, 9): # Py3.8+
         from typing_extensions import ReadOnly as ReadOnly # 0.3.26rc1
     
-    if TypingExtensionsVersionInfo >= (4, 10): # Py3.8+
+    if typing_extensions_version_info >= (4, 10): # Py3.8+
         from typing_extensions import TypeIs as TypeIs # 0.3.26rc1
     
-    if TypingExtensionsVersionInfo >= (4, 12): # Py3.8+
+    if typing_extensions_version_info >= (4, 12): # Py3.8+
         from typing_extensions import (
             # 0.3.26rc1
             NoDefault as NoDefault, # type: ignore
@@ -1122,7 +1138,7 @@ if _sys.version_info >= (3, 13, 3):
     from warnings import deprecated as deprecated # 0.3.37
 else:
     
-    if TypingExtensionsVersionInfo >= (4, 5): # Py3.7+
+    if typing_extensions_version_info >= (4, 5): # Py3.7+
         from typing_extensions import deprecated as deprecated # 0.3.37
 
 # ****************** Py3.14: 07.10.2025 ************************
@@ -1154,20 +1170,20 @@ else:
         FORWARDREF = 3
         STRING = 4
     
-    if TypingExtensionsVersionInfo >= (4, 6): # Py3.7+
+    if typing_extensions_version_info >= (4, 6): # Py3.7+
         from typing_extensions import TypeAliasType as TypeAliasType # 0.3.26rc1
         
     elif _sys.version_info >= (3, 12):
         from typing import TypeAliasType as TypeAliasType # 0.3.26rc1
     
-    if TypingExtensionsVersionInfo >= (4, 13): # Py3.8+
+    if typing_extensions_version_info >= (4, 13): # Py3.8+
         from typing_extensions import (
             # 0.3.57
             evaluate_forward_ref as evaluate_forward_ref, # type: ignore
             evaluate_forward_ref as evaluateForwardRef # type: ignore
         )
             
-    if TypingExtensionsVersionInfo >= (4, 14): # Py3.9+
+    if typing_extensions_version_info >= (4, 14): # Py3.9+
         from typing_extensions import (
             Reader as Reader, # type: ignore
             Writer as Writer # type: ignore
@@ -1338,7 +1354,7 @@ else:
         is_typeddict as isTypedDict
     )
     
-    if TypingExtensionsVersionInfo >= (4, 13): # Py3.8+
+    if typing_extensions_version_info >= (4, 13): # Py3.8+
         from typing_extensions import NoExtraItems as NoExtraItems # type: ignore
     
     _prevent_unused_imports(noTypeCheckDecorator)
@@ -1347,16 +1363,16 @@ if _sys.version_info >= (3, 7):
     
     _prevent_unused_imports(resolveBases)
     
-    if TypingExtensionsVersionInfo >= (4, 2): # Py3.7+
+    if typing_extensions_version_info >= (4, 2): # Py3.7+
         _prevent_unused_imports(assertType, clearOverloads, getOverloads)
     
-    if TypingExtensionsVersionInfo >= (4, 6): # Py3.7+
+    if typing_extensions_version_info >= (4, 6): # Py3.7+
         _prevent_unused_imports(getOriginalBases)
 
-    if TypingExtensionsVersionInfo >= (4, 7): # Py3.7+
+    if typing_extensions_version_info >= (4, 7): # Py3.7+
         _prevent_unused_imports(getProtocolMembers, isProtocol)
         
-    if TypingExtensionsVersionInfo >= (4, 13): # Py3.8+
+    if typing_extensions_version_info >= (4, 13): # Py3.8+
         _prevent_unused_imports(evaluateForwardRef, getAnnotations) # type: ignore
 
 _prevent_unused_imports(
@@ -1373,8 +1389,6 @@ _prevent_unused_imports(
 _prevent_unused_imports(AsyncContextManager, ContextManager, MutableSet, AbstractSet)
 _prevent_unused_imports(assertNever, dataclassTransform, getArgs, getOrigin, getTypeHints, importModule, isTypedDict, lruCache, noTypeCheck, revealType, singleDispatch, newClass, prepareClass)
 
-import _collections_abc, abc as _abc, _hashlib, hashlib, hmac as _hmac, typing as _typing, typing_extensions as _typing_ext # not for export
-
 # all abstract prefixed decorators: before 0.3.73 in 'aveytense.util'
 if hasattr(_abc, "abstractproperty"):
     from abc import abstractproperty as abstractproperty # deprecated since 3.3
@@ -1382,7 +1396,8 @@ if hasattr(_abc, "abstractproperty"):
 else:
     class abstractproperty(property):
         """
-        Availability: >= 0.3.26rc1
+        Availability: >= 0.3.26rc1 \\
+        https://aveyzan.xyz/aveytense#aveytense.extensions.abstractproperty
 
         A decorator class for abstract properties.
 
@@ -1396,7 +1411,8 @@ if hasattr(_abc, "abstractstaticmethod"):
 else:
     class abstractstaticmethod(staticmethod):
         """
-        Availability: >= 0.3.26rc1
+        Availability: >= 0.3.26rc1 \\
+        https://aveyzan.xyz/aveytense#aveytense.extensions.abstractstaticmethod
 
         A decorator class for abstract static methods.
 
@@ -1414,7 +1430,8 @@ if hasattr(_abc, "abstractclassmethod"):
 else:
     class abstractclassmethod(classmethod):
         """
-        Availability: >= 0.3.26rc1
+        Availability: >= 0.3.26rc1 \\
+        https://aveyzan.xyz/aveytense#aveytense.extensions.abstractclassmethod
 
         A decorator class for abstract class methods.
 
@@ -1463,6 +1480,57 @@ else:
         See PEP 800."""
         cls.__disjoint_base__ = True
         return cls
+    
+def sentinel(name: str, /, module = ""):
+    """
+    Availability: >= 0.3.76 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.sentinel
+    
+    Creates an unique sentinel object.
+    
+    Different from PEP 661; it does not return an object but a type object.
+    That means it is already suitable for type unions and common type hinting operations.
+    
+    Type hinting detail: Once sentinel object is used with special forms and the result is printed,
+    by default the `__main__` module is hinted (assuming the user defined it in the file that was run).
+    
+    *name* should match the name of the variable to which the invocation is passed to, like::
+
+        from aveytense.extensions import sentinel
+        MISSING = sentinel("MISSING") # <sentinel 'MISSING'>
+        
+    *module* should contain a module name. That's optional::
+    
+        MISSING = sentinel("MISSING", "test") # <sentinel 'test.MISSING'>
+    
+    Sentinel objects cannot be exposed by simply "constructing" new sentinel objects. This technique returns themselves::
+    
+        assert MISSING == MISSING()
+        assert MISSING is MISSING()
+        
+    When another variable has the same sentinel name, that's `False`::
+    
+        MISSING2 = sentinel("MISSING")
+        assert MISSING != MISSING2
+        assert MISSING is not MISSING2
+        
+    This isn't however::
+    
+        MISSING2 = MISSING()
+        assert MISSING == MISSING2
+        assert MISSING is MISSING2
+    """
+    
+    if not isinstance(name, str) or (isinstance(name, str) and not name):
+        error = TypeError("expected a non-empty string argument in parameter 'name'")
+        raise error
+    
+    if not isinstance(module, str):
+        error = TypeError("expected a string argument in parameter 'module'")
+        raise error
+    
+    from . import _sentinel
+    return _sentinel(name, module)
 
 # 0.3.52
 # These both local variables below hold special names that Python uses in lambda and generator expressions.
@@ -4294,21 +4362,22 @@ Pack = Concatenate
 PatternType: TypeAlias = Union[AnyStr, AVT_Pattern[AnyStr]] # >= 0.3.60 // type from re.match()
 RichComparable: TypeAlias = Union[LeastComparable[Any], GreaterComparable[Any]] # >= ?
 
-# Unfortunately, it is impossible to make this type alias as a class due to the fact
-# the Mapping ABC inherits from the Collection ABC. That implementation would look like this:
+# Unfortunately, it is impossible to make this type alias (SequenceLike) as a class due to the fact
+# the 'Mapping' ABC inherits from the 'Collection' ABC. That implementation would look like this:
 #
 #   class SequenceLike(Protocol[T]):
 #       def __len__(self) -> int: ...
 #       def __contains__(self, x: object) -> bool: ...
 #       def __iter__(self) -> AVT_Iterator[T]: ... 
 #
-# ...however, it will be correct for Mapping ABC too.
+# ...however, it will be correct for 'Mapping' ABC too.
 # Another technique in mind was 'class SequenceLike(Sequence[T], AbstractSet[T], ValuesView[T]): ...', but this is
 # where it gets anomalous with type hinting, because all the methods from all these ABCs will need to be included.
 # If there was a PEP that would cover optional definitions in a protocol runtime, this would be defined as a class
 # instead. However, another PEP would be needed to not type hint correctly when an instance of Mapping ABC is used.
 # Finally, the last trick was bound with use of an unofficial boolean attribute '__is_sequence_like__'. We will keep
-# it like this for now.
+# it like this for now. In typing, if negation and intersection was added, this type alias would be equal
+# 'Intersection[Union[AVT_Sequence[T], AVT_AbstractSet[T], AVT_ValuesView[T]], Not[AVT_Mapping[Any, Any]]]'
 
 SequenceLike: TypeAlias = Union[AVT_Sequence[T], AVT_AbstractSet[T], AVT_ValuesView[T]]
 """Availability: >= 0.3.54 // Renamed 0.3.69 from `TrueSequence` // https://aveyzan.xyz/aveytense#aveytense.extensions.SequenceLike"""
@@ -4334,13 +4403,13 @@ dict_keys = type({}.keys()) # >= 0.3.73
 dict_items = type({}.items()) # >= 0.3.73
 dict_values = type({}.values()) # >= 0.3.73
 
-# Private types, not for export. This prefix will be removed in 0.3.76, keeping the underscore
+# Private types, not for export.
 if TYPE_CHECKING:
-    _PrideMonth2026ReckonType: TypeAlias = Union[IO[Any], AVT_Iterable[Any], ReckonOperable, Sized] # >= 0.3.74
-    _PrideMonth2026AbroadStep: TypeAlias = Union[int, float, IntegerConvertible, FloatConvertible, Indexable] # >= 0.3.74
-    _PrideMonth2026AbroadStop: TypeAlias = Union[_PrideMonth2026AbroadStep, _PrideMonth2026ReckonType] # >= 0.3.74
-    _PrideMonth2026AbroadStart: TypeAlias = _PrideMonth2026AbroadStop # >= 0.3.74
-    _PrideMonth2026AbroadConvectType: TypeAlias = _PrideMonth2026AbroadStop # >= 0.3.74
+    _ReckonType: TypeAlias = Union[IO[Any], AVT_Iterable[Any], ReckonOperable, Sized] # >= 0.3.74
+    _AbroadStep: TypeAlias = Union[int, float, IntegerConvertible, FloatConvertible, Indexable] # >= 0.3.74
+    _AbroadStop: TypeAlias = Union[_AbroadStep, _ReckonType] # >= 0.3.74
+    _AbroadStart: TypeAlias = _AbroadStop # >= 0.3.74
+    _AbroadConvectType: TypeAlias = _AbroadStop # >= 0.3.74
     
     _Bits: TypeAlias = Literal[3, 4, 8, 24] # aveytense.Color
     _Clearable: TypeAlias = Union[str, Clearable, AVT_MutableMapping[Any, Any], AVT_MutableSequence[Any], AVT_MutableSet[Any], IO[Any], FrameType]
@@ -4351,7 +4420,7 @@ if TYPE_CHECKING:
         T
     ]
     
-    _prevent_unused_imports(_PrideMonth2026AbroadStart, _PrideMonth2026AbroadConvectType, _Bits, _Clearable, _ProbabilityType)
+    _prevent_unused_imports(_AbroadStart, _AbroadConvectType, _Bits, _Clearable, _ProbabilityType)
 
 del _collections_abc, _abc, _enum, _hashlib, hashlib, _hmac, _time, _typing, _typing_ext # not for export!
 
@@ -4631,7 +4700,8 @@ def anext2(i: AsyncNextOperable[T1], default: T2 = _Missing, /):
     
     return asyncio.run(_re_anext(i, default))
         
-# Re-declaring eval() and exec() with every argument except 'source' as universal arguments before 3.13. Yet I don't know how to re-declare exec() with 'closure' parameter before Python 3.11
+# Re-declaring eval() and exec() with every argument except 'source' as universal arguments before 3.13.
+# Yet I don't know how to re-declare exec() with 'closure' parameter before Python 3.11
 def eval(
     source: Union[str, ReadableBuffer, CodeType],
     /,
@@ -4712,7 +4782,6 @@ def reduce(function, iterable, /, initial = _Missing):
         return functools.reduce(function, iterable, initial)
 
 __all__ = sorted([k for k in globals() if not k.startswith("_")])
-__all_deprecated__ = sorted([k for k in range(len(__all__)) if hasattr(__all__[k], "__deprecated__")]) # 0.3.44
 
 if __name__ == "__main__":
     error = RuntimeError("Import-only module")

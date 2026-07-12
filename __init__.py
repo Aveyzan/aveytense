@@ -20,9 +20,6 @@ Submodules:
 from __future__ import annotations
 import sys as _sys
 
-if hasattr(_sys, "set_int_max_str_digits"): # < 0.3.46: sys.version_info >= (3, 11)
-    _sys.set_int_max_str_digits(0) # type: ignore
-
 # 0.3.34: Prevent internal imports and prevent these imported subsequently
 import copy as _copy
 import dis as _dis
@@ -41,7 +38,7 @@ from ._collection import _constants as _cl
 from ._collection._primal import *
 from ._collection._extensions import Any as _Any
 from ._collection._util import _TenseImmutableMeta
-from ._collection import _version
+from ._collection import _version, _is_sequence_like
 from . import constants as _constants
 from . import exceptions as _exceptions
 from . import extensions as _extensions
@@ -54,7 +51,7 @@ util = _util # 0.3.41
 
 __author__ = "Aveyzan <aveyzan@gmail.com>" # >= 0.3.26rc3
 __license__ = "MIT" # >= 0.3.26rc3
-__version__ = _version.VERSION # >= 0.3.26rc3
+__version__ = _version.version # >= 0.3.26rc3
 
 # local variables (0.3.39)
 _MODE_AND = _cl.ModeSelection.AND
@@ -157,11 +154,11 @@ Color = RGB = None
 
 if extensions.TYPE_CHECKING:
     from ._collection._extensions import (
-        _PrideMonth2026AbroadConvectType,
-        _PrideMonth2026AbroadStart,
-        _PrideMonth2026AbroadStop,
-        _PrideMonth2026AbroadStep,
-        _PrideMonth2026ReckonType,
+        _AbroadConvectType,
+        _AbroadStart,
+        _AbroadStop,
+        _AbroadStep,
+        _ReckonType,
         _Bits,
         _Clearable as Clearable,
         _ProbabilityType
@@ -230,9 +227,6 @@ class AbroadType(metaclass = _AbroadType):
     Only usable for `isinstance()` function to check whether the object is the result of the `abroad()` function
     """
     __init__ = None
-    
-def _is_sequence_like(v) -> extensions.AVT_TypeIs[extensions.SequenceLike[extensions.Any]]: # >= 0.3.75
-    return isinstance(v, _SequenceLikeTypes) and not isinstance(v, extensions.Mapping)
 
 def _check_if_sequence_like(v, msg: str, /): # >= 0.3.74
     if not _is_sequence_like(v):
@@ -768,8 +762,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     extensions = _extensions # 0.3.42; renamed 0.3.57 from 'types'
     util = _util # 0.3.42
     
-    version = _version.VERSION
-    versionInfo = _version.VERSION_INFO
+    version = _version.version
+    versionInfo = _version.version_info
     
     AND = _MODE_AND
     "Availability: >= 0.3.36"
@@ -1472,7 +1466,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         if not cls.isType(type, (int, float, bool, bytes)): # 0.3.54: the only expected types
             return False
         
-        if isinstance(v, memoryview):
+        if isinstance(v, _MemoryViewTypes):
             
             _inspect_formats_ = {
                 tuple("?"): bool,
@@ -2699,16 +2693,16 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.positive()' static method instead. Up for removal in 0.3.78.")
-    def abroadPositive(cls, stop: _PrideMonth2026AbroadStop, /) -> abroad: ...
+    def abroadPositive(cls, stop: _AbroadStop, /) -> abroad: ...
     
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.positive()' static method instead. Up for removal in 0.3.78.")
-    def abroadPositive(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> abroad: ...
+    def abroadPositive(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1) -> abroad: ...
     
     @classmethod
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.positive()' static method instead. Up for removal in 0.3.78.")
-    def abroadPositive(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
+    def abroadPositive(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1):
         """
         Availability: >= 0.3.24 \\
         Deprecated: >= 0.3.74 \\
@@ -2720,16 +2714,16 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.negative()' static method instead. Up for removal in 0.3.78.")
-    def abroadNegative(cls, stop: _PrideMonth2026AbroadStop, /) -> abroad: ...
+    def abroadNegative(cls, stop: _AbroadStop, /) -> abroad: ...
     
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.negative()' static method instead. Up for removal in 0.3.78.")
-    def abroadNegative(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> abroad: ...
+    def abroadNegative(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1) -> abroad: ...
     
     @classmethod
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.negative()' static method instead. Up for removal in 0.3.78.")
-    def abroadNegative(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
+    def abroadNegative(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1):
         """
         Availability: >= 0.3.24 \\
         Deprecated: >= 0.3.74 \\
@@ -2741,16 +2735,16 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.positive())' instead. Up for removal in 0.3.78.")
-    def abroadPositiveFlip(cls, stop: _PrideMonth2026AbroadStop, /) -> extensions.AVT_Iterator[int]: ...
+    def abroadPositiveFlip(cls, stop: _AbroadStop, /) -> extensions.AVT_Iterator[int]: ...
     
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.positive())' instead. Up for removal in 0.3.78.")
-    def abroadPositiveFlip(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> extensions.AVT_Iterator[int]: ...
+    def abroadPositiveFlip(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1) -> extensions.AVT_Iterator[int]: ...
     
     @classmethod
     @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.positive())' instead. Up for removal in 0.3.78.")
-    def abroadPositiveFlip(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
+    def abroadPositiveFlip(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1):
         """
         Availability: >= 0.3.24 \\
         Deprecated: >= 0.3.74 \\
@@ -2762,16 +2756,16 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.negative())' instead. Up for removal in 0.3.78.")
-    def abroadNegativeFlip(cls, stop: _PrideMonth2026AbroadStop, /) -> extensions.AVT_Iterator[int]: ...
+    def abroadNegativeFlip(cls, stop: _AbroadStop, /) -> extensions.AVT_Iterator[int]: ...
     
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.negative())' instead. Up for removal in 0.3.78.")
-    def abroadNegativeFlip(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> extensions.AVT_Iterator[int]: ...
+    def abroadNegativeFlip(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1) -> extensions.AVT_Iterator[int]: ...
     
     @classmethod
     @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.negative())' instead. Up for removal in 0.3.78.")
-    def abroadNegativeFlip(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
+    def abroadNegativeFlip(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1):
         """
         Availability: >= 0.3.24 \\
         Deprecated: >= 0.3.74 \\
@@ -2782,7 +2776,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad(reckonLeast(...))' static method instead. Up for removal in 0.3.78.")
-    def abroadPack(cls, *v: _PrideMonth2026ReckonType):
+    def abroadPack(cls, *v: _ReckonType):
         """
         Availability: >= 0.3.25 \\
         Deprecated: >= 0.3.74 \\
@@ -2796,16 +2790,16 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__rmod__()' instead. Up for removal in 0.3.78.")
-    def abroadPrecede(cls, stop: _PrideMonth2026AbroadStop, /, prefix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
+    def abroadPrecede(cls, stop: _AbroadStop, /, prefix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
     
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__rmod__()' instead. Up for removal in 0.3.78.")
-    def abroadPrecede(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1, prefix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
+    def abroadPrecede(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1, prefix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
     
     @classmethod
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__rmod__()' instead. Up for removal in 0.3.78.")
-    def abroadPrecede(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1, prefix: extensions.Optional[str] = None):
+    def abroadPrecede(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1, prefix: extensions.Optional[str] = None):
         """
         Availability: >= 0.3.25 \\
         Deprecated: >= 0.3.74 \\
@@ -2824,16 +2818,16 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__mod__()' instead. Up for removal in 0.3.78.")
-    def abroadSufcede(cls, stop: _PrideMonth2026AbroadStop, /, suffix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
+    def abroadSufcede(cls, stop: _AbroadStop, /, suffix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
     
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__mod__()' instead. Up for removal in 0.3.78.")
-    def abroadSufcede(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1, suffix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
+    def abroadSufcede(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1, suffix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
             
     @classmethod
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__mod__()' instead. Up for removal in 0.3.78.")
-    def abroadSufcede(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1, suffix: extensions.Optional[str] = None):
+    def abroadSufcede(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1, suffix: extensions.Optional[str] = None):
         """
         Availability: >= 0.3.25 \\
         Deprecated: >= 0.3.74 \\
@@ -2852,16 +2846,16 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'str.format(abroad(...))' instead. Up for removal in 0.3.78.")
-    def abroadInside(cls, stop: _PrideMonth2026AbroadStop, /, string: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
+    def abroadInside(cls, stop: _AbroadStop, /, string: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
     
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.74, use 'str.format(abroad(...))' instead. Up for removal in 0.3.78.")
-    def abroadInside(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1, string: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
+    def abroadInside(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1, string: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
     
     @classmethod
     @extensions.deprecated("Deprecated since 0.3.74, use 'str.format(abroad(...))' instead. Up for removal in 0.3.78.")
-    def abroadInside(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1, string: extensions.Optional[str] = None):
+    def abroadInside(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1, string: extensions.Optional[str] = None):
         """
         Availability: >= 0.3.25 \\
         Deprecated: >= 0.3.74 \\
@@ -2880,7 +2874,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.convect()' static method instead. Up for removal in 0.3.78.")
-    def abroadConvect(cls, *v: _PrideMonth2026AbroadConvectType):
+    def abroadConvect(cls, *v: _AbroadConvectType):
         """
         Availability: >= 0.3.25 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.abroadConvect
@@ -2901,16 +2895,16 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.71, up for removal in 0.3.78. Use 'batched' with 'abroad' object instead")
-    def abroadSplit(cls, stop: _PrideMonth2026AbroadStop, /, limit: int = 2) -> extensions.AVT_List[extensions.AVT_List[int]]: ...
+    def abroadSplit(cls, stop: _AbroadStop, /, limit: int = 2) -> extensions.AVT_List[extensions.AVT_List[int]]: ...
     
     @classmethod
     @extensions.overload
     @extensions.deprecated("Deprecated since 0.3.71, up for removal in 0.3.78. Use 'batched' with 'abroad' object instead")
-    def abroadSplit(cls, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1, limit: int = 2) -> extensions.AVT_List[extensions.AVT_List[int]]: ...
+    def abroadSplit(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1, limit: int = 2) -> extensions.AVT_List[extensions.AVT_List[int]]: ...
     
     @classmethod
     @extensions.deprecated("Deprecated since 0.3.71, up for removal in 0.3.78. Use 'batched' with 'abroad' object instead")
-    def abroadSplit(cls, start: _PrideMonth2026AbroadStart, /, stop: _PrideMonth2026AbroadStop = ..., step: _PrideMonth2026AbroadStep = 1, limit: int = 2):
+    def abroadSplit(cls, start: _AbroadStart, /, stop: _AbroadStop = ..., step: _AbroadStep = 1, limit: int = 2):
         """
         Availability: >= 0.3.25 \\
         Deprecated: >= 0.3.71 \\
@@ -4057,7 +4051,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     def exclude(cls, i: extensions.AVT_Iterable[extensions.T], /, *items: extensions.T) -> extensions.AVT_List[extensions.T]: ...
     
     @classmethod
-    def exclude(cls, i, /, *items, filter = "keys"):
+    def exclude(cls, i, /, *items, filter = _Missing):
         """
         Availability: >= 0.3.34 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.exclude
@@ -4066,12 +4060,23 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         Since 0.3.46 mappings are allowed. Keyword-only parameter `filter` *only* take place for mappings, \\
         and can only contain case-sensitive string values: `"keys"` or `"values"`
+        
+        With strings such usage is possible::
+        
+            Tense.exclude("Maryland", "M")
+            Tense.exclude("Maryland", "M", "a")
+            
+        since the result is a string list, to make it a string, joining is required::
+        
+            "".join(Tense.exclude("Maryland", "M", "a"))
+            
+        For such `aveytense.Tense.replace()` is better solution.
         """
         
         # 0.3.46
         if isinstance(i, extensions.Mapping):
             
-            if filter == "keys":
+            if filter == "keys" or filter is _Missing:
                 return dict([(k, i[k]) for k in i if k not in items])
             
             elif filter == "values":
@@ -4103,7 +4108,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     def extract(cls, i: extensions.AVT_Iterable[extensions.T], /, condition: extensions.AVT_Callable[[extensions.T], bool] = ...) -> extensions.AVT_List[extensions.T]: ...
         
     @classmethod
-    def extract(cls, i, /, condition = ...):
+    def extract(cls, i, /, condition = _Missing):
         """
         Availability: >= 0.3.52 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.extract
@@ -4117,10 +4122,10 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         if isinstance(i, extensions.Mapping):
             
-            if cls.isEllipsis(condition) or reckon(i) == 0:
+            if condition is _Missing or reckon(i) == 0:
                 return dict(i)
             
-            elif cls.isLambda(condition):
+            elif cls.isFunction(condition):
                 p = util.ParamVar(condition)
                 key, value = list(i.keys())[0], list(i.values())[0]
                 
@@ -4150,10 +4155,10 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             
         elif cls.isIterable(i):
             
-            if cls.isEllipsis(condition) or reckon(i) == 0:
+            if condition is _Missing or reckon(i) == 0:
                 return list(i)
             
-            elif cls.isLambda(condition):
+            elif cls.isFunction(condition):
                 p = util.ParamVar(condition)
                 e = list(i)[0]
                 
@@ -4213,11 +4218,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def removePrefix(cls, b: bytes, prefix: extensions.ReadableBuffer, /) -> bytes: ...
+    def removePrefix(cls, b: bytearray, prefix: extensions.ReadableBuffer, /) -> bytearray: ...
     
     @classmethod
     @extensions.overload
-    def removePrefix(cls, b: bytearray, prefix: extensions.ReadableBuffer, /) -> bytearray: ...
+    def removePrefix(cls, b: bytes, prefix: extensions.ReadableBuffer, /) -> bytes: ...
     
     @classmethod
     def removePrefix(cls, v, prefix, /):
@@ -4246,11 +4251,11 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     
     @classmethod
     @extensions.overload
-    def removeSuffix(cls, b: bytes, suffix: extensions.ReadableBuffer, /) -> bytes: ...
+    def removeSuffix(cls, b: bytearray, suffix: extensions.ReadableBuffer, /) -> bytearray: ...
     
     @classmethod
     @extensions.overload
-    def removeSuffix(cls, b: bytearray, suffix: extensions.ReadableBuffer, /) -> bytearray: ...
+    def removeSuffix(cls, b: bytes, suffix: extensions.ReadableBuffer, /) -> bytes: ...
     
     @classmethod
     def removeSuffix(cls, v, suffix, /):
@@ -4304,7 +4309,8 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     @classmethod
     def replace(cls, target, oldNew, /):
         """
-        Availability: >= 0.3.75
+        Availability: >= 0.3.75 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.replace
         
         Discontinued class method before 0.3.75 set to be public in 0.3.78. Enhanced version of `[str/bytes/bytearray].replace()` method.
         
@@ -4363,8 +4369,6 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         # part 2 of deducing empty entries
         keysFilter = list(filter(lambda x: all(reckon(y) > 0 for y in x), keys))
         valuesFilter = list(filter(lambda x: reckon(x) == 2 and (x[1] == -1 or x[1] > 0), values))
-        
-        print(keys, keysFilter, values, valuesFilter)
         
         if reckon(keys) != reckon(keysFilter):
             raise error2
@@ -4808,7 +4812,6 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             return newdict
         else:
             return default
-        
             
     @classmethod
     def getAllItemTypes(cls, i: extensions.AVT_Iterable[extensions.T], /): # >= 0.3.51
@@ -5345,11 +5348,17 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
     def random(cls, x, y = _Missing, /):
         """
         Availability: >= 0.3.24 \\
-        Standard: >= 0.3.25
+        Standard: >= 0.3.25 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.random
         
         With one parameter:
         - return an integer in range `<0; x)`
         - return an integer from abroad sequence
+        - return a string with 10 randomized characters from the given string
+        
+        With two parameters:
+        - return an integer in range `<x; y>`, no matter which endpoint is greater
+        - return a string with randomized characters with fixed length from the given string
         
         - 0.3.25: ?
         - 0.3.26rc2: Added support for `tkinter.IntVar`
@@ -5471,7 +5480,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         """
         
         # >= 0.3.66: ValuesView
-        if cls.isAbroad(i) or isinstance(i, (extensions.SizeableItemGetter, extensions.Sequence, extensions.AbstractSet, extensions.Mapping, extensions.ValuesView)):
+        if cls.isAbroad(i) or isinstance(i, (extensions.SizeableItemGetter, *_SequenceLikeTypes, extensions.Mapping)):
             
             if reckon(i) == 0: 
                 error = TypeError("expected at least one item in a(n) sequence/set/abroad object / one pair in a mapping/dictionary")
@@ -5524,7 +5533,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             
             return 1/v
         
-        elif isinstance(v, (extensions.Sequence, extensions.AbstractSet)) and cls.all(v, lambda x: cls.isInteger(x) or cls.isFloat(x)):
+        elif _is_sequence_like(v) and cls.all(v, lambda x: cls.isInteger(x) or cls.isFloat(x)):
             
             _filter = cls.cast([1/e for e in v if e not in (0, .0)], extensions.AVT_List[float])
             
@@ -5579,6 +5588,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             error = TypeError("expected 'condition' parameter to be a callable or 'None'")
             raise error
         
+        _check_if_sequence_like(seq, "expected a sequence-like object")
         _seq = list(seq)
         
         for _i in abroad(_seq):
@@ -5616,6 +5626,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             error = TypeError("expected 'condition' parameter to be a callable or 'None'")
             raise error
         
+        _check_if_sequence_like(seq, "expected a sequence-like object")
         _seq = list(seq)
         
         for _i in abroad.negative(1, _seq):
@@ -6218,7 +6229,7 @@ class RGB(_util.Final):
         """
         return self.__hex__()
     
-    @_util.finalproperty
+    @property
     def cssHex(self):
         """
         Availability: >= 0.3.49 \\
@@ -6229,7 +6240,7 @@ class RGB(_util.Final):
         """
         return "#" + self.hex[2:]
     
-    @_util.finalproperty
+    @property
     def cssRgb(self):
         """
         Availability: >= 0.3.49 \\
@@ -6262,7 +6273,7 @@ class RGB(_util.Final):
         """
         return self.__bin__()
     
-    @_util.finalproperty
+    @property
     def tuple(self):
         """
         Availability: >= 0.3.38 \\
@@ -6272,7 +6283,7 @@ class RGB(_util.Final):
         """
         return self.__rgb
     
-    @_util.finalproperty
+    @property
     def r(self):
         """
         Availability: >= 0.3.45 \\
@@ -6282,7 +6293,7 @@ class RGB(_util.Final):
         """
         return self.tuple[0]
     
-    @_util.finalproperty
+    @property
     def g(self):
         """
         Availability: >= 0.3.45 \\
@@ -6292,7 +6303,7 @@ class RGB(_util.Final):
         """
         return self.tuple[1]
     
-    @_util.finalproperty
+    @property
     def b(self):
         """
         Availability: >= 0.3.45 \\
@@ -6798,6 +6809,14 @@ class ChangeVar(extensions.UnaryOperable, extensions.Comparable, extensions.Addi
             self.__m == 1
             
         self.__m = abs(m)
+        
+class FontStyle(_extensions.Enum):
+    """
+    Availability: >= 0.3.76
+    
+    An enumeration used for providing ANSI font styles in methods in class `aveytense.Color`.
+    """
+    
 
 class Colors(_util.AbstractFinal):
     """

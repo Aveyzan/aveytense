@@ -35,4 +35,4 @@ def version(): # pyright: ignore[reportUnusedFunction]
     Used for command `aveytense-version`
     """
     
-    print(_version.VERSION_INFO)
+    print(_version.version_info)

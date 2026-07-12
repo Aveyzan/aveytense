@@ -14,10 +14,8 @@ import decimal as _decimal
 import fractions as _fractions
 import math as _math
 import numbers as _numbers
-import warnings as _warnings
 
-
-
+from . import _Missing, _SelfInvoke, _is_sequence_like
 from . import _constants as _lc
 from . import _version
 from .. import constants as _constants
@@ -26,11 +24,11 @@ from .. import extensions as _extensions
 
 if _extensions.TYPE_CHECKING:
     from ._extensions import (
-        _PrideMonth2026AbroadConvectType,
-        _PrideMonth2026AbroadStart,
-        _PrideMonth2026AbroadStop,
-        _PrideMonth2026AbroadStep,
-        _PrideMonth2026ReckonType
+        _AbroadConvectType,
+        _AbroadStart,
+        _AbroadStop,
+        _AbroadStep,
+        _ReckonType
     )
 
 from ._typeparams import (
@@ -79,11 +77,11 @@ def _domain_checker(x: _FloatOrInteger, f: _extensions.Literal["asin", "acos", "
 
 @_extensions.overload
 @_extensions.deprecated("Deprecated since 0.3.67, use aveytense.__version__ or Tense.versionInfo instead. Up for removal in 0.3.78")
-def aveytenseVersion(asString: _extensions.Literal[True] = True) -> _version.VERSION_TYPE: ...
+def aveytenseVersion(asString: _extensions.Literal[True] = True) -> _version.version_type: ...
 
 @_extensions.overload
 @_extensions.deprecated("Deprecated since 0.3.67, use aveytense.__version__ or Tense.versionInfo instead. Up for removal in 0.3.78")
-def aveytenseVersion(asString: _extensions.Literal[False]) -> _version._VERSION_INFO: ...
+def aveytenseVersion(asString: _extensions.Literal[False]) -> _version._version_info: ...
 
 def aveytenseVersion(asString = True):
     """
@@ -105,9 +103,9 @@ def aveytenseVersion(asString = True):
     from .._collection import _version
     
     if asString:
-        return _version.VERSION
+        return _version.version
     else:
-        return _version.VERSION_INFO
+        return _version.version_info
 
 
 def _int_float_fallback(v, /): # 0.3.71
@@ -123,7 +121,7 @@ def _int_float_fallback(v, /): # 0.3.71
     
 # declarations
 
-def _reckon_init(*v: _PrideMonth2026ReckonType):
+def _reckon_init(*v: _ReckonType):
     
     i = 0
     for e in v:
@@ -156,7 +154,7 @@ def _reckon_init(*v: _PrideMonth2026ReckonType):
         
     return i
 
-def reckon(*v: _PrideMonth2026ReckonType):
+def reckon(*v: _ReckonType):
     """
     Availability: >= 0.3.7 \\
     Standard: >= 0.3.7 \\
@@ -173,7 +171,7 @@ def reckon(*v: _PrideMonth2026ReckonType):
         
     return i
 
-def reckonLeast(*v: _PrideMonth2026ReckonType):
+def reckonLeast(*v: _ReckonType):
     """
     Availability: >= 0.3.25 \\
     Standard: >= 0.3.25
@@ -186,7 +184,7 @@ def reckonLeast(*v: _PrideMonth2026ReckonType):
             n = reckon(e)
     return n
 
-def reckonGreatest(*v: _PrideMonth2026ReckonType):
+def reckonGreatest(*v: _ReckonType):
     """
     Availability: >= 0.3.25 \\
     Standard: >= 0.3.25
@@ -199,7 +197,7 @@ def reckonGreatest(*v: _PrideMonth2026ReckonType):
             n = reckon(e)
     return n
 
-def reckonIsLeast(v1: _PrideMonth2026ReckonType, v2: _PrideMonth2026ReckonType, /):
+def reckonIsLeast(v1: _ReckonType, v2: _ReckonType, /):
     """
     Availability: >= 0.3.25 \\
     Standard: >= 0.3.25
@@ -209,7 +207,7 @@ def reckonIsLeast(v1: _PrideMonth2026ReckonType, v2: _PrideMonth2026ReckonType, 
     return reckon(v1) < reckon(v2)
 
 
-def reckonIsGreater(v1: _PrideMonth2026ReckonType, v2: _PrideMonth2026ReckonType, /):
+def reckonIsGreater(v1: _ReckonType, v2: _ReckonType, /):
     """
     Availability: >= 0.3.25 \\
     Standard: >= 0.3.25
@@ -237,11 +235,11 @@ class abroad:
     # 0.3.74: overloads
     
     @_extensions.overload
-    def __init__(self, stop: _PrideMonth2026AbroadStop, /) -> None: ...
+    def __init__(self, stop: _AbroadStop, /) -> None: ...
     @_extensions.overload
-    def __init__(self, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> None: ...
+    def __init__(self, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1) -> None: ...
     
-    def __init__(self, start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
+    def __init__(self, start: _AbroadStart, stop: _AbroadStop = _Missing, /, step: _AbroadStep = 1):
         
         error1 = lambda param: TypeError("expected the '{}' argument to be an integer, a floating-point number, an iterable object, a file object," + \
             "or instance of a class that supports one or more of the following methods: __len__(), __reckon__(), __float__(), __int__(), __index__()".format(param))
@@ -259,7 +257,7 @@ class abroad:
         if isinstance(_start, float):
             _start = _math.trunc(_start)
         
-        if stop is Ellipsis:
+        if stop is _Missing:
             if _start >= 0:
                 _stop = _start
                 _start = 0
@@ -489,7 +487,7 @@ class abroad:
         return self.__list.index(value, start, stop)
         
     @staticmethod
-    def fromComplex(c: _extensions.Union[complex, _extensions.ComplexConvertible], /, step: _PrideMonth2026AbroadStep = 1):
+    def fromComplex(c: _extensions.Union[complex, _extensions.ComplexConvertible], /, step: _AbroadStep = 1):
         """
         Availability: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.abroad.fromComplex
@@ -513,14 +511,14 @@ class abroad:
     
     @staticmethod
     @_extensions.overload
-    def negative(stop: _PrideMonth2026AbroadStop, /) -> abroad: ...
+    def negative(stop: _AbroadStop, /) -> abroad: ...
     
     @staticmethod
     @_extensions.overload
-    def negative(start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> abroad: ...
+    def negative(start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1) -> abroad: ...
     
     @staticmethod
-    def negative(start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
+    def negative(start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1):
         """
         Availability: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.abroad.negative
@@ -537,14 +535,14 @@ class abroad:
     
     @staticmethod
     @_extensions.overload
-    def positive(stop: _PrideMonth2026AbroadStop, /) -> abroad: ...
+    def positive(stop: _AbroadStop, /) -> abroad: ...
     
     @staticmethod
     @_extensions.overload
-    def positive(start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop, /, step: _PrideMonth2026AbroadStep = 1) -> abroad: ...
+    def positive(start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1) -> abroad: ...
     
     @staticmethod
-    def positive(start: _PrideMonth2026AbroadStart, stop: _PrideMonth2026AbroadStop = ..., /, step: _PrideMonth2026AbroadStep = 1):
+    def positive(start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1):
         """
         Availability: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.abroad.positive
@@ -560,7 +558,7 @@ class abroad:
         return abroad(_start, _stop, _step)
     
     @staticmethod
-    def convect(*v: _PrideMonth2026AbroadConvectType):
+    def convect(*v: _AbroadConvectType):
         """
         Availability: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.abroad.convect
@@ -773,7 +771,7 @@ class Time:
     __all__ = [n for n in locals() if n[:1] != "_"]
     "Availability: >= 0.3.25"
     
-class Math:
+class Math(_SelfInvoke):
     """
     Availability: >= 0.3.25 (4th July 2024) \\
     https://aveyzan.xyz/aveytense#aveytense.Math
@@ -1395,7 +1393,7 @@ class Math:
         """
         _domain_checker(x, "asin")
         
-        return _math.asin(_math.radians(x))
+        return _math.asin(x)
     
     @classmethod
     def acos(self, x: _FloatOrInteger, /):
@@ -1407,7 +1405,7 @@ class Math:
         """
         _domain_checker(x, "acos")
         
-        return _math.acos(_math.radians(x))
+        return _math.acos(x)
     
     @classmethod
     def atan(self, x: _FloatOrInteger, /):
@@ -1418,7 +1416,7 @@ class Math:
         Returns arc tangent of `x`. Measured in degrees
         """
         
-        return _math.atan(_math.radians(x))
+        return _math.atan(x)
     
     @classmethod
     def acot(self, x: _FloatOrInteger, /):
@@ -1429,7 +1427,7 @@ class Math:
         Returns arc cotangent of `x`, Measured in degrees
         """
         
-        return self.PI / 2 - _math.atan(_math.radians(x))
+        return float(self.PI) / 2 - _math.atan(x)
     
     @classmethod
     def asinh(self, x: _FloatOrInteger, /):
@@ -1439,7 +1437,7 @@ class Math:
         
         Returns inverse hyperbolic sine of `x`
         """
-        return _math.asinh(_math.radians(x))
+        return _math.asinh(x)
     
     @classmethod
     def acosh(self, x: _FloatOrInteger, /):
@@ -1449,7 +1447,7 @@ class Math:
         
         Returns inverse hyperbolic cosine of `x`
         """
-        return _math.acosh(_math.radians(x))
+        return _math.acosh(x)
     
     @classmethod
     def atanh(self, x: _FloatOrInteger, /):
@@ -1459,7 +1457,7 @@ class Math:
         
         Returns inverse hyperbolic tangent of `x`
         """
-        return _math.atanh(_math.radians(x))
+        return _math.atanh(x)
     
     @classmethod
     def acoth(self, x: _FloatOrInteger, /):
@@ -1503,7 +1501,7 @@ class Math:
             error = TypeError("expected a number")
             raise error
         
-        return _math.sin(_math.radians(x))
+        return _math.sin(x)
     
     @classmethod
     def cos(self, x: _FloatOrInteger, /):
@@ -1517,7 +1515,7 @@ class Math:
             error = TypeError("expected a number")
             raise error
         
-        return _math.cos(_math.radians(x))
+        return _math.cos(x)
     
     @classmethod
     def tan(self, x: _FloatOrInteger, /):
@@ -1531,7 +1529,7 @@ class Math:
             error = TypeError("expected a number")
             raise error
         
-        return _math.tan(_math.radians(x))
+        return _math.tan(x)
     
     @classmethod
     def sinh(self, x: _FloatOrInteger, /):
@@ -1545,7 +1543,7 @@ class Math:
             error = TypeError("expected a number")
             raise error
         
-        return _math.sinh(_math.radians(x))
+        return _math.sinh(x)
     
     @classmethod
     def cosh(self, x: _FloatOrInteger, /):
@@ -1559,7 +1557,7 @@ class Math:
             error = TypeError("expected a number")
             raise error
         
-        return _math.cosh(_math.radians(x))
+        return _math.cosh(x)
     
     @classmethod
     def tanh(self, x: _FloatOrInteger, /):
@@ -1573,7 +1571,7 @@ class Math:
             error = TypeError("expected a number")
             raise error
         
-        return _math.tanh(_math.radians(x))
+        return _math.tanh(x)
     
     @classmethod
     def coth(self, x: _FloatOrInteger, /):
@@ -2662,7 +2660,7 @@ class Math:
         Return least common multiple of provided integers
         """
         
-        if _reckon_init(i) < 2 or (_reckon_init(i) >= 2 and not all([type(e) is int and not self.isNegative(e) for e in i])):
+        if reckon(i) < 2 or (reckon(i) >= 2 and not all([type(e) is int and not self.isNegative(e) for e in i])):
             error = ValueError("expected at least 2 non-negative integers")
             raise error
         
@@ -2670,7 +2668,6 @@ class Math:
             return _math.lcm(*i)
         
         else:
-            from functools import reduce # >= 2.6
             
             def _gcd(a: int, b: int):
                 
@@ -2681,7 +2678,7 @@ class Math:
             def _lcm(a: int, b: int):
                 return a * b // _gcd(a, b)
             
-            return reduce(_lcm, i)
+            return _extensions.reduce(_lcm, i)
         
     @classmethod
     def gcd(self, *i: int):
@@ -2692,7 +2689,7 @@ class Math:
         Return greatest common divisor of provided integers
         """
         
-        if _reckon_init(i) < 2 or (_reckon_init(i) >= 2 and not all([type(e) is int and not self.isNegative(e) for e in i])):
+        if reckon(i) < 2 or (reckon(i) >= 2 and not all([type(e) is int and not self.isNegative(e) for e in i])):
             error = ValueError("expected at least 2 non-negative integers")
             raise error
         
@@ -2700,15 +2697,13 @@ class Math:
             return _math.gcd(*i)
         
         else:
-            from functools import reduce # >= 2.6
-            
             def _gcd(a: int, b: int):
                 
                 while b:
                     a, b = b, a % b
                 return a
             
-            return reduce(_gcd, i)
+            return _extensions.reduce(_gcd, i)
         
     @classmethod
     def toDigits(self, n: int, /):
@@ -2863,7 +2858,7 @@ class Math:
             for e in n:
                 r += e
                 
-            return r / _reckon_init(n)
+            return r / reckon(n)
         
         elif _mode == "g":
             
@@ -2875,7 +2870,7 @@ class Math:
             for e in n:
                 r *= e
                 
-            return self.pow(r, (1 / _reckon_init(n)))
+            return self.pow(r, (1 / reckon(n)))
         
         # 0.3.41
         elif _mode == "h":
@@ -2893,7 +2888,7 @@ class Math:
                 
                 r += 1 / e
                 
-            return _reckon_init(n) / r
+            return reckon(n) / r
             
         
         else: # root mean square (rms)
@@ -2901,7 +2896,7 @@ class Math:
             for e in n:
                 r += e ** 2
                 
-            return self.sqrt(r / _reckon_init(n))
+            return self.sqrt(r / reckon(n))
         
         
     @classmethod
@@ -2912,7 +2907,7 @@ class Math:
         Returns standard deviation of all given integers.
         """
         
-        if _reckon_init(i) == 0:
+        if reckon(i) == 0:
             error = TypeError("expected at least one value")
             raise error
         
@@ -2933,7 +2928,7 @@ class Math:
         for e in i:
             _res += (e - _mean) ** 2
             
-        return self.sqrt(_res / _reckon_init(i))
+        return self.sqrt(_res / reckon(i))
     
     @classmethod
     def toScientific(self, x: _FloatOrInteger, /, precision = 20, roundUp = False):
@@ -2969,17 +2964,17 @@ class Math:
             # Normally, we would...
             ###
             # s = str(x)
-            # _max = precision if _reckon_init(s) - 1 > precision else _reckon_init(s) - 1
+            # _max = precision if reckon(s) - 1 > precision else reckon(s) - 1
             # return ("{" + f":.{_max}e" + "}").format(x)
             ###
             # ...but precision isn't fully accurate. We would need to get the first digit
             # from the number manually first.
             
-            if _reckon_init(s) == 1:
+            if reckon(s) == 1:
                 return s + "e+0"
             
             a = s.lstrip("-") # remove minus and deduce it later
-            l = _reckon_init(a) - 1
+            l = reckon(a) - 1
             
             if precision == -1 or precision >= l:
                 return f"{_sign}{a[0]}.{a[1:]}e+{l}"
@@ -2998,9 +2993,9 @@ class Math:
             z = f.rstrip("0")
             
             if int(i) == 0:
-                l = _reckon_init(f) - _reckon_init(z) + 2
+                l = reckon(f) - reckon(z) + 2
             else:
-                l = _reckon_init(i) - 1
+                l = reckon(i) - 1
             
             if self.isScientific(s):
                 
@@ -3022,7 +3017,7 @@ class Math:
                 
                 # Section with e-N. Fractional part is dominant
                 
-                z2 = _reckon_init(f) - _reckon_init(z) + 2
+                z2 = reckon(f) - reckon(z) + 2
                 
                 if precision == 0:
                     return (_sign + str(int(z[0]) + _round(int(z[1])))).rstrip("0") + f"e-{z2}"
@@ -3035,8 +3030,8 @@ class Math:
                 
                 # Section with e+N. There integral part is dominant
                 
-                _i_exponent_ = _reckon_init(i) - 1
-                _d_zeros_ = _reckon_init(f) - _reckon_init(f.lstrip("0"))
+                _i_exponent_ = reckon(i) - 1
+                _d_zeros_ = reckon(f) - reckon(f.lstrip("0"))
                 
                 if precision == -1 or precision >= l:
                     return f"{_sign}{i[0]}.{i[1:] + f}".rstrip("0") + f"e+{_i_exponent_}"
@@ -3103,22 +3098,25 @@ class Math:
     @classmethod
     def addPercentage(cls, x: _FloatOrInteger, percentage: str, /):
         """
-        Availability: >= 0.3.68
+        Availability: >= 0.3.68 \\
+        https://aveyzan.xyz/aveytense#aveytense.Math.addPercentage
         
         Adds `x` and its `percentage` together and returns the result.
         
         - `x` - any integer or floating-point number.
-        - `percentage` - a numeric string with ending percentage character. Examples: `"18％"`, `"-23％"`, `"62.4％"`, `"-189.36％"`
+        - `percentage` - a numeric string with ending percentage character.
         
-        ```
-        Math.addPercentage(20, "15%") # 23.0
-        ```
+        Non-negative percentage example::
+        
+            Math.addPercentage(20, "15%") # 23.0
+        
+        To substract a percentage, put a minus before the percentage::
+        
+            Math.addPercentage(20, "-15%") # 17.0
         """
         
         # NOTE: ignore the VSC note about percent character confusion, because sometimes '%' can entirely
-        # disappear from the documentation when hovering on an object to review it. Using '％' (U+FF05) to
-        # prevent this from happening. Despite the 'help()' function displays the docstring correctly, the
-        # '%' sign may not appear in VSC upon hovering.
+        # disappear from the documentation when hovering on an object to review it
         
         cls.toGradians(x)
         
@@ -3148,6 +3146,128 @@ class Math:
         # it to a float object, then divide the value by 100 (because 1 = 100%), minus sign
         # allowed and will reverse the plus sign
         return x + (x * (float(percentage.strip().strip("%")) / 100))
+    
+    @classmethod
+    def allDivisors(cls, x: int, /):
+        """
+        Availability: >= 0.3.76 \\
+        https://aveyzan.xyz/aveytense#aveytense.Math.allDivisors
+        
+        Finds all divisors of `x` and returns them in a list object. `x` must be a positive integer.
+        """
+        
+        if not isinstance(x, int) or not cls.isPositive(x):
+            error = TypeError("expected a positive integer")
+            raise error
+        
+        a = [1]
+        
+        if x == 1:
+            return a
+        
+        a.clear()
+        
+        for i in abroad(1, x + 1):
+            
+            if x % i == 0:
+                a.append(i)
+                
+        return a
+    
+    @classmethod
+    def isDivisible(cls, x: int, /, *divisors: int):
+        """
+        Availability: >= 0.3.76 \\
+        https://aveyzan.xyz/aveytense#aveytense.Math.isDivisible
+        
+        Returns `True` if `x` is an integer and is divisible by any of the given `divisors`.
+        
+        For logical intersection, use `isDivisibleAll()` class method.
+        """
+        
+        if not isinstance(x, int):
+            error = TypeError("expected an integer")
+            raise error
+        
+        if not divisors:
+            error = _exceptions.MissingValueError("expected at least one divisor")
+            raise error
+        
+        if not all(isinstance(y, int) for y in divisors):
+            error = TypeError("expected all divisors to be integers")
+            raise error
+        
+        divs = [abs(y) for y in divisors]
+        
+        for d in divs:
+            
+            if abs(x) % d == 0:
+                return True
+        
+        return False
+    
+    @classmethod
+    def isDivisibleAll(cls, x: int, /, *divisors: int):
+        """
+        Availability: >= 0.3.76 \\
+        https://aveyzan.xyz/aveytense#aveytense.Math.isDivisibleAll
+        
+        Returns `True` if `x` is an integer and is divisible by all of the given `divisors`.
+        
+        For logical union, use `isDivisible()` class method.
+        """
+        
+        if not isinstance(x, int):
+            error = TypeError("expected an integer")
+            raise error
+        
+        if not divisors:
+            error = _exceptions.MissingValueError("expected at least one divisor")
+            raise error
+        
+        if not all(isinstance(y, int) for y in divisors):
+            error = TypeError("expected all divisors to be integers")
+            raise error
+        
+        divs = [abs(y) for y in divisors]
+        
+        for d in divs:
+            
+            if abs(x) % d != 0:
+                return False
+        
+        return True
+    
+    @classmethod
+    def isAbundant(cls, x: _extensions.Union[int, _extensions.SequenceLike[int]], /):
+        """
+        Availability: >= 0.3.76 \\
+        https://aveyzan.xyz/aveytense#aveytense.Math.isAbundant
+        
+        Returns `True` if `x` is an abundant/excessive integer; it *must* have its divisors' sum higher than the integer itself.
+        
+        When an integer sequence-like object is passed, all the integers must be abundant/excessive to return `True`
+        """
+        
+        if not isinstance(x, int) and not _is_sequence_like(x):
+            error = TypeError("expected an integer or an sequence-like object with integer values only")
+            raise error
+        
+        if isinstance(x, int):
+            ints = [x]
+        else:
+            ints = list(x)
+            
+        if not cls.isPositive(ints):
+            error = ValueError("expected a positive integer or an sequence-like object with positive integer values only")
+            raise error
+        
+        for i in ints:
+            
+            if sum(cls.allDivisors(i)) <= i:
+                return False
+            
+        return True
         
     __all__ = sorted([n for n in locals() if n[:1] != "_"]) # 0.3.41: sorted()
     "Availability: >= 0.3.25"

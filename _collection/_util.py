@@ -1450,13 +1450,14 @@ class ParamVar:
                 _quoted_annotations_ = True
         
         # 0.3.47: Faster to do it than do the same with dict(~.annotations). 'True' and 'False' cannot be deduced in type annotation, they need use with
-        # typing.Literal, hence ... if self...get(x, False)
+        # 'typing.Literal', hence ... if self...get(x, False)
         # 0.3.52: Un-stringify type annotations
         # 0.3.53: Check whether 'globals' in eval() can be passed as a keyword
+        # 0.3.76: Fixed naming
         if not _quoted_annotations_:
-            _receive_annotation_ = lambda x = "": ": " + str(_extensions.eval(self.func.__annotations__[x], globals = self.func.__globals__)) if self.func.__annotations_extensions.get(x, False) is not False else ""
+            _receive_annotation_ = lambda x = "": ": " + str(_extensions.eval(self.func.__annotations__[x], globals = self.func.__globals__)) if self.func.__annotations__.get(x, False) is not False else ""
         else:
-            _receive_annotation_ = lambda x = "": ": \"{}\"".format(str(_extensions.eval(self.func.__annotations__[x], globals = self.func.__globals__))) if self.func.__annotations_extensions.get(x, False) is not False else ""
+            _receive_annotation_ = lambda x = "": ": \"{}\"".format(str(_extensions.eval(self.func.__annotations__[x], globals = self.func.__globals__))) if self.func.__annotations__.get(x, False) is not False else ""
                 
         # 0.3.48
         # Fixed annotations (these only applied to parameters with default value)
@@ -2630,7 +2631,7 @@ class MutableString:
         raise error
     
         
-def simpleEnum(etype: type[_T_enum] = _extensions.Enum, boundary: _extensions.Optional[_extensions.FlagBoundary] = None, useArgs = False):
+def simpleEnum(etype: _extensions.AVT_Type[_T_enum] = _extensions.Enum, boundary: _extensions.Optional[_extensions.FlagBoundary] = None, useArgs = False):
     """
     Availability: >= 0.3.42
     
@@ -2638,7 +2639,7 @@ def simpleEnum(etype: type[_T_enum] = _extensions.Enum, boundary: _extensions.Op
     """
     
     import enum
-    return _extensions.cast(_extensions.AVT_Callable[[type[_extensions.Any]], type[_T_enum]], enum._simple_enum(etype, boundary = boundary, use_args = useArgs))
+    return _extensions.cast(_extensions.AVT_Callable[[_extensions.AVT_Type[_extensions.Any]], type[_T_enum]], enum._simple_enum(etype, boundary = boundary, use_args = useArgs))
             
 
 def uniquelist(iterable: _extensions.AVT_Iterable[_T] = ..., /):

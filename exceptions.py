@@ -8,25 +8,21 @@ https://aveyzan.xyz/aveytense#aveytense.exceptions
 Exception classes for AveyTense. Used in any scope modules scattered around the project. \\
 Globally accessible since 0.3.44.
 """
-class MissingValueError(Exception):
+class MissingValueError(ValueError):
     """
-    Availability: >= 0.3.19
-    ```
-    # 0.3.26b3 - 0.3.26c3 in module tense.tcs
-    # to 0.3.26b3 in module tense.primary
-    ```
+    Availability: >= 0.3.19 \\
+    https://aveyzan.xyz/aveytense#aveytense.exceptions.MissingValueError
+    
     Missing value (empty parameter).
     
-    Usually not thrown at all, common cause is lacking values in probability methods from class `~.Tense`
+    Usually not thrown at all, common cause is lacking values in probability methods from class `aveytense.Tense`
     """
     ...
-class IncorrectValueError(Exception):
+class IncorrectValueError(ValueError):
     """
-    Availability: >= 0.3.19
-    ```
-    # 0.3.26b3 - 0.3.26c3 in module tense.tcs
-    # to 0.3.26b3 in module tense.primary
-    ```
+    Availability: >= 0.3.19 \\
+    https://aveyzan.xyz/aveytense#aveytense.exceptions.IncorrectValueError
+    
     Incorrect value of a parameter, having correct type.
     
     Mostly replaced by `TypeError` inbuilt exception.
@@ -34,33 +30,34 @@ class IncorrectValueError(Exception):
     ...
 class NotInitializedError(Exception):
     """
-    Availability: >= 0.3.25
-    ```
-    # 0.3.26b3 - 0.3.26c3 in module tense.tcs
-    # to 0.3.26b3 in module tense.primary
-    ```
+    Availability: >= 0.3.25 \\
+    https://aveyzan.xyz/aveytense#aveytense.exceptions.NotInitializedError
+    
     Class was not instantiated
     """
     ...
 class InitializedError(Exception):
     """
-    Availability: >= 0.3.26b3
+    Availability: >= 0.3.26b3 \\
+    https://aveyzan.xyz/aveytense#aveytense.exceptions.InitializedError
     
     Class was instantiated.
     
-    This exception is thrown by definitions with the 'abstract' word in their names in `~.util` submodule.
+    This exception is thrown by definitions with the 'abstract' word in their names in the `aveytense.util` module.
     """
     ...
 class NotReassignableError(Exception):
     """
-    Availability: >= 0.3.26b3
+    Availability: >= 0.3.26b3 \\
+    https://aveyzan.xyz/aveytense#aveytense.exceptions.NotReassignableError
     
     Attempt to re-assign a value
     """
     ...
 class NotComparableError(Exception):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.exceptions.NotComparableError
     
     Attempt to compare a value with another one.
     """
@@ -68,7 +65,8 @@ class NotComparableError(Exception):
 
 class NotIterableError(Exception):
     """
-    Availability: >= 0.3.26rc1
+    Availability: >= 0.3.26rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.exceptions.NotIterableError
     
     Attempt to iterate a non-iterable object.
     
@@ -78,7 +76,8 @@ class NotIterableError(Exception):
 
 class NotCallableError(Exception):
     """
-    Availability: >= 0.3.45
+    Availability: >= 0.3.45 \\
+    https://aveyzan.xyz/aveytense#aveytense.exceptions.NotCallableError
     
     Attempt to call an object.
     
@@ -90,11 +89,12 @@ NotInvocableError = NotCallableError # >= 0.3.26rc1
     
 class SubclassedError(Exception):
     """
-    Availability: >= 0.3.27rc1
+    Availability: >= 0.3.27rc1 \\
+    https://aveyzan.xyz/aveytense#aveytense.exceptions.SubclassedError
     
     Class has been inherited by the other class.
     
-    This exception is thrown by definitions with the 'final' word in their names in `~.util` submodule.
+    This exception is thrown by definitions with the 'final' word in their names in the `aveytense.util` module.
     """
     ...
 

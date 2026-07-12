@@ -13,20 +13,20 @@ __name__ = "aveytense._inaccessible_version_components"
 
 _qualifier = ("alpha", "beta", "candidate", "final")
 _qualifier_type: __.TypeAlias = __.Literal["alpha", "beta", "candidate", "final"]
-_version_tuple_content = (0, 3, 75, _qualifier[-1], 0) # >= 0.3.48
+_version_tuple_content = (0, 3, 76, _qualifier[-1], 0) # >= 0.3.48
 _version_info_type: __.TypeAlias = __.AVT_Tuple[int, int, int, _qualifier_type, int]
 
 # >= 0.3.43; These are used only for overloads in order to hide unnecessary parts of the code
 # when used with 'if' via 'VERSION_INFO', like 'sys.version_info'
 _current_version_info_type1: __.TypeAlias = __.AVT_Tuple[__.Literal[0]]
 _current_version_info_type2: __.TypeAlias = __.AVT_Tuple[__.Unpack[_current_version_info_type1], __.Literal[3]]
-_current_version_info_type3: __.TypeAlias = __.AVT_Tuple[__.Unpack[_current_version_info_type2], __.Literal[75]]
+_current_version_info_type3: __.TypeAlias = __.AVT_Tuple[__.Unpack[_current_version_info_type2], __.Literal[76]]
 _current_version_info_type4: __.TypeAlias = __.AVT_Tuple[__.Unpack[_current_version_info_type3], __.Literal["final"]]
 _current_version_info_type5: __.TypeAlias = __.AVT_Tuple[__.Unpack[_current_version_info_type4], __.Literal[0]]
 
 _counter_version_type = 0
 
-VERSION = "0.3.75"
+version = "0.3.76"
 """
 Availability: ≥ 0.3.26b3 \\
 https://aveyzan.xyz/aveytense#aveytense.Tense.version
@@ -34,7 +34,7 @@ https://aveyzan.xyz/aveytense#aveytense.Tense.version
 Returns currently used version of AveyTense
 """
 
-VERSION_TYPE: __.TypeAlias = __.Literal["0.3.75"]
+version_type: __.TypeAlias = __.Literal["0.3.76"]
 """
 Availability: ≥ 0.3.47
 """
@@ -65,7 +65,7 @@ def _check_if_correct_tuple(t, /): # 0.3.40
         (len(t) == 5 and all([type(e) is int for e in t][:3] + [type(t[4]) is int]) and t[3] in _qualifier)
     )
 
-class _VERSION_INFO(_util.Final):
+class _version_info(_util.Final):
     """Availability: ≥ 0.3.40"""
     
     def __init__(self, major: int, minor: int, micro: int, releaselevel: _qualifier_type, serial: int, /): # 0.3.40
@@ -242,7 +242,7 @@ class _VERSION_INFO(_util.Final):
         
         return not self.__eq__(other)
 
-VERSION_INFO = _VERSION_INFO(
+version_info = _version_info(
     _version_tuple_content[0],
     _version_tuple_content[1],
     _version_tuple_content[2],
@@ -254,7 +254,7 @@ Availability: >= 0.3.26b3 \\
 https://aveyzan.xyz/aveytense#aveytense.Tense.versionInfo
 """
 
-VERSION_INFO_TYPE: __.TypeAlias = _VERSION_INFO
+version_info_type: __.TypeAlias = _version_info
 """Availability: >= 0.3.36"""
 
-_VERSION_INFO = _util.abstract(_VERSION_INFO)
+_version_info = _util.abstract(_version_info)
