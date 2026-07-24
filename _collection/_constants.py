@@ -5,10 +5,9 @@ Availability: >= 0.3.35 \\
 Core of `aveytense.constants`; use `aveytense.constants` instead
 """
 
-from __future__ import annotations
-from . import _extensions as __
+from . import _extensions
     
-class ModeSelection(__.Enum):
+class ModeSelection(_extensions.Enum):
     "Availability: >= 0.3.36"
     
     AND = 0

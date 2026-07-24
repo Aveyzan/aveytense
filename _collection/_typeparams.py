@@ -97,7 +97,7 @@ AnyStr = TypeVar("AnyStr", str, bytes) # public, stable
 
 AnyStr_cov = TypeVar("AnyStr_cov", str, bytes, covariant = True)
 
-# definitely NOT for export.
+# NOT for export
 T_array = TypeVar("T_array", int, float, str) # array.array
 T_memoryview = TypeVar("T_memoryview", default = int) # memoryview
 T_count = TypeVar("T_count", int, float, typing_extensions.SupportsFloat, typing_extensions.SupportsInt, typing_extensions.SupportsIndex, typing_extensions.SupportsComplex) # itertools.count

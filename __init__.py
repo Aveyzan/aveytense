@@ -177,6 +177,9 @@ if extensions.TYPE_CHECKING:
 
 _SequenceLikeTypes = (extensions.Sequence, extensions.AbstractSet, extensions.ValuesView)
 
+if _sys.version_info >= (3, 9):
+    del annotations
+
 if _sys.version_info >= (3, 15):
     _SliceTypes = (slice,)
 else:

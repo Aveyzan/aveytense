@@ -2662,6 +2662,7 @@ def uniquelist(iterable: _extensions.AVT_Iterable[_T] = ..., /):
     
     for e in _list_:
         
+        # or '_list_.count(e) > 1', this will work the same.
         if e not in _new_list_:
             _new_list_.append(e)
             
@@ -2719,6 +2720,18 @@ def uniquestr(string: str, /):
         raise error
     
     return "".join(uniquelist(string))
+
+def uniquebytes(bytes: bytes, /):
+    """
+    Availability: >= 0.3.77
+    """
+    
+    if not isinstance(bytes, _builtin_classes[6]):
+        error = TypeError("expected a bytes object")
+        raise error
+    
+    return _builtin_classes[6](uniquelist(bytes))
+    
 
 def indexeddict(i: _extensions.Iterable[_T], /, negative = False):
     """

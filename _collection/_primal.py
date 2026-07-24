@@ -119,6 +119,43 @@ def _int_float_fallback(v, /): # 0.3.71
     elif isinstance(v, _extensions.Indexable):
         return _extensions.cast(int, v.__index__())
     
+def _number_sequence_like_helper(x: _extensions.Union[_FloatOrInteger, _extensions.SequenceLike[_FloatOrInteger]], /): # 0.3.77
+    
+    if not isinstance(x, (int, float, _extensions.Sequence, _extensions.AbstractSet, _extensions.ValuesView)) or (
+        isinstance(x, (_extensions.Sequence, _extensions.AbstractSet, _extensions.ValuesView)) and not all(isinstance(y, (int, float)) for y in x)
+    ):
+        error = TypeError("expected a number or a non-empty sequence-like object with numbers only")
+        raise error
+    
+    if isinstance(x, (int, float)):
+        return [x]
+    else:
+        y = list(x)
+        if y:
+            return y
+        else:
+            error = TypeError("expected a number or a non-empty sequence-like object with numbers only")
+            raise error
+    
+def _integer_sequence_like_helper(x: _extensions.Union[int, _extensions.SequenceLike[int]], /): # 0.3.77
+    
+    if not isinstance(x, (int, _extensions.Sequence, _extensions.AbstractSet, _extensions.ValuesView)) or (
+        isinstance(x, (_extensions.Sequence, _extensions.AbstractSet, _extensions.ValuesView)) and (not all(isinstance(y, int) for y in x))
+    ):
+        error = TypeError("expected an integer or a non-empty sequence-like object with integers only")
+        raise error
+    
+    if isinstance(x, int):
+        return [x]
+    else:
+        y = list(x)
+        if y:
+            return y
+        else:
+            error = TypeError("expected an integer or a non-empty sequence-like object with integers only")
+            raise error
+            
+    
 # declarations
 
 def _reckon_init(*v: _ReckonType):
@@ -142,7 +179,7 @@ def _reckon_init(*v: _ReckonType):
             for _ in e:
                 i += 1
                 
-        elif isinstance(e, _extensions.Sizeable):
+        elif isinstance(e, _extensions.Sized):
             i += len(e)
             
         elif isinstance(e, _extensions.ReckonOperable):
@@ -812,7 +849,7 @@ class Math(_SelfInvoke):
     CENTILLION         = 10 ** 303 # >= 0.3.25 (19.07.2024)
     
     @classmethod
-    def isNegative(self, x: _extensions.Union[_FloatOrInteger, _extensions.AVT_Sequence[_FloatOrInteger]], /):
+    def isNegative(self, x: _extensions.Union[_FloatOrInteger, _extensions.SequenceLike[_FloatOrInteger]], /):
         """
         Availability: >= 0.3.31 \\
         (no doc yet)
@@ -821,27 +858,29 @@ class Math(_SelfInvoke):
         each number in it must satisfy this condition.
         """
         
-        if not isinstance(x, (int, float, _extensions.Sequence)):
-            error = TypeError("expected a number (integer or float) or sequence of numbers")
+        try:
+            y = _number_sequence_like_helper(x)
+        except TypeError:
+            error = TypeError("expected a number (integer or float) or sequence-like object with numbers only")
             raise error
         
-        elif isinstance(x, (int, float)):
+        if isinstance(x, (int, float)):
             return x < 0
         
         else:
             
-            for e in x:
+            for e in y:
                 
                 if not isinstance(e, (int, float)):
-                    error = TypeError("expected a number (integer or float) or sequence of numbers")
+                    error = TypeError("expected a number (integer or float) or sequence-like object with numbers only")
                     raise error
             
-            _r = [e for e in x if e < 0]
+            _r = [e for e in y if e < 0]
             return reckon(_r) == reckon(x)
                 
     
     @classmethod
-    def isPositive(self, x: _extensions.Union[_FloatOrInteger, _extensions.AVT_Sequence[_FloatOrInteger]], /):
+    def isPositive(self, x: _extensions.Union[_FloatOrInteger, _extensions.SequenceLike[_FloatOrInteger]], /):
         """
         Availability: >= 0.3.31 \\
         (no doc yet)
@@ -850,22 +889,24 @@ class Math(_SelfInvoke):
         each number in it must satisfy this condition.
         """
         
-        if not isinstance(x, (int, float, _extensions.Sequence)):
-            error = TypeError("expected a number (integer or float) or sequence of numbers")
+        try:
+            y = _number_sequence_like_helper(x)
+        except TypeError:
+            error = TypeError("expected a number (integer or float) or sequence-like object with numbers only")
             raise error
         
-        elif isinstance(x, (int, float)):
+        if isinstance(x, (int, float)):
             return x > 0
         
         else:
             
-            for e in x:
+            for e in y:
                 
                 if not isinstance(e, (int, float)):
-                    error = TypeError("expected a number (integer or float) or sequence of numbers")
+                    error = TypeError("expected a number (integer or float) or sequence-like object with numbers only")
                     raise error
             
-            _r = [e for e in x if e > 0]
+            _r = [e for e in y if e > 0]
             return _reckon_init(_r) == _reckon_init(x)
     
     @classmethod
@@ -923,7 +964,7 @@ class Math(_SelfInvoke):
         return re.match(r"^\d+(\.\d+)?[eE][+-]\d+$", x.strip()) is not None
     
     @classmethod
-    def isInRange(self, x: _extensions.Union[_FloatOrInteger, _extensions.AVT_Sequence[_FloatOrInteger]], a: _FloatOrInteger, b: _FloatOrInteger, /, mode = "c"):
+    def isInRange(self, x: _extensions.Union[_FloatOrInteger, _extensions.SequenceLike[_FloatOrInteger]], a: _FloatOrInteger, b: _FloatOrInteger, /, mode = "c"):
         """
         Availability: >= 0.3.36 \\
         https://aveyzan.xyz/aveytense#aveytense.Math.isInRange
@@ -967,14 +1008,15 @@ class Math(_SelfInvoke):
                 else:
                     return x > _range[0] and x < _range[1]
             
-            elif isinstance(x, _extensions.Sequence) and all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in x]):
+            elif isinstance(x, (_extensions.Sequence, _extensions.AbstractSet, _extensions.ValuesView)) and all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in list(x)]):
                 
                 if _reckon_init(x) == 0:
                     return False
                 
                 _placeholder = True
+                _list = list(x)
                 
-                for e in x:
+                for e in _list:
                     
                     if _mode in ("c", "cc",):
                         _placeholder = _placeholder and (e >= _range[0] and e <= _range[1])
@@ -994,7 +1036,7 @@ class Math(_SelfInvoke):
         raise error
     
     @classmethod
-    def isIncreasing(self, x: _extensions.AVT_Sequence[_FloatOrInteger], /):
+    def isIncreasing(self, x: _extensions.SequenceLike[_FloatOrInteger], /):
         """
         Availability: >= 0.3.38 \\
         (no doc yet)
@@ -1003,16 +1045,17 @@ class Math(_SelfInvoke):
         and has at least 3 integer items.
         """
         
-        if isinstance(x, _extensions.Sequence) and all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in x]):
+        if isinstance(x, (_extensions.Sequence, _extensions.AbstractSet, _extensions.ValuesView)) and all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in x]):
         
             if _reckon_init(x) < 3:
                 return False
             
             _placeholder = True
+            y = _number_sequence_like_helper(x)
             
-            for i in abroad(_reckon_init(x) - 1):
+            for i in abroad(_reckon_init(y) - 1):
                 
-                _placeholder = _placeholder and x[i + 1] - x[i] > 0
+                _placeholder = _placeholder and y[i + 1] - y[i] > 0
                 
             return _placeholder
             
@@ -1021,7 +1064,7 @@ class Math(_SelfInvoke):
         raise error
     
     @classmethod
-    def isDecreasing(self, x: _extensions.AVT_Sequence[_FloatOrInteger], /):
+    def isDecreasing(self, x: _extensions.SequenceLike[_FloatOrInteger], /):
         """
         Availability: >= 0.3.38 \\
         (no doc yet)
@@ -1030,16 +1073,17 @@ class Math(_SelfInvoke):
         and has at least 3 number items.
         """
         
-        if isinstance(x, _extensions.Sequence) and all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in x]):
+        if isinstance(x, (_extensions.Sequence, _extensions.AbstractSet, _extensions.ValuesView)) and all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in x]):
         
             if _reckon_init(x) < 3:
                 return False
             
             _placeholder = True
+            y = _number_sequence_like_helper(x)
             
-            for i in abroad(_reckon_init(x) - 1):
+            for i in abroad(_reckon_init(y) - 1):
                 
-                _placeholder = _placeholder and x[i + 1] - x[i] < 0
+                _placeholder = _placeholder and y[i + 1] - y[i] < 0
                 
             return _placeholder
             
@@ -1047,7 +1091,7 @@ class Math(_SelfInvoke):
         raise error
     
     @classmethod
-    def isConstant(self, x: _extensions.AVT_Sequence[_FloatOrInteger], /):
+    def isConstant(self, x: _extensions.SequenceLike[_FloatOrInteger], /):
         """
         Availability: >= 0.3.38 \\
         (no doc yet)
@@ -1056,16 +1100,17 @@ class Math(_SelfInvoke):
         and has at least 3 number items.
         """
         
-        if isinstance(x, _extensions.Sequence) and all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in x]):
+        if isinstance(x, (_extensions.Sequence, _extensions.AbstractSet, _extensions.ValuesView)) and all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in x]):
         
             if _reckon_init(x) < 3:
                 return False
             
             _placeholder = True
+            y = _number_sequence_like_helper(x)
             
-            for i in abroad(_reckon_init(x) - 1):
+            for i in abroad(_reckon_init(y) - 1):
                 
-                _placeholder = _placeholder and x[i + 1] - x[i] == 0
+                _placeholder = _placeholder and y[i + 1] - y[i] == 0
                 
             return _placeholder
             
@@ -1073,7 +1118,7 @@ class Math(_SelfInvoke):
         raise error
     
     @classmethod
-    def isNonIncreasing(self, x: _extensions.AVT_Sequence[_FloatOrInteger], /):
+    def isNonIncreasing(self, x: _extensions.SequenceLike[_FloatOrInteger], /):
         """
         Availability: >= 0.3.38 \\
         (no doc yet)
@@ -1082,16 +1127,17 @@ class Math(_SelfInvoke):
         and has at least 3 number items.
         """
         
-        if isinstance(x, _extensions.Sequence) and all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in x]):
+        if isinstance(x, (_extensions.Sequence, _extensions.AbstractSet, _extensions.ValuesView)) and all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in x]):
         
             if _reckon_init(x) < 3:
                 return False
             
             _placeholder = True
+            y = _number_sequence_like_helper(x)
             
-            for i in abroad(_reckon_init(x) - 1):
+            for i in abroad(_reckon_init(y) - 1):
                 
-                _placeholder = _placeholder and x[i + 1] - x[i] <= 0
+                _placeholder = _placeholder and y[i + 1] - y[i] <= 0
                 
             return _placeholder
             
@@ -1099,7 +1145,7 @@ class Math(_SelfInvoke):
         raise error
     
     @classmethod
-    def isNonDecreasing(self, x: _extensions.AVT_Sequence[_FloatOrInteger], /):
+    def isNonDecreasing(self, x: _extensions.SequenceLike[_FloatOrInteger], /):
         """
         Availability: >= 0.3.38 \\
         (no doc yet)
@@ -1108,16 +1154,17 @@ class Math(_SelfInvoke):
         and has at least 3 number items.
         """
         
-        if isinstance(x, _extensions.Sequence) and all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in x]):
+        if isinstance(x, (_extensions.Sequence, _extensions.AbstractSet, _extensions.ValuesView)) and all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in x]):
         
             if _reckon_init(x) < 3:
                 return False
             
             _placeholder = True
+            y = _number_sequence_like_helper(x)
             
-            for i in abroad(_reckon_init(x) - 1):
+            for i in abroad(_reckon_init(y) - 1):
                 
-                _placeholder = _placeholder and x[i + 1] - x[i] >= 0
+                _placeholder = _placeholder and y[i + 1] - y[i] >= 0
                 
             return _placeholder
             
@@ -1125,7 +1172,7 @@ class Math(_SelfInvoke):
         raise error
     
     @classmethod
-    def isMonotonous(self, x: _extensions.AVT_Sequence[_FloatOrInteger], /):
+    def isMonotonous(self, x: _extensions.SequenceLike[_FloatOrInteger], /):
         """
         Availability: >= 0.3.38 \\
         (no doc yet)
@@ -1134,7 +1181,7 @@ class Math(_SelfInvoke):
         decreasing, constant, non-decreasing or non-increasing).
         """
         
-        if not isinstance(x, _extensions.Sequence) or not all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in x]):
+        if not isinstance(x, (_extensions.Sequence, _extensions.AbstractSet, _extensions.ValuesView)) or not all([type(e) in (int, float) and e not in (self.INF, self.NAN) for e in x]):
             error = TypeError("expected a number sequence with at least 3 items, without infinity and NaN")
             raise error
         
@@ -3246,28 +3293,89 @@ class Math(_SelfInvoke):
         
         Returns `True` if `x` is an abundant/excessive integer; it *must* have its divisors' sum higher than the integer itself.
         
-        When an integer sequence-like object is passed, all the integers must be abundant/excessive to return `True`
+        Once integer sequence-like object is given, all the integers must be abundant/excessive to return `True`
         """
         
-        if not isinstance(x, int) and not _is_sequence_like(x):
-            error = TypeError("expected an integer or an sequence-like object with integer values only")
-            raise error
-        
-        if isinstance(x, int):
-            ints = [x]
-        else:
-            ints = list(x)
+        y = _integer_sequence_like_helper(x)
             
-        if not cls.isPositive(ints):
+        if not cls.isPositive(y):
+            error = ValueError("expected a positive integer or an sequence-like object with positive integer values only")
+            raise error
+            
+        return not any((sum(cls.allDivisors(z)) <= z) for z in y)
+    
+    @classmethod
+    def isDeficient(cls, x: _extensions.Union[int, _extensions.SequenceLike[int]], /):
+        """
+        Availability: >= 0.3.77 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.isDefident
+        
+        Returns `True` if `x` is a deficient number; it *must* have its sum of divisors least than `2x`.
+        
+        Once integer sequence-like object is given, all integers need to be deficient.
+        """
+        
+        y = _integer_sequence_like_helper(x)
+            
+        if not cls.isPositive(y):
             error = ValueError("expected a positive integer or an sequence-like object with positive integer values only")
             raise error
         
-        for i in ints:
+        return not any((sum(cls.allDivisors(z)) >= 2 * z) for z in y)
+    
+    @classmethod
+    def isPerfect(cls, x: _extensions.Union[int, _extensions.SequenceLike[int]], /):
+        """
+        Availability: >= 0.3.77 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.isPerfect
+        
+        Returns `True` if `x` is a perfect number; it *must* have its sum of divisors (excluding `x` itself) equal to the integer itself.
+        
+        Once integer sequence-like object is given, all integers need to be perfect.
+        """
+        
+        y = _integer_sequence_like_helper(x)
             
-            if sum(cls.allDivisors(i)) <= i:
-                return False
-            
-        return True
+        if not cls.isPositive(y):
+            error = ValueError("expected a positive integer or an sequence-like object with positive integer values only")
+            raise error
+        
+        return not any((sum(cls.allDivisors(z)[:-1]) == z) for z in y)
+    
+    @classmethod
+    def isOdd(cls, x: _extensions.Union[int, _extensions.SequenceLike[int]], /):
+        """
+        Availability: >= 0.3.77 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.isOdd
+        
+        Returns `True` if all integers are odd (sign insensitive)
+        
+        For any::
+        
+            any(Math.isOdd(x) for x in [1, 2, 3, 4, 5, 6])
+        """
+        
+        y = _integer_sequence_like_helper(x)
+        
+        return all(abs(z) % 2 == 1 for z in y)
+        
+    @classmethod
+    def isEven(cls, x: _extensions.Union[int, _extensions.SequenceLike[int]], /):
+        """
+        Availability: >= 0.3.77 \\
+        https://aveyzan.xyz/aveytense#aveytense.Tense.isOdd
+        
+        Returns `True` if all integers are even (sign insensitive).
+        
+        For any::
+        
+            any(Math.isEven(x) for x in [1, 2, 3, 4, 5, 6])
+        """
+        
+        y = _integer_sequence_like_helper(x)
+        
+        return all(abs(z) % 2 == 0 for z in y)
+        
         
     __all__ = sorted([n for n in locals() if n[:1] != "_"]) # 0.3.41: sorted()
     "Availability: >= 0.3.25"

@@ -67,7 +67,18 @@ from ._typeparams import (
     T_step_cov as _T_step_cov
 )
 
-### IMPORTS FOR PY3.6+ ###
+### IMPORTS FOR PY3.8+ ###
+
+# not for export
+import _collections_abc
+import abc as _abc
+import enum as _enum
+import _hashlib
+import hashlib
+import hmac as _hmac
+import sys as _sys
+import typing as _typing
+import typing_extensions as _typing_ext
 
 from abc import (
     # 0.3.27rc2
@@ -219,18 +230,163 @@ from typing import (
     get_type_hints as getTypeHints
 )
 from uuid import UUID as UUID # 0.3.26rc3
-import sys as _sys
-
-# not for export
-import _collections_abc
-import abc as _abc
-import _hashlib
-import hashlib
-import hmac as _hmac
-import typing as _typing
-import typing_extensions as _typing_ext
 
 __name__ = "aveytense.extensions"
+    
+### Enums and Flags ###
+# 0.3.44: Additional checking to ensure these enumerator and flag classes exist already.
+class Enum(_enum.Enum):
+    """
+    Availability: >= 0.3.26rc1 [`enum.Enum`](https://docs.python.org/3/library/enum.html#enum.Enum)
+    """
+    
+    if False: # attempt 0.3.56
+        
+        def _add_alias_(self, name: str):
+            self.__class__._add_member_(name, self)
+
+        def _add_value_alias_(self, value: Any):
+            cls = self.__class__
+            try:
+                if value in cls._value2member_map_:
+                    if cls._value2member_map_[value] is not self:
+                        raise ValueError('%r is already bound: %r' % (value, cls._value2member_map_[value]))
+                    return
+            except TypeError:
+                # unhashable value, do long search
+                for m in cls._member_map_.values():
+                    if m._value_ == value:
+                        if m is not self:
+                            raise ValueError('%r is already bound: %r' % (value, cls._value2member_map_[value]))
+                        return
+            try:
+                # This may fail if value is not hashable. We can't add the value
+                # to the map, and by-value lookups for this value will be
+                # linear.
+                cls._value2member_map_.setdefault(value, self)
+                cls._hashable_values_.append(value)
+            except TypeError:
+                # keep track of the value in a list so containment checks are quick
+                cls._unhashable_values_.append(value)
+                cls._unhashable_values_map_.setdefault(self.name, []).append(value)
+
+# 0.3.56: define __len__, __iter__, __ror__, __rand__ and __rxor__ before Python 3.11
+class Flag(_enum.Flag):
+    """
+    Availability: >= 0.3.26rc1 [`enum.Flag`](https://docs.python.org/3/library/enum.html#enum.Flag)
+    """
+    
+    if _sys.version_info < (3, 11):
+        
+        def __len__(self):
+            return self._value_.bit_count()
+        
+        def __iter__(self):
+            """
+            Returns flags in definition order.
+            """
+            yield from self._iter_member_(self._value_) # collections.abc.Iterator[Self]
+            
+        def __ror__(self, other):
+            return super().__or__(other)
+        
+        def __rand__(self, other):
+            return super().__and__(other)
+        
+        def __rxor__(self, other):
+            return super().__xor__(other)
+    
+class ReprEnum(Enum): # >=Py3.11; practically subclass of enum.Enum and nothing in the body. Try to define for least than Py3.11
+    """
+    Availability: >= 0.3.26rc1 [`enum.ReprEnum`](https://docs.python.org/3/library/enum.html#enum.ReprEnum)
+    """
+
+if _sys.version_info >= (3, 11):
+    
+    from enum import verify as verify, EnumCheck as EnumCheck, EnumType as EnumType
+    
+    # If not the same (as before 3.13 it can occur), we need to ensure they are the same by using type assignment
+    if ReprEnum != _enum.ReprEnum:
+        ReprEnum = _enum.ReprEnum
+    
+if _sys.version_info >= (3, 13):
+    EnumDict = _enum.EnumDict # >= 0.3.26rc1
+else:
+    # questionable: since when enum._EnumDict was in enum.py file?
+    EnumDict = _enum._EnumDict # >= 0.3.26rc1
+    
+class FlagBoundary(Enum): # >=Py3.11. Define for least than Py3.11
+    """
+    Availability: >= 0.3.26rc1 [`enum.FlagBoundary`](https://docs.python.org/3/library/enum.html#enum.FlagBoundary)
+    
+    Control how out of range values are handled.
+    
+    - `STRICT` -> error is raised             (default for `Flag`)
+    - `CONFORM` -> extra bits are discarded
+    - `EJECT` -> lose flag status
+    - `KEEP` -> keep flag status and all bits (default for `IntFlag`)
+    """
+    STRICT = _enum.auto() # 1; enum.auto accessible for >=Py3.8
+    CONFORM = _enum.auto() # 2
+    EJECT = _enum.auto() # 3
+    KEEP = _enum.auto() # 4
+
+class IntegerFlag(_enum.IntFlag): # accessible for >=Py3.6 (can be recreated via bases: >= Py3.11 (int, ReprEnum, Flag, boundary=FlagBoundary.KEEP), < Py3.11 (int, Flag))
+    """
+    Availability: >= 0.3.26rc1. [`enum.IntFlag`](https://docs.python.org/3/library/enum.html#enum.IntFlag)
+    """
+
+if _sys.version_info >= (3, 11):
+    
+    class IntegerEnum(_enum.IntEnum):
+        """
+        Availability: >= 0.3.26rc1. [`enum.IntEnum`](https://docs.python.org/3/library/enum.html#enum.IntEnum)
+        """
+        
+    class StringEnum(_enum.StrEnum):
+        """
+        Availability: >= 0.3.26rc1. [`enum.StrEnum`](https://docs.python.org/3/library/enum.html#enum.StrEnum)
+        """
+        
+else:
+    
+    class IntegerEnum(int, ReprEnum):
+        """
+        Availability: >= 0.3.26rc1. [`enum.IntEnum`](https://docs.python.org/3/library/enum.html#enum.IntEnum)
+        """
+        
+    class StringEnum(str, ReprEnum):
+        """
+        Availability: >= 0.3.26rc1. [`enum.StrEnum`](https://docs.python.org/3/library/enum.html#enum.StrEnum)
+        """
+        
+        def __new__(cls, *values):
+            "values must already be of type `str`"
+            if len(values) > 3:
+                raise TypeError('too many arguments for str(): %r' % (values, ))
+            if len(values) == 1:
+                # it must be a string
+                if not isinstance(values[0], str):
+                    raise TypeError('%r is not a string' % (values[0], ))
+            if len(values) >= 2:
+                # check that encoding argument is a string
+                if not isinstance(values[1], str):
+                    raise TypeError('encoding must be a string, not %r' % (values[1], ))
+            if len(values) == 3:
+                # check that errors argument is a string
+                if not isinstance(values[2], str):
+                    raise TypeError('errors must be a string, not %r' % (values[2]))
+            value = str(*values)
+            member = str.__new__(cls, value)
+            member._value_ = value
+            return member
+
+        @staticmethod
+        def _generate_next_value_(name, start, count, last_values):
+            """
+            Return the lower-cased version of the member name.
+            """
+            return name.lower()
 
 # In this part of the code, we are retrieving currently used version of 'typing_extensions', and
 # formalize the version like 'sys.version_info':
@@ -422,172 +578,6 @@ def _check_methods(C: type, *methods: str):
         else:
             return NotImplemented
     return True
-
-### Enums and Flags ###
-# 0.3.44: Additional checking to ensure these enumerator and flag classes exist already.
-
-import enum as _enum
-
-class Enum(_enum.Enum):
-    """
-    Availability: >= 0.3.26rc1 [`enum.Enum`](https://docs.python.org/3/library/enum.html#enum.Enum)
-    """
-    
-    if False: # attempt 0.3.56
-        
-        def _add_alias_(self, name: str):
-            self.__class__._add_member_(name, self)
-
-        def _add_value_alias_(self, value: Any):
-            cls = self.__class__
-            try:
-                if value in cls._value2member_map_:
-                    if cls._value2member_map_[value] is not self:
-                        raise ValueError('%r is already bound: %r' % (value, cls._value2member_map_[value]))
-                    return
-            except TypeError:
-                # unhashable value, do long search
-                for m in cls._member_map_.values():
-                    if m._value_ == value:
-                        if m is not self:
-                            raise ValueError('%r is already bound: %r' % (value, cls._value2member_map_[value]))
-                        return
-            try:
-                # This may fail if value is not hashable. We can't add the value
-                # to the map, and by-value lookups for this value will be
-                # linear.
-                cls._value2member_map_.setdefault(value, self)
-                cls._hashable_values_.append(value)
-            except TypeError:
-                # keep track of the value in a list so containment checks are quick
-                cls._unhashable_values_.append(value)
-                cls._unhashable_values_map_.setdefault(self.name, []).append(value)
-
-# 0.3.56: define __len__, __iter__, __ror__, __rand__ and __rxor__ before Python 3.11
-class Flag(_enum.Flag):
-    """
-    Availability: >= 0.3.26rc1 [`enum.Flag`](https://docs.python.org/3/library/enum.html#enum.Flag)
-    """
-    
-    if _sys.version_info < (3, 11):
-        
-        def __len__(self):
-            return self._value_.bit_count()
-        
-        def __iter__(self):
-            """
-            Returns flags in definition order.
-            """
-            yield from self._iter_member_(self._value_) # collections.abc.Iterator[Self]
-            
-        def __ror__(self, other: Self):
-            return super().__or__(other)
-        
-        def __rand__(self, other: Self):
-            return super().__and__(other)
-        
-        def __rxor__(self, other: Self):
-            return super().__xor__(other)
-    
-class ReprEnum(Enum): # >=Py3.11; practically subclass of enum.Enum and nothing in the body. Try to define for least than Py3.11
-    """
-    Availability: >= 0.3.26rc1 [`enum.ReprEnum`](https://docs.python.org/3/library/enum.html#enum.ReprEnum)
-    """
-
-if _sys.version_info >= (3, 11):
-    
-    from enum import verify as verify, EnumCheck as EnumCheck, EnumType as EnumType
-    
-    # If not the same (as before 3.13 it can occur), we need to ensure they are the same by using type assignment
-    if ReprEnum != _enum.ReprEnum:
-        ReprEnum = _enum.ReprEnum
-        
-class EnumDict(Enum): # base class ignored after assignment below
-    """
-    Availability: >= 0.3.26rc1 [`enum.EnumDict`](https://docs.python.org/3/library/enum.html#enum.EnumDict)
-    
-    Undocumented internal class `enum._EnumDict` before Python 3.13
-    """
-    
-if _sys.version_info >= (3, 13):
-    EnumDict = _enum.EnumDict
-    
-else:
-    # questionable: since when enum._EnumDict was in enum.py file?
-    EnumDict = _enum._EnumDict
-    
-class FlagBoundary(Enum): # >=Py3.11. Define for least than Py3.11
-    """
-    Availability: >= 0.3.26rc1 [`enum.FlagBoundary`](https://docs.python.org/3/library/enum.html#enum.FlagBoundary)
-    
-    Control how out of range values are handled.
-    
-    - `STRICT` -> error is raised             (default for `Flag`)
-    - `CONFORM` -> extra bits are discarded
-    - `EJECT` -> lose flag status
-    - `KEEP` -> keep flag status and all bits (default for `IntFlag`)
-    """
-    STRICT = _enum.auto() # 1; enum.auto accessible for >=Py3.8
-    CONFORM = _enum.auto() # 2
-    EJECT = _enum.auto() # 3
-    KEEP = _enum.auto() # 4
-
-class IntegerFlag(_enum.IntFlag): # accessible for >=Py3.6 (can be recreated via bases: >= Py3.11 (int, ReprEnum, Flag, boundary=FlagBoundary.KEEP), < Py3.11 (int, Flag))
-    """
-    Availability: >= 0.3.26rc1. [`enum.IntFlag`](https://docs.python.org/3/library/enum.html#enum.IntFlag)
-    """
-
-if _sys.version_info >= (3, 11):
-    
-    class IntegerEnum(_enum.IntEnum):
-        """
-        Availability: >= 0.3.26rc1. [`enum.IntEnum`](https://docs.python.org/3/library/enum.html#enum.IntEnum)
-        """
-        
-    class StringEnum(_enum.StrEnum):
-        """
-        Availability: >= 0.3.26rc1. [`enum.StrEnum`](https://docs.python.org/3/library/enum.html#enum.StrEnum)
-        """
-        
-else:
-    
-    class IntegerEnum(int, ReprEnum):
-        """
-        Availability: >= 0.3.26rc1. [`enum.IntEnum`](https://docs.python.org/3/library/enum.html#enum.IntEnum)
-        """
-        
-    class StringEnum(str, ReprEnum):
-        """
-        Availability: >= 0.3.26rc1. [`enum.StrEnum`](https://docs.python.org/3/library/enum.html#enum.StrEnum)
-        """
-        
-        def __new__(cls, *values):
-            "values must already be of type `str`"
-            if len(values) > 3:
-                raise TypeError('too many arguments for str(): %r' % (values, ))
-            if len(values) == 1:
-                # it must be a string
-                if not isinstance(values[0], str):
-                    raise TypeError('%r is not a string' % (values[0], ))
-            if len(values) >= 2:
-                # check that encoding argument is a string
-                if not isinstance(values[1], str):
-                    raise TypeError('encoding must be a string, not %r' % (values[1], ))
-            if len(values) == 3:
-                # check that errors argument is a string
-                if not isinstance(values[2], str):
-                    raise TypeError('errors must be a string, not %r' % (values[2]))
-            value = str(*values)
-            member = str.__new__(cls, value)
-            member._value_ = value
-            return member
-
-        @staticmethod
-        def _generate_next_value_(name, start, count, last_values):
-            """
-            Return the lower-cased version of the member name.
-            """
-            return name.lower()
         
 ### UTILITY TYPES ###
 
@@ -634,7 +624,8 @@ if _sys.version_info >= (3, 7):
     from uuid import SafeUUID as SafeUUID
     
 else:
-    class SafeUUID(Enum):
+    
+    class SafeUUID(_enum.Enum):
         safe = 0
         unsafe = -1
         unknown = None
@@ -824,7 +815,7 @@ else:
     class AVT_PathLike(Protocol[_AnyStr_cov]):
         """Availability: >= 0.3.54"""
         
-        def __fspath__(self) -> _AnyStr_cov_pathLikeExclusive: ...
+        def __fspath__(self) -> _AnyStr_cov: ...
         
     del _runtime
 
@@ -863,6 +854,8 @@ if _sys.version_info >= (3, 10):
     
 else:
     
+    from typing import Literal as _Literal
+    
     from typing_extensions import (
         # 0.3.26rc1
         ParamSpec as ParamSpec, 
@@ -885,7 +878,7 @@ else:
     @_final
     class NoneType:
         "Availability: >= 0.3.26"
-        def __bool__(self) -> Literal[False]: ...
+        def __bool__(self) -> _Literal[False]: ...
         
     @_final
     class EllipsisType: ...
@@ -1040,7 +1033,7 @@ else:
                     return _check_methods(C, "__buffer__")
                 return NotImplemented
     
-    class BufferFlags(IntegerFlag): # 0.3.26rc2
+    class BufferFlags(_enum.IntFlag): # 0.3.26rc2
         SIMPLE = 0x0
         WRITABLE = 0x1
         FORMAT = 0x4
@@ -1261,26 +1254,29 @@ else:
         # overloads from 'dict'
         @overload
         def __init__(self) -> None: ...
-        @overload
-        def __init__(self: frozendict[str, VT], **kwargs: VT) -> None: ...  # pyright: ignore[reportInvalidTypeVarUse]
+        if TYPE_CHECKING:
+            @overload
+            def __init__(self: frozendict[str, VT], **kwargs: VT) -> None: ...  # pyright: ignore[reportInvalidTypeVarUse]
         @overload
         def __init__(self, map: _KeyItemGetter[KT, VT], /) -> None: ...
-        @overload
-        def __init__(
-            self: frozendict[Union[str, KT], VT],  # pyright: ignore[reportInvalidTypeVarUse]
-            map: _KeyItemGetter[str, VT],
-            /,
-            **kwargs: VT,
-        ) -> None: ...
+        if TYPE_CHECKING:
+            @overload
+            def __init__(
+                self: frozendict[Union[str, KT], VT],  # pyright: ignore[reportInvalidTypeVarUse]
+                map: _KeyItemGetter[str, VT],
+                /,
+                **kwargs: VT,
+            ) -> None: ...
         @overload
         def __init__(self, iterable: AVT_Iterable[AVT_Tuple[KT, VT]], /) -> None: ...
-        @overload
-        def __init__(
-            self: frozendict[Union[str, KT], VT],  # pyright: ignore[reportInvalidTypeVarUse]
-            iterable: AVT_Iterable[AVT_Tuple[str, VT]],
-            /,
-            **kwargs: VT,
-        ) -> None: ...
+        if TYPE_CHECKING:
+            @overload
+            def __init__(
+                self: frozendict[Union[str, KT], VT],  # pyright: ignore[reportInvalidTypeVarUse]
+                iterable: AVT_Iterable[AVT_Tuple[str, VT]],
+                /,
+                **kwargs: VT,
+            ) -> None: ...
         
         def __init__(self, *args, **kwargs): # >= 0.3.75
             from . import _mangle
@@ -1334,7 +1330,8 @@ else:
             return frozendict(_newdict)
         
         def __ror__(self, other: _KeyItemGetter[KT2, VT2]): # >= 0.3.75
-            return self.__or__(other)
+            # 0.3.77
+            return frozendict(other).__or__(self.__dict)
         
         # This doesn't exist in Mapping ABC either. 'dict' has it so we re-declare it
         def copy(self): # >= 0.3.75
