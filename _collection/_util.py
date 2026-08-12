@@ -26,8 +26,6 @@ if _extensions.TYPE_CHECKING:
 
 __name__ = "aveytense.util"
 
-_ch = _extensions.eval # checker
-
 _T_func = _extensions.TypeVar("_T_func", bound = _extensions.AVT_Callable[..., _extensions.Any])
 _T_enum = _extensions.TypeVar("_T_enum", bound = _extensions.Enum)
 
@@ -66,37 +64,6 @@ def _reckon(i: _extensions.AVT_Iterable[_T], /):
         _i += 1
         
     return _i
-
-def _ih(id: int, /): # internal helper
-    
-    _m = "eval"
-    _c = _i = ""
-    
-    if id == 10:
-        
-        _c, _i = "_E(113, t.__name__)", "<final-class inspect>"
-        
-    elif id == 11:
-        
-        _c, _i = "_E(116, type(self).__name__)", "<final-class inspect>"
-        
-    elif id == 12:
-        
-        _c, _i = "_E(116, t.__name__)", "<final-class inspect>"
-        
-    elif id == 20:
-        
-        _c, _i = "_E(104, type(self).__name__)", "<abstract-class inspect>"
-    
-    elif id == 21:
-        
-        _c, _i = "_E(115, type(self).__name__)", "<abstract-class inspect>"
-        
-    elif id == 22:
-        
-        _c, _i = "_E(115, t.__name__)", "<abstract-class inspect>"
-        
-    return compile(_c, _i, _m)
     
 def _return_param(f = object(), s = ""): # 0.3.47
     """
@@ -488,12 +455,15 @@ class _InternalHelper:
         # assuming empty string-string dictionary
         _cannot_redo.clear()
         
+        _collection = [lambda self, other: None]
+        _collection.clear()
+        
         def _no_sa(self: _T, name: str, value): # no setattr
             
-            if name in type(self).__dict__:
+            if hasattr(self, name):
                 _E(118, name)
             
-            self.__dict__[name] = value
+            setattr(self, name, value)
             
         def _no_da(self: _T, name: str): # no delattr
             
@@ -501,19 +471,19 @@ class _InternalHelper:
                 _E(117, name)
                 
         def _no_inst(self: _T, *args, **kwds): # no initialize
-            _ch(_ih(20))
+            _E(104, t.__name__)
             
         def _no_cinst(o: object): # no check instance
             nonlocal t
-            _ch(_ih(22))
+            _E(106)
             
         def _no_sub(*args, **kwds): # no subclass
             nonlocal t
-            _ch(_ih(10))
+            _E(113, t.__name__)
             
         def _no_csub(cls: type): # no check subclass
             nonlocal t
-            _ch(_ih(12))
+            _E(106)
             
         def _no_re(op: str): # no reassignment; must return callback so assigned attributes can be methods
             
@@ -533,6 +503,7 @@ class _InternalHelper:
             t.__setattr__ = _no_sa
             t.__delattr__ = _no_da
             
+            _collection.extend([_no_sa, _no_da])
             _cannot_redo["__setattr__"] = _no_sa.__name__
             _cannot_redo["__delattr__"] = _no_da.__name__
             
@@ -540,8 +511,8 @@ class _InternalHelper:
                 
                 for key in _reassignment_operators:
                     
-                    exec("t.{} = _no_re(\"{}\")".format(key, _reassignment_operators[key])) # f-strings since python 3.6
-                    exec("_cannot_redo[\"{}\"] = _no_re(\"{}\").__name__".format(key, _reassignment_operators[key]))
+                    setattr(t, key, _no_re(_reassignment_operators[key]))
+                    _cannot_redo[key] = _no_re(_reassignment_operators[key]).__name__
                     
         elif o == "final":
             
@@ -550,6 +521,7 @@ class _InternalHelper:
             t.__subclasscheck__ = _no_csub
             t.__mro_entries__ = _empty_mro
             
+            _collection.extend([_no_sub, _no_csub, _empty_mro])
             _cannot_redo["__init_subclass__"] = _no_sub.__name__
             _cannot_redo["__subclasscheck__"] = _no_csub.__name__
             _cannot_redo["__mro_entries__"] = _empty_mro.__name__
@@ -559,17 +531,23 @@ class _InternalHelper:
             if o == "forced_abstract":
                 t.__call__ = _no_inst
                 
+                _collection.append(_no_inst)
                 _cannot_redo["__call__"] = _no_inst.__name__
             
             else:
                 t.__init__ = _no_inst
                 t.__instancecheck__ = _no_cinst
                 
+                _collection.extend([_no_inst, _no_cinst])
                 _cannot_redo["__init__"] = _no_inst.__name__
                 _cannot_redo["__instancecheck__"] = _no_cinst.__name__
+                
+        from . import _Missing
             
-        for key in _cannot_redo:
-            if _cannot_redo[key] != "_no_re_internal" and eval("t.{}.__code__".format(key)) != eval("{}.__code__".format(_cannot_redo[key])):
+        for i, key in enumerate(_cannot_redo):
+            if _cannot_redo[key] != "_no_re_internal" and (
+                hasattr(t, key) and hasattr(getattr(t, key), "__code__") and getattr(getattr(t, key), "__code__", _Missing) != getattr(_collection[i], "__code__", _Missing)
+            ):
                 _E(120, key)    
         
         return t
@@ -595,14 +573,14 @@ class Abstract:
     """
     
     def __init__(self):
-        _ch(_ih(20))
+        _E(104, type(self).__name__)
         
     def __init_subclass__(cls):
         cls = _InternalHelper(cls, "abstract")
     
     def __instancecheck__(self, instance: object):
         "Availability: >= 0.3.27b1. Error is thrown, because class may not be instantiated"
-        _ch(_ih(21))
+        _E(106)
     
     def __subclasscheck__(self, cls: type):
         "Availability: >= 0.3.27b1. Check whether a class is a subclass of this class"
@@ -650,7 +628,7 @@ class Final:
     
     def __subclasscheck__(self, cls: type):
         "Availability: >= 0.3.27rc1. Error is thrown, because this class may not be subclassed"
-        _ch(_ih(11))
+        _E(106)
        
     def __mro_entries__(self):
         return None
@@ -658,19 +636,6 @@ class Final:
     @property
     def __mro__(self):
         return None
-    
-    if False: # 0.3.28 (use finalmethod instead)
-        @staticmethod
-        def method(f: _T_func):
-            """Availability: >= 0.3.27rc2"""
-            
-            if _sys.version_info >= (3, 11):
-                from typing import final as _f
-                
-            else:
-                from typing_extensions import final as _f
-                
-            return _f(f)
     
 def final(t: _extensions.AVT_Type[_T], /): # <- 0.3.41 slash
     """
@@ -685,93 +650,13 @@ def finalmethod(f: _T_func, /): # <- 0.3.41 slash
     Availability: >= 0.3.27rc2 \\
     https://aveyzan.xyz/aveytense#aveytense.util.finalmethod
     """
-    if False:
-        return Final.method(f)
+    
+    if isinstance(f, _extensions.MethodType):
+        return _extensions.cast(_T_func, _extensions.final(f))
     
     else:
-        
-        if isinstance(f, _extensions.MethodType):
-            return _extensions.cast(_T_func, _extensions.final(f))
-        
-        else:
-            error = TypeError("expected a method")
-            raise error
-
-# it is worth noticing that even if 'finalproperty' class doesn't formally inherit
-# from 'property' builtin, it is considered a 'property' builtin anyway. reason it
-# does is because of descriptor methods __get__, __set__ and __delete__
-# 18.03.2025
-
-@_extensions.deprecated("Deprecated since 0.3.75, will be removed in 0.3.78. Use '@property' instead")
-class finalproperty(_extensions.Generic[_T]):
-    """
-    Availability: >= 0.3.37 \\
-    https://aveyzan.xyz/aveytense#aveytense.util.finalproperty
-    
-    A decorator which creates a final (constant) property. 
-    This property cannot receive new values nor be deleted, what makes 
-    this property read-only. This class doesn't inherit from `property`, 
-    however, it returns a new property - just classified as final. It is
-    worth noticing this is *instance* final property, not like
-    `jaraco.classes.properties.classproperty`.
-    
-    Usage of `~.finalproperty` is as simple as `property` inbuilt decorator::
-    
-        from aveytense.util import finalproperty
-        
-        class R:
-            
-            @property
-            def val(self):
-                return 42
-        
-        print(R.val) # <finalproperty 'R.val'>
-        print(R().val) # 42
-    """
-    
-    def __init__(self, f: _extensions.AVT_Callable[[_extensions.Any], _T], /):
-        
-        if isinstance(f, staticmethod):
-            f = f.__func__
-        
-        if not callable(f) or (callable(f) and (f.__code__.co_argcount != 1 or f.__code__.co_kwonlyargcount != 0)):
-            error = TypeError("expected callable with one parameter, or attempt to create final static property with no parameters")
-            raise error
-        
-        self.__func = f
-        self.__doc__ = f.__doc__
-        
-    def __str__(self):
-        
-        return "<final-property '{}'>".format(self.__func.__qualname__) # < 0.3.44; >= 0.3.69
-        
-    @_extensions.overload
-    def __get__(self, instance: None, owner: _extensions.Optional[type] = None) -> finalproperty[_T]: ...
-    
-    @_extensions.overload
-    def __get__(self, instance: _extensions.Any, owner: _extensions.Optional[type] = None) -> _T: ...
-        
-    def __get__(self, instance, owner = None):
-        
-        if instance is None:
-            return self
-        
-        a = self.__func(instance)
-        return a
-    
-    def __set__(self, instance, value):
-        
-        v = self.__func.__name__
-        _E(122, v)
-        
-    def __delete__(self, instance):
-        
-        v = self.__func.__name__
-        _E(122, v)
-        
-    @property
-    def __func__(self): # >= 0.3.69
-        return self.__func
+        error = TypeError("expected a method")
+        raise error
 
 if False: # >= 0.3.43
     
@@ -853,7 +738,7 @@ class AbstractFinal:
     __slots__ = ("__weakref__",)
     
     def __init__(self):
-        _ch(_ih(20))
+        _E(104, type(self).__name__)
     
     def __init_subclass__(cls):
         cls = _InternalHelper(cls, "abstract")
@@ -868,11 +753,11 @@ class AbstractFinal:
     
     def __instancecheck__(self, instance: object):
         "Availability: >= 0.3.27rc1. Error is thrown, because class may not be instantiated"
-        _ch(_ih(21))
+        _E(106)
     
     def __subclasscheck__(self, cls: type):
         "Availability: >= 0.3.27rc1. Error is thrown, because class may not be subclassed"
-        _ch(_ih(11))
+        _E(106)
 
 @_extensions.dataclass(init = False, repr = False, eq = False, frozen = True) # 0.3.74
 class SortedList(_extensions.Generic[_T]):
@@ -1074,7 +959,7 @@ class ParamNoDefault(Abstract):
     Used to denote parameters without default value with final \\
     properties ending with `withDefaults` suffix, in `aveytense.util.ParamVar`.
     
-    Public since 0.3.74
+    Public since 0.3.74 to allow inspections.
     """
     
 class _BuiltinParamVar:

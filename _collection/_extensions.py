@@ -1632,17 +1632,6 @@ class Incomplete:
 # Let's be honest, I was having trouble re-creating these classes with type annotations.
 # In reality none of these are protocols, because these get appropriate values assigned later,
 # these definitions are only for correct type hinting
-@deprecated("Deprecated since 0.3.75, will be removed in 0.3.78")
-class AnyMeta(Protocol):
-    """
-    Availability: >= 0.3.52
-    
-    Metaclass of `typing.Any`.
-    
-    Should be only used as `type(obj) is AnyMeta`
-    """
-    def __instancecheck__(self, obj: object) -> bool: ...
-    def __repr__(self) -> str: ...
     
 @final
 class DictKeys(AVT_KeysView[KT_cov], Generic[KT_cov, VT_cov]):
@@ -2720,20 +2709,6 @@ class Descriptor(
     """
     ...
 
-@runtime
-@deprecated("Deprecated since 0.3.75, will be removed in 0.3.78.")
-class FinalDescriptor(Protocol[T_cov]):
-    """
-    Availability: >= 0.3.44 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.FinalDescriptor
-    
-    A runtime protocol class providing descriptor methods, just `__set__()` and `__delete__()` throw an error. \\
-    The same as `aveytense.util.finalproperty` works.
-    """
-    def __get__(self, instance: Optional[object], owner: Optional[type] = None, /) -> T_cov: ...
-    def __set__(self, instance: Optional[object], value: Any, /) -> NoReturn: ...
-    def __delete__(self, instance: Optional[object], /) -> NoReturn: ...
-
 class KeysProvider(ItemGetter[KT_con, Any]):
     """
     Availability: >= 0.3.26 \\
@@ -2841,46 +2816,6 @@ class BytearrayConvertible(Protocol):
     A runtime protocol class with method `__bytearray__()`.
     """
     def __bytearray__(self) -> bytearray: ...
-
-@runtime
-@deprecated("Deprecated since 0.3.75, will be removed in 0.3.78.")
-class ListConvertible(Protocol[T_cov]):
-    """
-    Availability: >= 0.3.26rc3 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.ListConvertible
-
-    A runtime protocol class with method `toList()`. Invoked via the class method `aveytense.Tense.toList()`
-    """
-    
-    # to 0.3.63 as __tlist__, to 0.3.27a3 as __list__
-    def toList(self) -> AVT_List[T_cov]: ...
-
-
-@runtime
-@deprecated("Deprecated since 0.3.75, will be removed in 0.3.78.")
-class TupleConvertible(Protocol[T_cov]):
-    """
-    Availability: >= 0.3.26rc3 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.TupleConvertible
-
-    A runtime protocol class with method `toTuple()`.
-    """
-    
-    # to 0.3.63 as __ttuple__, to 0.3.27a3 as __tuple__
-    def toTuple(self) -> AVT_Tuple[T_cov, ...]: ...
-
-@runtime
-@deprecated("Deprecated since 0.3.75, will be removed in 0.3.78.")
-class SetConvertible(Protocol[T_cov]):
-    """
-    Availability: >= 0.3.26rc3 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.SetConvertible
-
-    A runtime protocol class with method `toSet()`.
-    """
-    
-    # to 0.3.63 as __tset__, to 0.3.27a3 as __set_init__
-    def toSet(self) -> AVT_Set[T_cov]: ...
 
 @runtime
 class ReckonOperable(Protocol):
@@ -3795,24 +3730,6 @@ class Flusher(Protocol): # _typeshed.SupportsFlush
     A runtime protocol class with method `flush()`.
     """
     def flush(self) -> object: ...
-
-@runtime
-class Writable(Protocol[T_con]): # _typeshed.SupportsWrite
-    """
-    Availability: >= 0.3.27b1
-
-    A runtime protocol class with method `write()`.
-    """
-    def write(self, data: T_con, /) -> int: ...
-    
-@runtime
-class Readable(Protocol[T_cov]):
-    """
-    Availability: >= 0.3.55b2
-    
-    A runtime protocol class with method `read()`
-    """
-    def read(self, size: int = ..., /) -> T_cov: ...
     
 @runtime
 class FilenoProvider(Protocol):

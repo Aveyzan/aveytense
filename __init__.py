@@ -24,7 +24,6 @@ import sys as _sys
 import copy as _copy
 import dis as _dis
 import inspect as _inspect
-import math as _math
 import os as _os
 import platform as _platform
 import random as _random
@@ -814,38 +813,6 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
             "WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
             sep = "\n\n"
         )
-    
-    @classmethod
-    @extensions.deprecated("Deprecated since 0.3.75, will be removed in 0.3.78.")
-    def toList(cls, v: extensions.Union[extensions.AVT_Iterable[extensions.T], extensions.AVT_AsyncIterable[extensions.T], extensions.ListConvertible[extensions.T], extensions.TupleConvertible[extensions.T], extensions.SetConvertible[extensions.T]], /):
-        """
-        Availability: >= 0.3.26rc3
-        
-        Converts a value to a `list` built-in. Since 0.3.55a1 asynchronous iterable objects are now allowed.
-        """
-        
-        if isinstance(v, extensions.ListConvertible):
-            return v.toList()
-        
-        elif isinstance(v, extensions.TupleConvertible):
-            return list(v.toTuple())
-        
-        elif isinstance(v, extensions.SetConvertible):
-            return list(v.toSet())
-        
-        elif isinstance(v, extensions.AsyncIterable): # >= 0.3.55
-            return list(_extract_from_async_iterable(v))
-        
-        elif isinstance(v, extensions.Iterable):
-            return list(v)
-        
-        else:
-            error = TypeError("expected an iterable or async iterable object, or an object of a subclass of '{}', '{}', '{}'".format(
-                extensions.ListConvertible.__name__,
-                extensions.TupleConvertible.__name__,
-                extensions.SetConvertible.__name__
-            ))
-            raise error
     
     @classmethod # type hint should use TypeVar instead but it doesn't change anything really.
     def isIn(cls, seq: extensions.SequenceLike[_Any], *values: _Any): 
@@ -2692,255 +2659,6 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         
         # 0.3.67; constructor of uniquetuple returns a mere tuple object
         return v == util.uniquetuple(v)
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.positive()' static method instead. Up for removal in 0.3.78.")
-    def abroadPositive(cls, stop: _AbroadStop, /) -> abroad: ...
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.positive()' static method instead. Up for removal in 0.3.78.")
-    def abroadPositive(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1) -> abroad: ...
-    
-    @classmethod
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.positive()' static method instead. Up for removal in 0.3.78.")
-    def abroadPositive(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1):
-        """
-        Availability: >= 0.3.24 \\
-        Deprecated: >= 0.3.74 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.abroadPositive
-        """
-        
-        return abroad.positive(start, stop, step)
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.negative()' static method instead. Up for removal in 0.3.78.")
-    def abroadNegative(cls, stop: _AbroadStop, /) -> abroad: ...
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.negative()' static method instead. Up for removal in 0.3.78.")
-    def abroadNegative(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1) -> abroad: ...
-    
-    @classmethod
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.negative()' static method instead. Up for removal in 0.3.78.")
-    def abroadNegative(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1):
-        """
-        Availability: >= 0.3.24 \\
-        Deprecated: >= 0.3.74 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.abroadNegative
-        """
-        
-        return abroad.negative(start, stop, step)
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.positive())' instead. Up for removal in 0.3.78.")
-    def abroadPositiveFlip(cls, stop: _AbroadStop, /) -> extensions.AVT_Iterator[int]: ...
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.positive())' instead. Up for removal in 0.3.78.")
-    def abroadPositiveFlip(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1) -> extensions.AVT_Iterator[int]: ...
-    
-    @classmethod
-    @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.positive())' instead. Up for removal in 0.3.78.")
-    def abroadPositiveFlip(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1):
-        """
-        Availability: >= 0.3.24 \\
-        Deprecated: >= 0.3.74 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.abroadPositiveFlip
-        """
-        
-        return reversed(abroad.positive(start, stop, step))
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.negative())' instead. Up for removal in 0.3.78.")
-    def abroadNegativeFlip(cls, stop: _AbroadStop, /) -> extensions.AVT_Iterator[int]: ...
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.negative())' instead. Up for removal in 0.3.78.")
-    def abroadNegativeFlip(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1) -> extensions.AVT_Iterator[int]: ...
-    
-    @classmethod
-    @extensions.deprecated("Deprecated since 0.3.74, use 'reversed(abroad.negative())' instead. Up for removal in 0.3.78.")
-    def abroadNegativeFlip(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1):
-        """
-        Availability: >= 0.3.24 \\
-        Deprecated: >= 0.3.74 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.abroadNegativeFlip
-        """
-        
-        return reversed(abroad.negative(start, stop, step))
-    
-    @classmethod
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad(reckonLeast(...))' static method instead. Up for removal in 0.3.78.")
-    def abroadPack(cls, *v: _ReckonType):
-        """
-        Availability: >= 0.3.25 \\
-        Deprecated: >= 0.3.74 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.abroadPack
-        
-        This variation of `abroad()` function bases on `zip()` Python function.
-        """
-        
-        return abroad(reckonLeast(*v))
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__rmod__()' instead. Up for removal in 0.3.78.")
-    def abroadPrecede(cls, stop: _AbroadStop, /, prefix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__rmod__()' instead. Up for removal in 0.3.78.")
-    def abroadPrecede(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1, prefix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
-    
-    @classmethod
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__rmod__()' instead. Up for removal in 0.3.78.")
-    def abroadPrecede(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1, prefix: extensions.Optional[str] = None):
-        """
-        Availability: >= 0.3.25 \\
-        Deprecated: >= 0.3.74 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.abroadPrecede
-        
-        
-        This variation of `abroad()` function returns strings in a list. If `prefix` is `None`,
-        returned are integers in strings, otherwise added is special string prefix before integers.
-        """
-        if prefix is not None and not isinstance(prefix, str):
-            error = TypeError("expected parameter '{}' to have a string value".format(_get_all_params(cls.abroadPrecede)[-1]))
-            raise error
-
-        return [("" if prefix is None else prefix) + str(e) for e in abroad(start, stop, step)] # >= 0.3.52; return list
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__mod__()' instead. Up for removal in 0.3.78.")
-    def abroadSufcede(cls, stop: _AbroadStop, /, suffix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__mod__()' instead. Up for removal in 0.3.78.")
-    def abroadSufcede(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1, suffix: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
-            
-    @classmethod
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.__mod__()' instead. Up for removal in 0.3.78.")
-    def abroadSufcede(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1, suffix: extensions.Optional[str] = None):
-        """
-        Availability: >= 0.3.25 \\
-        Deprecated: >= 0.3.74 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.abroadSufcede
-        
-        
-        This variation of `abroad()` function returns strings in a list. If `suffix` is `None`,
-        returned are integers in strings, otherwise added is special string suffix after integers.
-        """
-        if suffix is not None and not isinstance(suffix, str):
-            error = TypeError("expected parameter '{}' to have a string value".format(_get_all_params(cls.abroadSufcede)[-1]))
-            raise error
-
-        return [str(e) + ("" if suffix is None else suffix) for e in abroad(start, stop, step)] # >= 0.3.52; return list
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'str.format(abroad(...))' instead. Up for removal in 0.3.78.")
-    def abroadInside(cls, stop: _AbroadStop, /, string: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.74, use 'str.format(abroad(...))' instead. Up for removal in 0.3.78.")
-    def abroadInside(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1, string: extensions.Optional[str] = None) -> extensions.AVT_List[str]: ...
-    
-    @classmethod
-    @extensions.deprecated("Deprecated since 0.3.74, use 'str.format(abroad(...))' instead. Up for removal in 0.3.78.")
-    def abroadInside(cls, start: _AbroadStart, stop: _AbroadStop = ..., /, step: _AbroadStep = 1, string: extensions.Optional[str] = None):
-        """
-        Availability: >= 0.3.25 \\
-        Deprecated: >= 0.3.74 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.abroadInside
-        
-        
-        This variation of `abroad()` function returns strings in a list. If `string` is `None`,
-        returned are integers in strings, otherwise integers are placed inside `{}` of the string.
-        """
-        if string is not None and not isinstance(string, str):
-            error = TypeError("expected parameter '{}' have string value".format(_get_all_params(cls.abroadInside)[-1]))
-            raise error
-
-        ab = abroad(start, stop, step)
-        return [(str(e) if string is None else string.format(str(e))) for e in ab]
-    
-    @classmethod
-    @extensions.deprecated("Deprecated since 0.3.74, use 'abroad.convect()' static method instead. Up for removal in 0.3.78.")
-    def abroadConvect(cls, *v: _AbroadConvectType):
-        """
-        Availability: >= 0.3.25 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.abroadConvect
-        
-        Typical math sum operation before returned is list from `abroad()` function.
-        If from values a value is:
-        - an integer - added is this integer
-        - a float - added is this number, without fraction
-        - sizeable object - added is its length
-
-        Note: it is possible to provide negative entities. If resulted number is negative,
-        up to `abroad()` function, sequence will go in range `[values_sum, -1]`.
-        Otherwise, it will take this form: `[0, values_sum - 1]`.
-        """
-        
-        return abroad.convect(*v)
-        
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.71, up for removal in 0.3.78. Use 'batched' with 'abroad' object instead")
-    def abroadSplit(cls, stop: _AbroadStop, /, limit: int = 2) -> extensions.AVT_List[extensions.AVT_List[int]]: ...
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.71, up for removal in 0.3.78. Use 'batched' with 'abroad' object instead")
-    def abroadSplit(cls, start: _AbroadStart, stop: _AbroadStop, /, step: _AbroadStep = 1, limit: int = 2) -> extensions.AVT_List[extensions.AVT_List[int]]: ...
-    
-    @classmethod
-    @extensions.deprecated("Deprecated since 0.3.71, up for removal in 0.3.78. Use 'batched' with 'abroad' object instead")
-    def abroadSplit(cls, start: _AbroadStart, /, stop: _AbroadStop = ..., step: _AbroadStep = 1, limit: int = 2):
-        """
-        Availability: >= 0.3.25 \\
-        Deprecated: >= 0.3.71 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.abroadSplit
-        
-        Reference to string slicing. Limit is amount of items,
-        which can be in one sub-list. May not be equal or below 1. 
-        """
-        
-        lim = 0
-        tmp, a = ([0], [[0]])
-        cls.clear(a, tmp)
-        
-        if not isinstance(limit, int):
-            error = TypeError(f"parameter 'limit' is not an integer. Ensure argument got integer value. Received type: {type(limit).__name__}")
-            raise error
-        
-        elif limit < 1:
-            error = ValueError("parameter 'limit' may not be negative, or have value 0 or 1. Start from 2.")
-            raise error
-        
-        for i in abroad(start, stop, step):
-            
-            if lim % limit == 0:
-                a.append(tmp)
-                tmp.clear()
-                
-            else:
-                tmp.append(i)
-                
-            lim += 1
-            
-        return a
     
     @classmethod
     def architecture(cls, executable = _sys.executable, bits = "", linkage = ""):
@@ -5304,32 +5022,6 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         else:
             return args
     
-    @classmethod
-    @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use 'print()' inbuilt function instead")
-    def print(cls, *values: object, separator: extensions.Optional[str] = " ", ending: extensions.Optional[str] = "\n", file: extensions.Union[extensions.Writable[str], extensions.Flusher, None] = None, flush = False, reprFirst = False):
-        """
-        Availability: >= 0.3.25
-        
-        Almost identical to `print()`.
-        
-        - 0.3.26a1: returns reference to `aveytense.Tense`
-        - 0.3.27b1: setting `TenseOptions.insertionMessage` to override `invokeAs`
-        - 0.3.41: Added `reprFirst` to invoke `repr()` before `str()`, and removed `invokedAs`
-        """
-        
-        # a trick providing default value for 'x'
-        _invoke_this = lambda x = object(): repr(x) if hasattr(x, "__repr__") else str(x)
-        
-        if reprFirst:
-                
-            print(*tuple([_invoke_this(e) for e in values]), sep = separator, end = ending, file = file, flush = flush)
-            
-        else:
-                
-            print(*values, sep = separator, end = ending, file = file, flush = flush)
-            
-        return cls
-    
     # >= 0.3.34: overloads
     @classmethod
     @extensions.overload # 0.3.64: AbroadInitializer
@@ -5683,18 +5375,7 @@ class Tense(Time, Math, metaclass = _TenseImmutableMeta): # 0.3.24
         elif _frequency < 0:
             error = ValueError("expected a non-negative integer in parameter '{}'".format(_params[2]))
             raise error
-        
-        # types must match, otherwise you can meet an union-typed result, which is not useful during
-        # type inspection, since you need to append appropriate 'if' statement!
-        # exception: a function result being a union-typed one
-        # for 0.3.46 it isn't necessary to both have the same type anyway, responsibility goes to user
-        
-        if cls.versionInfo < (0, 3, 46) and False:
-            
-            if not cls.isList([x, y], type(x)):
-                error = TypeError("provided types in parameters '{}' and '{}' do not match".format(_params[0], _params[1]))
-                raise error
-        
+
         if not cls.isInteger(length):
             error = TypeError("expected an integer in parameter '{}'".format(_params[3]))
             raise error
@@ -6554,35 +6235,6 @@ class RGBA(_util.Final):
         """
         return self.__int__() + self.__float__() != float(int(other)) + float(other) if type(other) is type(self) else False
     
-    if False: # < 0.3.56
-    
-        @extensions.deprecated("Deprecated since 0.3.47, will be removed in 0.3.48. Use str(self) instead")
-        def __pos__(self):
-            """
-            Availability: >= 0.3.38
-            
-            Returns a RGBA tuple
-            """
-            return self.__rgba
-        
-        @extensions.deprecated("Deprecated since 0.3.47, will be removed in 0.3.48. Use str(self) instead")
-        def __neg__(self):
-            """
-            Availability: >= 0.3.38
-            
-            Returns a RGBA tuple
-            """
-            return self.__rgba
-        
-        @extensions.deprecated("Deprecated since 0.3.47, will be removed in 0.3.48. Use str(self) instead")
-        def __invert__(self):
-            """
-            Availability: >= 0.3.38
-            
-            Returns a RGBA tuple
-            """
-            return self.__rgba
-    
     @staticmethod
     def fromValue(n: extensions.Union[int, str, _util.MutableString], opacity: float, /):
         """
@@ -6620,37 +6272,6 @@ class RGBA(_util.Final):
         """
         
         return RGBA.fromValue(int(self), float(self))
-    
-@extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use the static method 'aveytense.RGB.invert()' instead.")
-class CMYK(_util.Final):
-    """
-    Availability: >= 0.3.28 \\
-    https://aveyzan.xyz/aveytense#aveytense.CMYK
-    
-    Auxiliary class for the `Color` class. Represents cyan-magenta-yellow color representation. \\
-    Once instantiated, returns `RGB` class instance, only with inverted color values, that is: \\
-    255 is 0, 254 is 1, 253 is 2 and so on, up to 0 being 255.
-    """
-    
-    def __new__(self, cyan = 0, magenta = 0, yellow = 0, /):
-        
-        _parameters = {
-            "cyan": cyan,
-            "magenta": magenta,
-            "yellow": yellow
-        }
-        
-        for key in _parameters:
-            
-            if not isinstance(_parameters[key], int) or (isinstance(_parameters[key], int) and _parameters[key] not in abroad(0x100)):
-                error = TypeError("expected a non-negative integer in parameter '" + key + "' in range 0-255")
-                raise error
-            
-        return RGB(
-            0xff - cyan,
-            0xff - magenta,
-            0xff - yellow
-        )
 
 # class _ChangeVarState(tc.IntegerFlag): # to 0.3.28
 class _ChangeVarState(extensions.Enum):
@@ -6813,7 +6434,7 @@ class ChangeVar(extensions.UnaryOperable, extensions.Comparable, extensions.Addi
             
         self.__m = abs(m)
         
-class FontStyle(_extensions.Enum):
+class _FontStyle(_extensions.Enum):
     """
     Availability: >= 0.3.76
     
@@ -6821,7 +6442,7 @@ class FontStyle(_extensions.Enum):
     """
     
 
-class Colors(_util.AbstractFinal):
+class Colors(_util.AbstractFinal, _collection._SelfInvoke):
     """
     Availability: >= 0.3.41
     
