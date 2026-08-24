@@ -1224,6 +1224,7 @@ else:
 if _sys.version_info >= (3, 15):
     
     from builtins import frozendict
+    from types import FrameLocalsProxyType as FrameLocalsProxyType
     from typing import (
         # 0.3.37
         TypedDict as TypedDict,
@@ -1336,6 +1337,41 @@ else:
         # This doesn't exist in Mapping ABC either. 'dict' has it so we re-declare it
         def copy(self): # >= 0.3.75
             return frozendict(self.__dict)
+    
+    # we keep it as simple as it should be, to retrive Python 3.15 'types.FrameLocalsProxyType'
+    # final patches to be done during 0.3.82 and 0.3.83
+    def _f_86bff3f494c9():
+        raise Exception()
+    
+    try:
+        _f_86bff3f494c9()
+    except Exception as e:
+        FrameLocalsProxyType = type(e.__traceback__.tb_frame.f_locals)
+        """
+        Availability: >= 0.3.79 \\
+        https://aveyzan.xyz/aveytense#aveytense.extensions.FrameLocalsProxyType
+        
+        Represents the type of `locals()` and also `frame.f_locals`
+        """
+    
+    del _f_86bff3f494c9
+    
+    if False:
+        def no_type_check_decorator(decorator: AVT_Callable[P, T]):
+            """Decorator to give another decorator the @no_type_check effect.
+
+            This wraps the decorator with something that wraps the decorated
+            function in @no_type_check.
+            """
+            import warnings
+            # warnings._deprecated("typing.no_type_check_decorator", remove=(3, 15))
+            @functools.wraps(decorator)
+            def wrapped_decorator(*args, **kwds):
+                func = decorator(*args, **kwds)
+                func = no_type_check(func)
+                return func
+
+            return wrapped_decorator
     
     from typing import (
         # ?
@@ -4248,8 +4284,8 @@ else:
 ColorType: TypeAlias = Union[int, str, None] # >= 0.3.25 // renamed from SupportsColor (0.3.26b3)
 ColourType: TypeAlias = ColorType # >= 0.3.26b3
 # CoroutineWrapperType
-async def _f(): pass
-_coroutine = _f()
+async def _f_f946955e1757(): pass
+_coroutine = _f_f946955e1757()
 # this class as '_collections_abc.coroutine_wrapper' doesn't exist, neither does it exist in 'types'
 CoroutineWrapperType = type(_coroutine.__await__()) # >= 0.3.53
 _coroutine.close()
@@ -4258,7 +4294,6 @@ del _coroutine
 DecimalComparableType: TypeAlias = Union[Decimal, float, _Rational] # >= 0.3.60
 DecimalNewType: TypeAlias = Union[Decimal, float, str, AVT_Tuple[int, AVT_Sequence[int], int]] # >= 0.3.60
 DecimalType: TypeAlias = Union[int, Decimal] # >= 0.3.60
-
 FlagsType: TypeAlias = Union[int, RegexFlag] # >= 0.3.60
 FloatOrInteger: TypeAlias = Union[int, float] # >= 0.3.25
 Hash: TypeAlias = _hashlib.HASH # >= 0.3.44
@@ -4295,14 +4330,6 @@ RichComparable: TypeAlias = Union[LeastComparable[Any], GreaterComparable[Any]] 
 
 SequenceLike: TypeAlias = Union[AVT_Sequence[T], AVT_AbstractSet[T], AVT_ValuesView[T]]
 """Availability: >= 0.3.54 // Renamed 0.3.69 from `TrueSequence` // https://aveyzan.xyz/aveytense#aveytense.extensions.SequenceLike"""
-
-@runtime
-@deprecated("Deprecated since 0.3.75, up for removal in 0.3.78")
-class Sizeable(Sized, Protocol):
-    """
-    Availability: >= 0.3.26rc3 \\
-    Deprecated: >= 0.3.75
-    """
 
 # I was actually thinking to retract from re-defining 'typing.Text' since its from Python 2
 # Not doing this in favor of this module purpose.

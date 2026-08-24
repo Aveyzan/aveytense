@@ -9,7 +9,7 @@ from __future__ import annotations
 import abc as _abc
 import sys as _sys
 
-from . import _extensions
+from . import _extensions, _SelfInvoke
 from ._exceptions import _ErrorHandler as _E
 from ._typeparams import (
     T as _T,
@@ -925,7 +925,7 @@ def all(name: str = "all", mode: _extensions.Union[_AllMode, _extensions.AVT_Cal
         elif mode == "uppercased_private":
             _dict_.update({ _name_: sorted([k for k in t.__dict__ if k.isupper() and k.startswith("__") and not k.endswith("__")]) })
             
-        elif callable(mode) and mode.__code_extensions.co_argcount == 1 and mode.__defaults__ is None:
+        elif callable(mode) and mode.__code__.co_argcount == 1 and mode.__defaults__ is None:
             _dict_.update({ _name_: sorted([k for k in t.__dict__ if mode(k) ]) })
             
         else:
@@ -951,7 +951,7 @@ def all(name: str = "all", mode: _extensions.Union[_AllMode, _extensions.AVT_Cal
     
 _builtin_classes = (int, float, complex, filter, memoryview, bytearray, bytes, str, slice, map, range, bool, list, tuple, set, frozenset, dict, object, reversed, enumerate, zip)
 
-class ParamNoDefault(Abstract):
+class ParamNoDefault(Abstract, _SelfInvoke):
     """
     Availability: >= 0.3.51 \\
     https://aveyzan.xyz/aveytense#aveytense.util.ParamNoDefault
@@ -1177,7 +1177,7 @@ class ParamVar:
             except AttributeError:
                 _overloads_ = None
             if not isinstance(i, int) or (_overloads_ is not None and _reckon(_overloads_) > 0 and i not in range(_reckon(_overloads_))):
-                error = TypeError("expected an integer in second parameter. keep this parameter as-is, when function isn't overloaded." + \
+                error = TypeError("expected an integer in second parameter. keep this parameter as-is, when function isn't overloaded. " + \
                                 "otherwise, ensure the parameter value is in range <0; overloads_length>. " + \
                                 "this does not apply to inbuilt functions")
                 raise error

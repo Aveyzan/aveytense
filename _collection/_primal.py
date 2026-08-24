@@ -642,8 +642,8 @@ class abroad:
         
 
 @_extensions.deprecated(
-    "Pending deprecation since 0.3.78.",
-    category = PendingDeprecationWarning
+    "Deprecated since 0.3.79. Currently no thoughts to remove this class, users are discouraged to use it.",
+    category = DeprecationWarning
 )
 class Time:
     """
