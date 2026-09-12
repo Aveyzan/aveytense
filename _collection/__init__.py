@@ -37,12 +37,12 @@ class _Immutable: # >= 0.3.75
         
         # keep it simple
         def _no_modify(self, name, value):
-            if name in self.__dict__:
+            if hasattr(self, name):
                 error = AttributeError(f"Cannot set a new value to attribute '{name}'")
                 raise error
             
         def _no_delete(self, name):
-            if name in self.__dict__:
+            if hasattr(self, name):
                 error = AttributeError(f"Cannot delete attribute '{name}'")
                 raise error
             
@@ -78,7 +78,7 @@ def _sentinel(name: str, /, module = ""): # >= 0.3.76
         __name__ = name
         __module__ = module if module else "__main__"
         __qualname__ = ".".join([module if module else "__main__", name]).lstrip(".")
-        
+    
     return Sentinel
 
 # make it more human-readable for 0.3.76

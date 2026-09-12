@@ -9,7 +9,7 @@ from __future__ import annotations
 import abc as _abc
 import sys as _sys
 
-from . import _extensions, _SelfInvoke
+from . import _extensions, _SelfInvoke, _Missing
 from ._exceptions import _ErrorHandler as _E
 from ._typeparams import (
     T as _T,
@@ -2888,7 +2888,7 @@ class simpledict(_extensions.AVT_Mapping[_KT, _VT]):
     ) -> None: ...
     
     # alright, there we go, we re-implement the constructor of 'dict'...
-    def __init__(self, i = None, **kwargs): # >= 0.3.75
+    def __init__(self, i = _Missing, **kwargs): # >= 0.3.75
         
         from . import _mangle
         
@@ -2905,7 +2905,7 @@ class simpledict(_extensions.AVT_Mapping[_KT, _VT]):
             keys = list(getattr(i, "keys", lambda: None)())
             values = [i[k2] for k2 in i]
             
-        elif i is None:
+        elif i is _Missing:
             pass
         
         else:

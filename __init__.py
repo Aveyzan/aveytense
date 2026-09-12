@@ -5446,6 +5446,14 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         return cls
     
     @classmethod
+    @extensions.overload
+    def sleep(cls, seconds: float, /, awaitable: extensions.Literal[False] = False) -> None: ...
+    
+    @classmethod
+    @extensions.overload
+    def sleep(cls, seconds: float, /, awaitable: extensions.Literal[True]) -> extensions.CoroutineType[_Any, _Any, None]: ...
+    
+    @classmethod
     def sleep(cls, seconds: float, /, awaitable = False):
         """
         Availability: >= 0.3.25 \\
@@ -5753,18 +5761,6 @@ class RGB(_util.Final):
         return iter(self.__rgb)
     
     @property
-    @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use the instance of 'aveytense.RGB' in 'aveytense.Tense.hex()' instead.")
-    def hex(self):
-        """
-        Availability: >= 0.3.38 \\
-        Deprecated: >= 0.3.74 \\
-        https://aveyzan.xyz/aveytense#aveytense.RGB.?hexadecimal_conversion
-        
-        Provides conversion to hexadecimal format
-        """
-        return self.__hex__()
-    
-    @property
     def cssHex(self):
         """
         Availability: >= 0.3.49 \\
@@ -5773,7 +5769,7 @@ class RGB(_util.Final):
         Provides conversion to hexadecimal format, just with different prefix: \\
         `#` instead of `0x`, to be used in CSS
         """
-        return "#" + self.hex[2:]
+        return "#" + Tense.hex((self,))[0][2:]
     
     @property
     def cssRgb(self):
@@ -5785,28 +5781,6 @@ class RGB(_util.Final):
         Equivalent to `str(self).lower()`
         """
         return self.__str__().lower()
-    
-    @property
-    @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use the instance of 'aveytense.RGB' in 'aveytense.Tense.oct()' instead.")
-    def oct(self):
-        """
-        Availability: >= 0.3.44 \\
-        https://aveyzan.xyz/aveytense#aveytense.RGB.?octal_conversion
-        
-        Converts RGB tuple into its corresponding octal value.
-        """
-        return self.__oct__()
-    
-    @property
-    @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use the instance of 'aveytense.RGB' in 'aveytense.Tense.bin()' instead.")
-    def bin(self):
-        """
-        Availability: >= 0.3.44 \\
-        https://aveyzan.xyz/aveytense#aveytense.RGB.?binary_conversion
-        
-        Converts RGB tuple into its corresponding binary value.
-        """
-        return self.__bin__()
     
     @property
     def tuple(self):
@@ -6132,6 +6106,7 @@ class _ChangeVarState(extensions.Enum):
 
 # _ChangeVarStateSelection = _lit[_ChangeVarState.D, _ChangeVarState.I] # unnecessary since 0.3.27b2
 
+@extensions.deprecated("Deprecated since 0.3.80. Removal not currently planned, but it is discouraged to use this class")
 class ChangeVar(extensions.UnaryOperable, extensions.Comparable, extensions.AdditionReassignable, extensions.SubtractionReassignable):
     """
     Availability: >= 0.3.26rc1 \\

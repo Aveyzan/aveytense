@@ -515,7 +515,6 @@ class abroad:
         else:
             error = TypeError("expected a string as a left operand")
             raise error
-
     
     def count(self, value: int, /): # 0.3.74
         return self.__list.count(value)

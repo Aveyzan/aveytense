@@ -8,8 +8,6 @@ https://aveyzan.xyz/aveytense#aveytense.extensions
 Similarly as `typing_extensions`, this module provides backports for Python types,
 functions, classes and ABCs (especially generic).
 
-About AVT types visit https://aveyzan.xyz/aveytense/glossary#avt_prefixed_types
-
 This module occurred in many names:
 
 - `aveytense.tcs` to 0.3.26rc2
