@@ -12,7 +12,7 @@ from __future__ import annotations
 from decimal import Decimal
 from sys import maxsize
 
-#################################### ENUM CONSTANTS ####################################
+#################################### STRING CONSTANTS ####################################
 
 STRING_LOWER = "abcdefghijklmnopqrstuvwxyz" # 0.3.36
 STRING_UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" # 0.3.36

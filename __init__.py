@@ -52,6 +52,9 @@ __author__ = "Aveyzan <aveyzan@gmail.com>" # >= 0.3.26rc3
 __license__ = "MIT" # >= 0.3.26rc3
 __version__ = _version.version # >= 0.3.26rc3
 
+version = _version.version # >= 0.3.81
+version_info = _version.version_info # >= 0.3.81
+
 # local variables (0.3.39)
 _MODE_AND = _cl.ModeSelection.AND
 _MODE_OR = _cl.ModeSelection.OR
@@ -70,10 +73,10 @@ Color = RGB = None
 if extensions.TYPE_CHECKING:
     from ._collection._extensions import (
         _Bits,
-        _Clearable as Clearable,
+        SupportsClear,
         _ProbabilityType
     )
-    _Clearable: extensions.TypeAlias = extensions.Union[Clearable, Color, util.MutableString] # 0.3.42
+    _Clearable: extensions.TypeAlias = extensions.Union[SupportsClear, Color, util.MutableString] # 0.3.42
     _Color: extensions.TypeAlias = extensions.Union[extensions.ColorType, RGB]
     _Mode: extensions.TypeAlias = extensions.Union[bool, _cl.ModeSelection, extensions.Literal["and", "or"]] # 0.3.36, deprecated
     if _sys.version_info >= (3, 15):
@@ -469,7 +472,7 @@ def _colorize(text: str, bits: _Bits, fg: extensions.Optional[int], bg: extensio
         _s = text
     return _s
 
-# This function can sometimes hint 'typing.Any' as the return annotation, but in reality it will always return
+# This function can sometimes hint 'typing.Any' as the return annotation, but in reality it always returns
 # a boolean value. Keep that on mind!
 def _is_sequence_helper(v, /, type = ()): # 0.3.36
     
@@ -664,7 +667,9 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     util = _util # 0.3.42
     
     version = _version.version
+    """deprecated since 0.3.81, use `aveytense.version` instead"""
     versionInfo = _version.version_info
+    """deprecated since 0.3.81, use `aveytense.version_info` instead"""
     
     AND = _MODE_AND
     "Availability: >= 0.3.36"
@@ -2109,7 +2114,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def startsWith(cls, s: str, prefix: extensions.Union[str, extensions.SequenceLike[str]], /, start: extensions.Optional[extensions.Indexable] = ..., end: extensions.Optional[extensions.Indexable] = ...) -> bool: ...
+    def startsWith(cls, s: str, prefix: extensions.Union[str, extensions.SequenceLike[str]], /, start: extensions.Optional[extensions.SupportsIndex] = ..., end: extensions.Optional[extensions.SupportsIndex] = ...) -> bool: ...
     
     @classmethod
     @extensions.overload
@@ -2118,8 +2123,8 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         b: extensions.Union[bytes, bytearray],
         prefix: extensions.Union[extensions.ReadableBuffer, extensions.SequenceLike[extensions.ReadableBuffer]],
         /,
-        start: extensions.Optional[extensions.Indexable] = ...,
-        end: extensions.Optional[extensions.Indexable] = ...
+        start: extensions.Optional[extensions.SupportsIndex] = ...,
+        end: extensions.Optional[extensions.SupportsIndex] = ...
     ) -> bool: ...
     
     @classmethod
@@ -2146,7 +2151,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def endsWith(cls, s: str, suffix: extensions.Union[str, extensions.SequenceLike[str]], /, start: extensions.Optional[extensions.Indexable] = ..., end: extensions.Optional[extensions.Indexable] = ...) -> bool: ...
+    def endsWith(cls, s: str, suffix: extensions.Union[str, extensions.SequenceLike[str]], /, start: extensions.Optional[extensions.SupportsIndex] = ..., end: extensions.Optional[extensions.SupportsIndex] = ...) -> bool: ...
     
     @classmethod
     @extensions.overload
@@ -2155,8 +2160,8 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         b: extensions.Union[bytes, bytearray],
         suffix: extensions.Union[extensions.ReadableBuffer, extensions.SequenceLike[extensions.ReadableBuffer]],
         /,
-        start: extensions.Optional[extensions.Indexable] = ...,
-        end: extensions.Optional[extensions.Indexable] = ...
+        start: extensions.Optional[extensions.SupportsIndex] = ...,
+        end: extensions.Optional[extensions.SupportsIndex] = ...
     ) -> bool: ...
     
     @classmethod
@@ -3991,7 +3996,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         return result
         
     @classmethod
-    def chr(cls, o: extensions.SequenceLike[extensions.Union[int, extensions.Indexable]], /):
+    def chr(cls, o: extensions.SequenceLike[extensions.Union[int, extensions.SupportsIndex]], /):
         """
         Availability: >= 0.3.71 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.chr
@@ -4007,7 +4012,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         
         ol = list(o)
         
-        if not cls.isList(ol, (int, extensions.Indexable)):
+        if not cls.isList(ol, (int, extensions.SupportsIndex)):
             error = ValueError("expected a sequence-like object with integers only")
             raise error
         
@@ -4046,7 +4051,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         return a
     
     @classmethod
-    def hex(cls, i: extensions.SequenceLike[extensions.Union[int, extensions.Indexable, extensions.HexadecimalRepresentable]], /):
+    def hex(cls, i: extensions.SequenceLike[extensions.Union[int, extensions.SupportsIndex, extensions.SupportsHex]], /):
         """
         Availability: >= 0.3.71 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.hex
@@ -4056,9 +4061,9 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         For empty sequence-like objects, an error is thrown. At least one integer must be included within the object.
         """
         
-        def _re_hex(v: extensions.Union[int, extensions.Indexable, extensions.HexadecimalRepresentable]): # 0.3.72
+        def _re_hex(v: extensions.Union[int, extensions.SupportsIndex, extensions.SupportsHex]): # 0.3.72
             
-            if isinstance(v, extensions.HexadecimalRepresentable):
+            if isinstance(v, extensions.SupportsHex):
                 vhex = v.__hex__()
                 if not _is_hexadecimal(vhex):
                     error = ValueError("implementation of __hex__() method doesn't return a string in hexadecimal notation")
@@ -4074,7 +4079,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         return [_re_hex(nextI) for nextI in i]
     
     @classmethod
-    def oct(cls, i: extensions.SequenceLike[extensions.Union[int, extensions.Indexable, extensions.OctalRepresentable]], /):
+    def oct(cls, i: extensions.SequenceLike[extensions.Union[int, extensions.SupportsIndex, extensions.SupportsOct]], /):
         """
         Availability: >= 0.3.71 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.oct
@@ -4084,9 +4089,9 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         For empty sequence-like objects, an error is thrown. At least one integer must be included within the object.
         """
         
-        def _re_oct(v: extensions.Union[int, extensions.Indexable, extensions.OctalRepresentable]): # 0.3.72
+        def _re_oct(v: extensions.Union[int, extensions.SupportsIndex, extensions.SupportsOct]): # 0.3.72
             
-            if isinstance(v, extensions.OctalRepresentable):
+            if isinstance(v, extensions.SupportsOct):
                 voct = v.__oct__()
                 if not _is_octal(voct):
                     error = ValueError("implementation of __oct__() method doesn't return a string in octal notation")
@@ -4102,7 +4107,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         return [_re_oct(nextI) for nextI in i]
     
     @classmethod
-    def bin(cls, i: extensions.SequenceLike[extensions.Union[int, extensions.Indexable, extensions.BinaryRepresentable]], /):
+    def bin(cls, i: extensions.SequenceLike[extensions.Union[int, extensions.SupportsIndex, extensions.SupportsBin]], /):
         """
         Availability: >= 0.3.71 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.bin
@@ -4112,9 +4117,9 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         For empty sequence-like objects, an error is thrown. At least one integer must be included within the object.
         """
         
-        def _re_bin(v: extensions.Union[int, extensions.Indexable, extensions.BinaryRepresentable]): # 0.3.72
+        def _re_bin(v: extensions.Union[int, extensions.SupportsIndex, extensions.SupportsBin]): # 0.3.72
         
-            if isinstance(v, extensions.BinaryRepresentable):
+            if isinstance(v, extensions.SupportsBin):
                 vbin = v.__bin__()
                 if not _is_binary(vbin):
                     error = ValueError("implementation of __bin__() method doesn't return a string in binary notation")
@@ -5010,10 +5015,10 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     # remains incompatible with SizeableItemGetter, we type hint it separatedly.
     @classmethod
     @extensions.overload 
-    def pick(cls, i: extensions.Union[extensions.SizeableItemGetter[extensions.T], extensions.SequenceLike[extensions.T], extensions.AVT_Mapping[_Any, extensions.T]], /) -> extensions.T: ...
+    def pick(cls, i: extensions.Union[extensions.SupportsLenAndGetItem[extensions.T], extensions.SequenceLike[extensions.T], extensions.AVT_Mapping[_Any, extensions.T]], /) -> extensions.T: ...
     
     @classmethod # before 0.3.46 this signature had no annotations
-    def pick(cls, i: extensions.Union[extensions.SizeableItemGetter[extensions.T], extensions.SequenceLike[extensions.T], extensions.AVT_Mapping[_Any, extensions.T], abroad], /):
+    def pick(cls, i: extensions.Union[extensions.SupportsLenAndGetItem[extensions.T], extensions.SequenceLike[extensions.T], extensions.AVT_Mapping[_Any, extensions.T], abroad], /):
         """
         Availability: >= 0.3.8 \\
         Standard: >= 0.3.24 \\
@@ -5030,7 +5035,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         """
         
         # >= 0.3.66: ValuesView
-        if cls.isAbroad(i) or isinstance(i, (extensions.SizeableItemGetter, *_SequenceLikeTypes, extensions.Mapping)):
+        if cls.isAbroad(i) or isinstance(i, (extensions.get_origin(extensions.SupportsLenAndGetItem[int]), *_SequenceLikeTypes, extensions.Mapping)):
             
             if reckon(i) == 0: 
                 error = TypeError("expected at least one item in a(n) sequence/set/abroad object / one pair in a mapping/dictionary")
@@ -5672,41 +5677,6 @@ class RGB(_util.Final):
         
         return isinstance(i, int) and i in self.__rgb
     
-    if False: # < 0.3.49
-        
-        @extensions.deprecated("deprecated since 0.3.41, will be removed 0.3.49. use `tuple` final property instead")
-        def __pos__(self):
-            """
-            Availability: >= 0.3.28 \\
-            @deprecated >= 0.3.47 (up for removal in 0.3.48) \\
-            https://aveyzan.xyz/aveytense#aveytense.RGB.tuple
-            
-            Returns a RGB tuple
-            """
-            return self.__rgb
-        
-        @extensions.deprecated("deprecated since 0.3.41, will be removed 0.3.49. use `tuple` final property instead")
-        def __neg__(self):
-            """
-            Availability: >= 0.3.28 \\
-            @deprecated >= 0.3.47 (up for removal in 0.3.48) \\
-            https://aveyzan.xyz/aveytense#aveytense.RGB.tuple
-            
-            Returns a RGB tuple
-            """
-            return self.__rgb
-        
-        @extensions.deprecated("deprecated since 0.3.41, will be removed 0.3.49. use `tuple` final property instead")
-        def __invert__(self):
-            """
-            Availability: >= 0.3.28 \\
-            @deprecated >= 0.3.47 (up for removal in 0.3.48) \\
-            https://aveyzan.xyz/aveytense#aveytense.RGB.tuple
-            
-            Returns a RGB tuple
-            """
-            return self.__rgb 
-    
     def __bytes__(self):
         """
         Availability: >= 0.3.41 \\
@@ -6107,7 +6077,12 @@ class _ChangeVarState(extensions.Enum):
 # _ChangeVarStateSelection = _lit[_ChangeVarState.D, _ChangeVarState.I] # unnecessary since 0.3.27b2
 
 @extensions.deprecated("Deprecated since 0.3.80. Removal not currently planned, but it is discouraged to use this class")
-class ChangeVar(extensions.UnaryOperable, extensions.Comparable, extensions.AdditionReassignable, extensions.SubtractionReassignable):
+class ChangeVar(
+    extensions.SupportsUnaryOperations,
+    extensions.Comparable,
+    extensions.SupportsIadd,
+    extensions.SupportsIsub
+):
     """
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.ChangeVar
@@ -6801,7 +6776,7 @@ class Color:
     __bits = 8 # 24 to 0.3.34
     
     select = Colors
-    """Availability: >= 0.3.41. Alias to `~.Colors`"""
+    """Availability: >= 0.3.41. Alias to `~.Colors` // Deprecated since 0.3.81, slated for removal in 0.3.84"""
 
     NORMAL = FontStyle.NORMAL
     "Availability: >= 0.3.26rc1. Mere text // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"

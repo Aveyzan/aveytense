@@ -13,20 +13,20 @@ __name__ = "aveytense._inaccessible_version_components"
 
 _qualifier = ("alpha", "beta", "candidate", "final")
 _qualifier_type: __.TypeAlias = __.Literal["alpha", "beta", "candidate", "final"]
-_version_tuple_content = (0, 3, 80, _qualifier[-1], 0) # >= 0.3.48
+_version_tuple_content = (0, 3, 81, _qualifier[-1], 0) # >= 0.3.48
 _version_info_type: __.TypeAlias = __.AVT_Tuple[int, int, int, _qualifier_type, int]
 
 # >= 0.3.43; These are used only for overloads in order to hide unnecessary parts of the code
 # when used with 'if' via 'VERSION_INFO', like 'sys.version_info'
 _current_version_info_type1: __.TypeAlias = __.AVT_Tuple[__.Literal[0]]
 _current_version_info_type2: __.TypeAlias = __.AVT_Tuple[__.Unpack[_current_version_info_type1], __.Literal[3]]
-_current_version_info_type3: __.TypeAlias = __.AVT_Tuple[__.Unpack[_current_version_info_type2], __.Literal[80]]
+_current_version_info_type3: __.TypeAlias = __.AVT_Tuple[__.Unpack[_current_version_info_type2], __.Literal[81]]
 _current_version_info_type4: __.TypeAlias = __.AVT_Tuple[__.Unpack[_current_version_info_type3], __.Literal["final"]]
 _current_version_info_type5: __.TypeAlias = __.AVT_Tuple[__.Unpack[_current_version_info_type4], __.Literal[0]]
 
 _counter_version_type = 0
 
-version = "0.3.80"
+version = "0.3.81"
 """
 Availability: ≥ 0.3.26b3 \\
 https://aveyzan.xyz/aveytense#aveytense.Tense.version
@@ -34,7 +34,7 @@ https://aveyzan.xyz/aveytense#aveytense.Tense.version
 Returns currently used version of AveyTense
 """
 
-version_type: __.TypeAlias = __.Literal["0.3.80"]
+version_type: __.TypeAlias = __.Literal["0.3.81"]
 """
 Availability: ≥ 0.3.47
 """
@@ -107,7 +107,7 @@ class _version_info(_util.Final):
     
     def __str__(self): # 0.3.40
         
-        # ansi escape code! for use you can see class ~.Color
+        # ansi escape code! for use you can see class 'aveytense.Color'
         return "-----\nAveyTense {} \nversion_components[\n\033[3m  major = {},\n  minor = {},\n  micro = {},\n  releaselevel = '{}',\n  serial = {}\033[0m\n]\n-----".format(
             "\033[38;5;46m{}.{}.{}\033[0m (final release)".format(self.__tuple[0], self.__tuple[1], self.__tuple[2]) if self.__tuple[3] == "final" else
             "\033[38;5;208m{}.{}.{}a{}\033[0m (alpha release)".format(self.__tuple[0], self.__tuple[1], self.__tuple[2], self.__tuple[4]) if self.__tuple[3] == "alpha" else

@@ -44,6 +44,7 @@ S = TypeVar("S")
 S_con = TypeVar("S_con", contravariant = True)
 S_cov = TypeVar("S_cov", covariant = True)
 T = TypeVar("T") # public, stable
+"""Type variable ready for export."""
 T_con = TypeVar("T_con", contravariant = True)
 T_cov = TypeVar("T_cov", covariant = True)
 U = TypeVar("U")
@@ -90,7 +91,9 @@ T6_con = TypeVar("T6_con", contravariant = True)
 T6_cov = TypeVar("T6_cov", covariant = True)
 # ...
 Ts = TypeVarTuple("Ts") # public, stable
+"""Tuple type variable ready for export."""
 P = ParamSpec("P") # public, stable
+"""Param spec ready for export."""
 
 AnyStr = TypeVar("AnyStr", str, bytes) # public, stable
 """Availability: >= ? // https://aveyzan.xyz/aveytense#aveytense.extensions.AnyStr"""

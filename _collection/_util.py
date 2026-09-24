@@ -956,17 +956,19 @@ class ParamNoDefault(Abstract, _SelfInvoke):
     Availability: >= 0.3.51 \\
     https://aveyzan.xyz/aveytense#aveytense.util.ParamNoDefault
     
-    Used to denote parameters without default value with final \\
+    Used to denote parameters without default value with final
     properties ending with `withDefaults` suffix, in `aveytense.util.ParamVar`.
     
-    Public since 0.3.74 to allow inspections.
+    Public since 0.3.74 to allow inspections. This class is abstract and empty
     """
     
 class _BuiltinParamVar:
     """
     Availability: >= 0.3.51
     
-    Used in `aveytense.util.ParamVar` to receive parameters from inbuilt functions. Note: none of these have annotations.
+    An internal class served in the class `aveytense.util.ParamVar` to receive parameters from inbuilt functions. Note none of these have annotations.
+    
+    To retrieve signatures from inbuilt functions, we attempt to retrieve the value of the `__text_signature__` attribute if possible.
     """
     
     def __init__(self, f):
@@ -1146,10 +1148,7 @@ class ParamVar:
     In projection: >= 0.3.33; < 0.3.42 \\
     https://aveyzan.xyz/aveytense#aveytense.util.ParamVar
     
-    Allows to obtain positional, universal,
-    keyword (and their default values) and variable (`*<param>`
-    and `**<param>`) arguments, and signature of a callable
-    object.
+    Allows to obtain information about the given function's signature.
     
     *Constructor general information*
     
@@ -1210,11 +1209,11 @@ class ParamVar:
         func = f.func if isinstance(f, _extensions.partial) else f
         
         # 0.3.51: Less complexity in this statement. __name__ != __qualname__ is required to deduce if a function belongs to a class as an instance method,
-        # passed to the constructor via class reference. If __name__ equals __qualname__, then function doesn't belong to a class and is in globally scope.
+        # passed to the constructor via class reference. If __name__ equals __qualname__, then function doesn't belong to a class and is in global scope.
         if (isinstance(func, _extensions.MethodType) and not isinstance(func, staticmethod)) or \
             isinstance(func, _extensions.MethodDescriptorType) or (
             isinstance(func, _extensions.FunctionType) and func.__name__ != func.__qualname__
-            ):
+        ):
             object.__setattr__(self, _mangle("__no_first"), 1)
         else:
             object.__setattr__(self, _mangle("__no_first"), 0)

@@ -17,7 +17,6 @@ import numbers as _numbers
 
 from . import _Missing, _SelfInvoke, _is_sequence_like
 from . import _constants as _lc
-from . import _version
 from .. import constants as _constants
 from .. import exceptions as _exceptions
 from .. import extensions as _extensions
@@ -75,48 +74,16 @@ def _domain_checker(x: _FloatOrInteger, f: _extensions.Literal["asin", "acos", "
     
     return True
 
-@_extensions.overload
-@_extensions.deprecated("Deprecated since 0.3.67, use aveytense.__version__ or Tense.versionInfo instead. Up for removal in 0.3.78")
-def aveytenseVersion(asString: _extensions.Literal[True] = True) -> _version.version_type: ...
-
-@_extensions.overload
-@_extensions.deprecated("Deprecated since 0.3.67, use aveytense.__version__ or Tense.versionInfo instead. Up for removal in 0.3.78")
-def aveytenseVersion(asString: _extensions.Literal[False]) -> _version._version_info: ...
-
-def aveytenseVersion(asString = True):
-    """
-    Availability: >= 0.3.25 \\
-    Deprecated: >= 0.3.67
-    ```
-    # since 0.3.47
-    def aveytenseVersion(asString: bool = True): ...
-    # for 0.3.24 - 0.3.46
-    def tenseVersion(asTuple: bool = False): ...
-    # before 0.3.24
-    def tenseVersion(): ...
-    ```
-    Returns AveyTense version installed. Ensure you have version up-to-date to make everything actually working. If optional parameter \\
-    is set to `True`, returned is tuple with 3 items, which together compose version of AveyTense. This argument is also responsible for \\
-    deletion of global function `tenseVersionAsTuple()` on 0.3.24. Before 0.3.47 it was called `tenseVersion()`
-    """
-    
-    from .._collection import _version
-    
-    if asString:
-        return _version.version
-    else:
-        return _version.version_info
-
 
 def _int_float_fallback(v, /): # 0.3.71
     
     if isinstance(v, (int, float)):
         return v
-    elif isinstance(v, _extensions.FloatConvertible):
+    elif isinstance(v, _extensions.SupportsInt):
         return _extensions.cast(float, v.__float__())
-    elif isinstance(v, _extensions.IntegerConvertible):
+    elif isinstance(v, _extensions.SupportsInt):
         return _extensions.cast(int, v.__int__())
-    elif isinstance(v, _extensions.Indexable):
+    elif isinstance(v, _extensions.SupportsIndex):
         return _extensions.cast(int, v.__index__())
     
 def _number_sequence_like_helper(x: _extensions.Union[_FloatOrInteger, _extensions.SequenceLike[_FloatOrInteger]], /): # 0.3.77
@@ -381,6 +348,12 @@ class abroad:
     def __bytes__(self): # 0.3.74
         return bytes(self.list)
     
+    def __bytearray__(self): # 0.3.81
+        return bytearray(self.list)
+    
+    def __alloc__(self): # 0.3.81
+        return self.__bytearray__().__alloc__()
+    
     def __hash__(self): # 0.3.74
         return hash(self.tuple)
     
@@ -412,20 +385,20 @@ class abroad:
         
         return list(other) + self.list
     
-    def __mul__(self, other: _extensions.Indexable): # 0.3.32
+    def __mul__(self, other: _extensions.SupportsIndex): # 0.3.32
         
-        if not isinstance(other, _extensions.Indexable) or (isinstance(other, _extensions.Indexable) and other.__index__() < 1):
+        if not isinstance(other, _extensions.SupportsIndex) or (isinstance(other, _extensions.SupportsIndex) and other.__index__() < 1):
             error = TypeError("expected a non-negative integer as a right operand")
             raise error
         
         return self.list * other
     
-    def __rmul__(self, other: _extensions.Indexable): # 0.3.32
+    def __rmul__(self, other: _extensions.SupportsIndex): # 0.3.32
         
         return other * self.list
             
     @_extensions.overload
-    def __getitem__(self, key: _extensions.Indexable) -> int: ...
+    def __getitem__(self, key: _extensions.SupportsIndex) -> int: ...
     @_extensions.overload
     def __getitem__(self, key: slice) -> _extensions.AVT_List[int]: ...
     def __getitem__(self, key): # 0.3.29
@@ -519,11 +492,11 @@ class abroad:
     def count(self, value: int, /): # 0.3.74
         return self.__list.count(value)
     
-    def index(self, value: int, start: _extensions.Indexable = 0, stop: _extensions.Indexable = _sys.maxsize, /): # 0.3.74
+    def index(self, value: int, start: _extensions.SupportsIndex = 0, stop: _extensions.SupportsIndex = _sys.maxsize, /): # 0.3.74
         return self.__list.index(value, start, stop)
         
     @staticmethod
-    def fromComplex(c: _extensions.Union[complex, _extensions.ComplexConvertible], /, step: _AbroadStep = 1):
+    def fromComplex(c: _extensions.Union[complex, _extensions.SupportsComplex], /, step: _AbroadStep = 1):
         """
         Availability: >= 0.3.74 \\
         https://aveyzan.xyz/aveytense#aveytense.abroad.fromComplex
@@ -532,13 +505,13 @@ class abroad:
         """
         
         # Python 3.11+: 'complex' has the '__complex__()' method
-        if not isinstance(c, (complex, _extensions.ComplexConvertible)) or (
-            isinstance(c, _extensions.ComplexConvertible) and not isinstance(c.__complex__(), complex)
+        if not isinstance(c, (complex, _extensions.SupportsComplex)) or (
+            isinstance(c, _extensions.SupportsComplex) and not isinstance(c.__complex__(), complex)
         ):
             error = TypeError("expected a complex object or object of a class defining the __complex__() method that returns a complex object")
             raise error
         
-        if isinstance(c, _extensions.ComplexConvertible):
+        if isinstance(c, _extensions.SupportsComplex):
             c2 = complex(c)
         else:
             c2 = c
@@ -610,21 +583,21 @@ class abroad:
         
         for e in v:
             
-            if not isinstance(e, (*_ReckonNGT, int, float, _extensions.IntegerConvertible, _extensions.FloatConvertible, _extensions.Indexable)):
+            if not isinstance(e, (*_ReckonNGT, int, float, _extensions.SupportsInt, _extensions.SupportsInt, _extensions.SupportsIndex)):
                 error = TypeError("at least one argument from parameter 'v' represents unsupported type")
                 raise error
             
             elif isinstance(e, _ReckonNGT):
                 i += reckon(e)
             
-            elif isinstance(e, (float, _extensions.FloatConvertible)):
+            elif isinstance(e, (float, _extensions.SupportsInt)):
                 
                 if isinstance(e, float):
                     i += _math.trunc(e)
                 else:
                     i += _math.trunc(float(e))
             
-            elif isinstance(e, (int, _extensions.IntegerConvertible)):
+            elif isinstance(e, (int, _extensions.SupportsInt)):
                 
                 if isinstance(e, int):
                     i += e

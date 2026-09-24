@@ -148,7 +148,12 @@ from contextlib import (
 )
 from dataclasses import dataclass as dataclass # 0.3.37
 from decimal import Decimal # 0.3.60
-from enum import EnumMeta as EnumMeta # 0.3.26rc1
+from enum import (
+    # 0.3.26rc1
+    EnumMeta as EnumMeta,
+    # 0.3.81
+    IntFlag as IntFlag
+) 
 from functools import (
     # 0.3.26
     partial as partial,
@@ -219,17 +224,6 @@ from types import ( # Imports from 0.3.51 are used for builtin function inspecti
     prepare_class as prepare_class,
     prepare_class as prepareClass,
 )
-from typing import (
-    # 0.3.26rc1
-    no_type_check as noTypeCheck,
-    # 0.3.37
-    get_type_hints as get_type_hints, 
-    no_type_check as no_type_check,
-    # 0.3.44
-    cast as cast,
-    # 0.3.54
-    get_type_hints as getTypeHints
-)
 from uuid import UUID as UUID # 0.3.26rc3
 
 __name__ = "aveytense.extensions"
@@ -280,7 +274,7 @@ class Flag(_enum.Flag):
     if _sys.version_info < (3, 11):
         
         def __len__(self):
-            return self._value_.bit_count()
+            return int_bit_count(self._value_) # fixed 0.3.81. `int.bit_count()` exists since py3.10
         
         def __iter__(self):
             """
@@ -302,93 +296,11 @@ class ReprEnum(Enum): # >=Py3.11; practically subclass of enum.Enum and nothing 
     Availability: >= 0.3.26rc1 [`enum.ReprEnum`](https://docs.python.org/3/library/enum.html#enum.ReprEnum)
     """
 
-if _sys.version_info >= (3, 11):
-    
-    from enum import verify as verify, EnumCheck as EnumCheck, EnumType as EnumType
-    
-    # If not the same (as before 3.13 it can occur), we need to ensure they are the same by using type assignment
-    if ReprEnum != _enum.ReprEnum:
-        ReprEnum = _enum.ReprEnum
-    
-if _sys.version_info >= (3, 13):
-    EnumDict = _enum.EnumDict # >= 0.3.26rc1
-else:
-    # questionable: since when enum._EnumDict was in enum.py file?
-    EnumDict = _enum._EnumDict # >= 0.3.26rc1
-    
-class FlagBoundary(Enum): # >=Py3.11. Define for least than Py3.11
-    """
-    Availability: >= 0.3.26rc1 [`enum.FlagBoundary`](https://docs.python.org/3/library/enum.html#enum.FlagBoundary)
-    
-    Control how out of range values are handled.
-    
-    - `STRICT` -> error is raised             (default for `Flag`)
-    - `CONFORM` -> extra bits are discarded
-    - `EJECT` -> lose flag status
-    - `KEEP` -> keep flag status and all bits (default for `IntFlag`)
-    """
-    STRICT = _enum.auto() # 1; enum.auto accessible for >=Py3.8
-    CONFORM = _enum.auto() # 2
-    EJECT = _enum.auto() # 3
-    KEEP = _enum.auto() # 4
-
-class IntegerFlag(_enum.IntFlag): # accessible for >=Py3.6 (can be recreated via bases: >= Py3.11 (int, ReprEnum, Flag, boundary=FlagBoundary.KEEP), < Py3.11 (int, Flag))
+class IntegerFlag(IntFlag): # accessible for >=Py3.6 (can be recreated via bases: >= Py3.11 (int, ReprEnum, Flag, boundary=FlagBoundary.KEEP), < Py3.11 (int, Flag))
     """
     Availability: >= 0.3.26rc1. [`enum.IntFlag`](https://docs.python.org/3/library/enum.html#enum.IntFlag)
     """
-
-if _sys.version_info >= (3, 11):
     
-    class IntegerEnum(_enum.IntEnum):
-        """
-        Availability: >= 0.3.26rc1. [`enum.IntEnum`](https://docs.python.org/3/library/enum.html#enum.IntEnum)
-        """
-        
-    class StringEnum(_enum.StrEnum):
-        """
-        Availability: >= 0.3.26rc1. [`enum.StrEnum`](https://docs.python.org/3/library/enum.html#enum.StrEnum)
-        """
-        
-else:
-    
-    class IntegerEnum(int, ReprEnum):
-        """
-        Availability: >= 0.3.26rc1. [`enum.IntEnum`](https://docs.python.org/3/library/enum.html#enum.IntEnum)
-        """
-        
-    class StringEnum(str, ReprEnum):
-        """
-        Availability: >= 0.3.26rc1. [`enum.StrEnum`](https://docs.python.org/3/library/enum.html#enum.StrEnum)
-        """
-        
-        def __new__(cls, *values):
-            "values must already be of type `str`"
-            if len(values) > 3:
-                raise TypeError('too many arguments for str(): %r' % (values, ))
-            if len(values) == 1:
-                # it must be a string
-                if not isinstance(values[0], str):
-                    raise TypeError('%r is not a string' % (values[0], ))
-            if len(values) >= 2:
-                # check that encoding argument is a string
-                if not isinstance(values[1], str):
-                    raise TypeError('encoding must be a string, not %r' % (values[1], ))
-            if len(values) == 3:
-                # check that errors argument is a string
-                if not isinstance(values[2], str):
-                    raise TypeError('errors must be a string, not %r' % (values[2]))
-            value = str(*values)
-            member = str.__new__(cls, value)
-            member._value_ = value
-            return member
-
-        @staticmethod
-        def _generate_next_value_(name, start, count, last_values):
-            """
-            Return the lower-cased version of the member name.
-            """
-            return name.lower()
-
 # In this part of the code, we are retrieving currently used version of 'typing_extensions', and
 # formalize the version like 'sys.version_info':
 class _typing_extensions_version_info:
@@ -585,6 +497,15 @@ def _check_methods(C: type, *methods: str):
 # It is not worth to use solutions from 'typing_extensions' because these were provided later, and won't be supported in Python 3.6.
 # In the following imports this includes 'Optional', 'Union', 'IO', 'BinaryIO', 'TextIO' and 'Generic', which were provided in 4.7.0.
 from typing import (
+    # 0.3.26rc1
+    no_type_check as noTypeCheck,
+    # 0.3.37
+    get_type_hints as get_type_hints, 
+    no_type_check as no_type_check,
+    # 0.3.44
+    cast as cast,
+    # 0.3.54
+    get_type_hints as getTypeHints,
     # ?
     IO as IO,
     # 0.3.26b3
@@ -597,7 +518,14 @@ from typing import (
     BinaryIO as BinaryIO, 
     TextIO as TextIO,
     # 0.3.37
-    TYPE_CHECKING as TYPE_CHECKING # >=Py3.5.2
+    TYPE_CHECKING as TYPE_CHECKING, # >=Py3.5.2
+    # 0.3.81
+    SupportsAbs as SupportsAbs,
+    SupportsBytes as SupportsBytes,
+    SupportsComplex as SupportsComplex,
+    SupportsFloat as SupportsFloat,
+    SupportsInt as SupportsInt,
+    SupportsRound as SupportsRound
 )
 
 # ****************** Py3.6: 10/2017 ************************
@@ -645,7 +573,9 @@ if _sys.version_info >= (3, 8):
     from typing import (
         # 0.3.26rc1
         Final as Final,
-        Protocol as Protocol
+        Protocol as Protocol,
+        # 0.3.81
+        SupportsIndex as SupportsIndex
     )
     
 else:
@@ -653,7 +583,9 @@ else:
     from typing_extensions import (
         # 0.3.26rc1
         Final as Final,
-        Protocol as Protocol
+        Protocol as Protocol,
+        # 0.3.81
+        SupportsIndex as SupportsIndex
     )
     
 if typing_extensions_version_info >= (4, 8): # Py3.8+
@@ -907,6 +839,17 @@ else:
 # of NewType was improved on 3.11
 if _sys.version_info >= (3, 11):
     
+    from enum import (
+        # 0.3.26rc1?
+        verify as verify,
+        EnumCheck as EnumCheck,
+        EnumType as EnumType,
+        ReprEnum as ReprEnum,
+        # 0.3.81
+        IntEnum as IntEnum,
+        StrEnum as StrEnum
+    )
+    
     from typing import (
         # 0.3.26rc1
         Any as Any,
@@ -931,6 +874,16 @@ if _sys.version_info >= (3, 11):
         get_overloads as getOverloads,
         reveal_type as revealType,
     )
+    
+    class IntegerEnum(IntEnum):
+        """
+        Availability: >= 0.3.26rc1. [`enum.IntEnum`](https://docs.python.org/3/library/enum.html#enum.IntEnum)
+        """
+        
+    class StringEnum(StrEnum):
+        """
+        Availability: >= 0.3.26rc1. [`enum.StrEnum`](https://docs.python.org/3/library/enum.html#enum.StrEnum)
+        """
     
 else:
     
@@ -965,6 +918,64 @@ else:
             clear_overloads as clearOverloads,
             get_overloads as getOverloads
         )
+        
+    class FlagBoundary(_enum.Enum): # >=Py3.11. Define for least than Py3.11
+        """
+        Availability: >= 0.3.26rc1 [`enum.FlagBoundary`](https://docs.python.org/3/library/enum.html#enum.FlagBoundary)
+        
+        Control how out of range values are handled.
+        
+        - `STRICT` -> error is raised             (default for `Flag`)
+        - `CONFORM` -> extra bits are discarded
+        - `EJECT` -> lose flag status
+        - `KEEP` -> keep flag status and all bits (default for `IntFlag`)
+        """
+        STRICT = _enum.auto() # 1; enum.auto accessible for >=Py3.8
+        CONFORM = _enum.auto() # 2
+        EJECT = _enum.auto() # 3
+        KEEP = _enum.auto() # 4
+        
+    class IntegerEnum(int, ReprEnum):
+        """
+        Availability: >= 0.3.26rc1. [`enum.IntEnum`](https://docs.python.org/3/library/enum.html#enum.IntEnum)
+        """
+        
+    class StringEnum(str, ReprEnum):
+        """
+        Availability: >= 0.3.26rc1. [`enum.StrEnum`](https://docs.python.org/3/library/enum.html#enum.StrEnum)
+        """
+        
+        def __new__(cls, *values):
+            "values must already be of type `str`"
+            if len(values) > 3:
+                raise TypeError('too many arguments for str(): %r' % (values, ))
+            if len(values) == 1:
+                # it must be a string
+                if not isinstance(values[0], str):
+                    raise TypeError('%r is not a string' % (values[0], ))
+            if len(values) >= 2:
+                # check that encoding argument is a string
+                if not isinstance(values[1], str):
+                    raise TypeError('encoding must be a string, not %r' % (values[1], ))
+            if len(values) == 3:
+                # check that errors argument is a string
+                if not isinstance(values[2], str):
+                    raise TypeError('errors must be a string, not %r' % (values[2]))
+            value = str(*values)
+            member = str.__new__(cls, value)
+            member._value_ = value
+            return member
+
+        @staticmethod
+        def _generate_next_value_(name, start, count, last_values):
+            """
+            Return the lower-cased version of the member name.
+            """
+            return name.lower()
+    
+    # >= 0.3.81
+    IntEnum = IntegerEnum
+    StrEnum = StringEnum
 
 # ****************** Py3.12: 10/2023 ************************
 # Unpack (3.11+): see PEP 692 (changed the repr of Unpack[])
@@ -1034,7 +1045,7 @@ else:
                     return _check_methods(C, "__buffer__")
                 return NotImplemented
     
-    class BufferFlags(_enum.IntFlag): # 0.3.26rc2
+    class BufferFlags(IntFlag): # 0.3.26rc2
         SIMPLE = 0x0
         WRITABLE = 0x1
         FORMAT = 0x4
@@ -1058,10 +1069,11 @@ else:
 # ****************** Py3.13: 10/2024 ************************
 # About TypeVar & TypeVarTuple see PEP 696 about 'default'
 # parameter. NamedTuple is for backporting updates since its
-# existence (3.5.2)
+# existence (3.5.2), including being generic class itself
 
 if _sys.version_info >= (3, 13):
     
+    from enum import EnumDict as EnumDict # 0.3.26rc1
     from types import CapsuleType as CapsuleType # 0.3.54
     from typing import (
         # 0.3.26rc1
@@ -1080,8 +1092,47 @@ if _sys.version_info >= (3, 13):
         is_protocol as isProtocol,
     )
     
+    # 0.3.81: deprecated since py3.13, removed py3.15
+    def no_type_check_decorator(decorator: AVT_Callable[P, T]): # 0.3.26rc1?
+        """Decorator to give another decorator the @no_type_check effect.
+
+        This wraps the decorator with something that wraps the decorated
+        function in @no_type_check.
+        """
+        
+        # the line below was included:
+        # warnings._deprecated("typing.no_type_check_decorator", remove=(3, 15))
+        
+        import functools
+        @functools.wraps(decorator)
+        def wrapped_decorator(*args, **kwds):
+            func = decorator(*args, **kwds)
+            func = no_type_check(func)
+            return func
+
+        return wrapped_decorator
+    
+    noTypeCheckDecorator = no_type_check_decorator # 0.3.26rc1
     
 else:
+    
+    EnumDict = _enum._EnumDict # 0.3.26rc1
+    
+    try:
+        import _socket
+    except ImportError:
+        _socket = type
+    
+    CapsuleType = type(getattr(_socket, "CAPI", None)) # 0.3.54
+        
+    del _socket
+    
+    from typing import (
+        # 0.3.26rc1?
+        no_type_check_decorator as no_type_check_decorator,
+        # 0.3.26rc1
+        no_type_check_decorator as noTypeCheckDecorator
+    )
     
     from typing_extensions import (
         # 0.3.26rc1
@@ -1090,7 +1141,7 @@ else:
         runtime_checkable as runtime,
         runtime_checkable as runtime_checkable,
     )
-        
+    
     if typing_extensions_version_info >= (4, 7): # Py3.7+
         
         from typing_extensions import (
@@ -1123,10 +1174,8 @@ else:
     if typing_extensions_version_info >= (4, 12): # Py3.8+
         from typing_extensions import (
             # 0.3.26rc1
-            NoDefault as NoDefault, # type: ignore
-            # 0.3.54
-            CapsuleType as CapsuleType # type: ignore
-        )                              
+            NoDefault as NoDefault # type: ignore
+        )                           
     
 if _sys.version_info >= (3, 13, 3):
     from warnings import deprecated as deprecated # 0.3.37
@@ -1224,15 +1273,17 @@ else:
 # For 'frozendict' check PEP 814
 if _sys.version_info >= (3, 15):
     
-    from builtins import frozendict
-    from types import FrameLocalsProxyType as FrameLocalsProxyType
+    from builtins import frozendict as frozendict # 0.3.75
+    from types import FrameLocalsProxyType as FrameLocalsProxyType # 0.3.79
     from typing import (
         # 0.3.37
         TypedDict as TypedDict,
         is_typeddict as is_typeddict,
         # 0.3.54
         is_typeddict as isTypedDict,
-        NoExtraItems as NoExtraItems
+        NoExtraItems as NoExtraItems,
+        # 0.3.81
+        TypeForm as TypeForm
     ) 
     
 else:
@@ -1342,44 +1393,12 @@ else:
     # we keep it as simple as it should be, to retrive Python 3.15 'types.FrameLocalsProxyType'
     # final patches to be done during 0.3.82 and 0.3.83
     def _f_86bff3f494c9():
-        raise Exception()
+        return type(_sys._getframe().f_locals)
     
-    try:
-        _f_86bff3f494c9()
-    except Exception as e:
-        FrameLocalsProxyType = type(e.__traceback__.tb_frame.f_locals)
-        """
-        Availability: >= 0.3.79 \\
-        https://aveyzan.xyz/aveytense#aveytense.extensions.FrameLocalsProxyType
-        
-        Represents the type of `locals()` and also `frame.f_locals`
-        """
+    FrameLocalsProxyType = _f_86bff3f494c9()
     
     del _f_86bff3f494c9
     
-    if False:
-        def no_type_check_decorator(decorator: AVT_Callable[P, T]):
-            """Decorator to give another decorator the @no_type_check effect.
-
-            This wraps the decorator with something that wraps the decorated
-            function in @no_type_check.
-            """
-            import warnings
-            # warnings._deprecated("typing.no_type_check_decorator", remove=(3, 15))
-            @functools.wraps(decorator)
-            def wrapped_decorator(*args, **kwds):
-                func = decorator(*args, **kwds)
-                func = no_type_check(func)
-                return func
-
-            return wrapped_decorator
-    
-    from typing import (
-        # ?
-        no_type_check_decorator as no_type_check_decorator,
-        # 0.3.26rc1
-        no_type_check_decorator as noTypeCheckDecorator
-    )
     from typing_extensions import (
         # 0.3.37
         TypedDict as TypedDict,
@@ -1389,9 +1408,47 @@ else:
     )
     
     if typing_extensions_version_info >= (4, 13): # Py3.8+
-        from typing_extensions import NoExtraItems as NoExtraItems # type: ignore
+        from typing_extensions import (
+            # 0.3.54
+            NoExtraItems as NoExtraItems, # type: ignore
+            # 0.3.81
+            TypeForm as TypeForm # type: ignore
+        ) 
+    else:
+        # 0.3.81
+        class _TypeFormForm(_typing._SpecialForm, _root=True):
+            # TypeForm(X) is equivalent to X but indicates to the type checker
+            # that the object is a TypeForm.
+            
+            def __repr__(self):
+                return "aveytense.extensions." + self._name
+            
+            def __call__(self, obj, /):
+                return obj
     
-    _prevent_unused_imports(noTypeCheckDecorator)
+        @_TypeFormForm
+        def TypeForm(self, parameters):
+            """A special form representing the value that results from the evaluation
+            of a type expression. This value encodes the information supplied in the
+            type expression, and it represents the type described by that type expression.
+    
+            When used in a type expression, TypeForm describes a set of type form objects.
+            It accepts a single type argument, which must be a valid type expression.
+            ``TypeForm[T]`` describes the set of all type form objects that represent
+            the type T or types that are assignable to T.
+    
+            Usage:
+    
+                def cast[T](typ: TypeForm[T], value: Any) -> T: ...
+    
+                reveal_type(cast(int, "x"))  # int
+    
+            See PEP 747 for more information.
+            """
+            
+            import typing
+            item = typing._type_check(parameters, f'{self} accepts only a single type.')
+            return TypingGenericType(self, (item,))
 
 if _sys.version_info >= (3, 7):
     
@@ -1777,7 +1834,7 @@ class TypingGenericType(Protocol):
         def __init__(self, origin: type, args: AVT_Tuple[Any, ...], *, inst: bool = True, name: Optional[str] = None) -> None: ...
     else:
         _special: bool # ?
-        def __init__(self, origin: type, args: Any, *, inst: bool = True, special: bool = False, name: Optional[str] = None) -> None: ...
+        def __init__(self, origin: type, args: AVT_Tuple[Any, ...], *, inst: bool = True, special: bool = False, name: Optional[str] = None) -> None: ...
     def __eq__(self, other: Self) -> bool: ...
     def __hash__(self) -> int: ...
     if _sys.version_info >= (3, 10):
@@ -2648,13 +2705,16 @@ if _sys.version_info >= (3, 9):
         """
         def __class_getitem__(cls, args: Any, /) -> GenericAlias: ...
 
-class SizeableItemGetter(Sized, ItemGetter[int, T_cov]):
+class SizeableItemGetter(Protocol[T_cov]):
     """
     Availability: >= 0.3.27a3 // `_typeshed.SupportsLenAndGetItem`
 
     A runtime protocol class with methods `__len__()` and `__getitem__()`. Type parameters:
     - first equals returned type for `__getitem__()`
     """
+    
+    def __len__(self) -> int: ...
+    def __getitem__(self, key: int, /) -> T_cov: ...
 
 @runtime
 class ItemSetter(Protocol[T_con, T_cov]):
@@ -2804,6 +2864,7 @@ class BufferProtocol(Protocol):
     def __release_buffer__(self, buffer: memoryview, /) -> None: ...
 
 @runtime
+@deprecated("Deprecated since 0.3.81, will be removed in 0.3.84.")
 class NewArgumentsGetter(Protocol[T_cov]):
     """
     Availability: >= 0.3.26
@@ -2842,7 +2903,7 @@ class LengthHintProvider(Protocol):
     def __length_hint__(self) -> int: ...
 
 FSPathProvider = AVT_PathLike
-"""Availability: >= 0.3.27a3"""
+"""Availability: >= 0.3.27a3 // Deprecated since 0.3.81, will be removed in 0.3.84."""
 
 @runtime
 class BytearrayConvertible(Protocol):
@@ -2877,7 +2938,8 @@ class Absolute(Protocol[T_cov]):
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.Absolute
 
-    A runtime protocol class with one method `__abs__()`.
+    A runtime protocol class with one method `__abs__()`. Invoked with `abs(self)`
+    
     Returned type is addicted to covariant type parameter.
     """
     def __abs__(self) -> T_cov: ...
@@ -2888,7 +2950,8 @@ class Truncable(Protocol[T_cov]):
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.Truncable
 
-    A runtime protocol class with one method `__trunc__()`.
+    A runtime protocol class with one method `__trunc__()`. Invoked with `math.trunc(self)`
+    
     Returned type is addicted to covariant type parameter.
     """
     def __trunc__(self) -> T_cov: ...
@@ -2899,7 +2962,7 @@ class BooleanConvertible(Protocol):
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.BooleanConvertible
 
-    A runtime protocol class with one method `__bool__()`.
+    A runtime protocol class with one method `__bool__()`. Invoked with `bool(self)` (also performed in `if` and `elif` statements)
     """
     # >= ^; < 0.3.44; where ^ is version of this class definition, had additional method __nonzero__ (removed since it is for Python 2)
     def __bool__(self) -> bool: ...
@@ -2910,7 +2973,7 @@ class IntegerConvertible(Protocol):
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.IntegerConvertible
 
-    A runtime protocol class with method `__int__()`.
+    A runtime protocol class with method `__int__()`. Invoked with `int(self)`
     """
     def __int__(self) -> int: ...
 
@@ -2920,7 +2983,7 @@ class FloatConvertible(Protocol):
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.FloatConvertible
 
-    A runtime protocol class with method `__float__()`.
+    A runtime protocol class with method `__float__()`. Invoked with `float(self)`
     """
     def __float__(self) -> float: ...
 
@@ -2930,7 +2993,7 @@ class ComplexConvertible(Protocol):
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.ComplexConvertible
 
-    A runtime protocol class with method `__complex__()`.
+    A runtime protocol class with method `__complex__()`. Invoked with `complex(self)`
     """
     def __complex__(self) -> complex: ...
 
@@ -2940,7 +3003,7 @@ class BytesConvertible(Protocol):
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.BytesConvertible
 
-    A runtime protocol class with method `__bytes__()`.
+    A runtime protocol class with method `__bytes__()`. Invoked with `bytes(self)`
     """
     def __bytes__(self) -> bytes: ...
 
@@ -2950,7 +3013,7 @@ class BinaryRepresentable(Protocol):
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.BinaryRepresentable
 
-    A runtime protocol class with method `__bin__()`.
+    A runtime protocol class with method `__bin__()`. Invoked with `aveytense.Tense.bin()`
     """
     def __bin__(self) -> str: ...
 
@@ -2960,7 +3023,7 @@ class OctalRepresentable(Protocol):
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.OctalRepresentable
 
-    A runtime protocol class with method `__oct__()`.
+    A runtime protocol class with method `__oct__()`. Invoked with `aveytense.Tense.oct()`
     """
     def __oct__(self) -> str: ...
 
@@ -2970,27 +3033,29 @@ class HexadecimalRepresentable(Protocol):
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.HexadecimalRepresentable
 
-    A runtime protocol class with method `__hex__()`.
+    A runtime protocol class with method `__hex__()`. Invoked with `aveytense.Tense.hex()`
     """
     def __hex__(self) -> str: ...
 
 @runtime
+@deprecated("Deprecated since 0.3.81, up for removal in 0.3.84; every object has __str__() method as inbuilt")
 class StringConvertible(Protocol):
     """
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.StringConvertible
 
-    A runtime protocol class with method `__str__()`.
+    A runtime protocol class with method `__str__()`. Invoked with `str(self)`
     """
     def __str__(self) -> str: ...
 
 @runtime
+@deprecated("Deprecated since 0.3.81, up for removal in 0.3.84; every object has __repr__() method as inbuilt")
 class Representable(Protocol):
     """
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.Representable
 
-    A runtime protocol class with method `__repr__()`.
+    A runtime protocol class with method `__repr__()`. Invoked with `repr(self)`
     """
     def __repr__(self) -> str: ...
 
@@ -3038,7 +3103,7 @@ class Invertible(Protocol[T_cov]):
     def __invert__(self) -> T_cov: ...
 
 BufferOperable = Buffer
-"Availability: >= 0.3.26rc1. *aveytense.extensions.Buffer*"
+"Availability: >= 0.3.26rc1. *aveytense.extensions.Buffer* // Deprecated since 0.3.81 and will be removed in 0.3.84."
 
 @runtime
 class LeastComparable(Protocol[T_con]):
@@ -3081,6 +3146,7 @@ class GreaterEqualComparable(Protocol[T_con]):
     def __ge__(self, other: T_con) -> bool: ...
 
 @runtime
+@deprecated("Deprecated since 0.3.81, up for removal in 0.3.84")
 class EqualComparable(Protocol[T_con]):
     """
     Availability: >= 0.3.26rc1 \\
@@ -3091,6 +3157,7 @@ class EqualComparable(Protocol[T_con]):
     def __eq__(self, other: T_con) -> bool: ...
 
 @runtime
+@deprecated("Deprecated since 0.3.81, up for removal in 0.3.84")
 class InequalComparable(Protocol[T_con]):
     """
     Availability: >= 0.3.26rc1 \\
@@ -3354,6 +3421,7 @@ class UnaryOperable(Positive[Any], Negative[Any], Invertible[Any]):
     """
     ...
 
+@deprecated("Deprecated since 0.3.81, will be removed in 0.3.84")
 class Indexed(ItemGetter[T_con, T_cov]):
     """
     Availability: >= 0.3.26rc2 \\
@@ -3399,8 +3467,11 @@ class Roundable(Protocol[T_cov]):
     def __round__(self, ndigits: Optional[int] = None) -> T_cov: ...
 
 CeilOperable = Ceilable
+"""Availability: >= 0.3.26b3 // Deprecated since 0.3.81, will be removed in 0.3.84"""
 FloorOperable = Floorable
+"""Availability: >= 0.3.26b3 // Deprecated since 0.3.81, will be removed in 0.3.84"""
 RoundOperable = Roundable
+"""Availability: >= 0.3.26b3 // Deprecated since 0.3.81, will be removed in 0.3.84"""
 
 @runtime
 class AdditionOperable(Protocol[T_con, T_cov]):
@@ -3721,6 +3792,7 @@ class ArithmeticCollection(
     """
     ...
 
+@deprecated("Deprecated since 0.3.81, will be removed in 0.3.84")
 class OperatorCollection(
     ArithmeticCollection,
     BitwiseCollection,
@@ -3751,6 +3823,7 @@ class LenGetItemOperable(Sized, ItemGetter[int, T_cov]):
     ...
 
 @runtime
+@deprecated("Deprecated since 0.3.81, will be removed in 0.3.84")
 class Formattable(Protocol):
     """
     Availability: >= 0.3.26rc1
@@ -4141,6 +4214,143 @@ Incomplete = Any # >= 0.3.60 // _typeshed.Incomplete
 MaybeNone = Any # >= 0.3.57 // _typeshed.MaybeNone
 Unused: TypeAlias = object # >= 0.3.44 // _typeshed.Unused
 
+### Supports-prefixed Types (Temporary Before 0.3.84) ###
+# from 'typing' import: SupportsAbs, SupportsInt, SupportsFloat, SupportsComplex, SupportsBytes, SupportsIndex (Py3.8+), SupportsRound
+
+SupportsAexit: TypeAlias = AsyncExitOperable
+"""Availability: >= 0.3.81 (>= 0.3.26b3; `AsyncExitOperable` before 0.3.81)"""
+SupportsAenter: TypeAlias = AsyncEnterOperable
+"""Availability: >= 0.3.81 (>= 0.3.26b3; `AsyncEnterOperable` before 0.3.81)"""
+SupportsAnext: TypeAlias = AsyncNextOperable
+"""Availability: >= 0.3.81 (>= 0.3.26b3; `AsyncNextOperable` before 0.3.81)"""
+SupportsExit: TypeAlias = ExitOperable
+"""Availability: >= 0.3.81 (>= 0.3.26b3; `ExitOperable` before 0.3.81)"""
+SupportsEnter: TypeAlias = EnterOperable
+"""Availability: >= 0.3.81 (>= 0.3.26b3; `EnterOperable` before 0.3.81)"""
+SupportsNext: TypeAlias = NextOperable
+"""Availability: >= 0.3.81 (>= 0.3.26b3; `NextOperable` before 0.3.81)"""
+
+SupportsGetItem: TypeAlias = ItemGetter
+"""Availability: >= 0.3.81 (>= 0.3.26rc3; `ItemGetter` before 0.3.81)"""
+if _sys.version_info >= (3, 9):
+    SupportsClassGetItem: TypeAlias = ClassItemGetter
+    """Availability: >= 0.3.81 (>= 0.3.26rc3; `ClassItemGetter` before 0.3.81)"""
+SupportsLenAndGetItem: TypeAlias = SizeableItemGetter[T_cov]
+"""Availability: >= 0.3.81 (replacement for `SizeableItemGetter`: >= 0.3.27a3; < 0.3.84)"""
+SupportsSetItem: TypeAlias = ItemSetter
+"""Availability: >= 0.3.81 (replacement for `ItemSetter`: >= 0.3.26rc3; < 0.3.84)"""
+SupportsDelItem: TypeAlias = ItemDeleter
+"""Availability: >= 0.3.81 (replacement for `ItemDeleter`: >= 0.3.26rc3; < 0.3.84)"""
+SupportsItemOperations: TypeAlias = ItemManager
+"""Availability: >= 0.3.81 (replacement for `ItemManager`: >= 0.3.26rc3; < 0.3.84)"""
+
+SupportsGet: TypeAlias = Getter
+SupportsSet: TypeAlias = Setter
+SupportsDelete: TypeAlias = Deleter
+SupportsDescriptorOperations: TypeAlias = Descriptor
+
+SupportsKeys: TypeAlias = KeysProvider
+SupportsValues: TypeAlias = type
+SupportsItems: TypeAlias = ItemsProvider
+
+SupportsReleaseBugger: TypeAlias = BufferReleaser
+SupportsSubclassHook: TypeAlias = SubclassHooker
+SupportsLengthHint: TypeAlias = LengthHintProvider
+
+SupportsBytearray: TypeAlias = BytearrayConvertible
+
+SupportsTrunc: TypeAlias = Truncable
+SupportsBool: TypeAlias = BooleanConvertible
+SupportsBin: TypeAlias = BinaryRepresentable
+SupportsOct: TypeAlias = OctalRepresentable
+SupportsHex: TypeAlias = HexadecimalRepresentable
+SupportsPos: TypeAlias = Positive
+SupportsNeg: TypeAlias = Negative
+SupportsInvert: TypeAlias = Invertible
+
+SupportsLt: TypeAlias = LeastComparable
+SupportsGt: TypeAlias = GreaterComparable
+SupportsLe: TypeAlias = LeastEqualComparable
+SupportsGe: TypeAlias = GreaterEqualComparable
+
+SupportsAnd: TypeAlias = BitwiseAndOperable
+SupportsOr: TypeAlias = BitwiseOrOperable
+SupportsXor: TypeAlias = BitwiseXorOperable
+SupportsLshift: TypeAlias = BitwiseLeftOperable
+SupportsRshift: TypeAlias = BitwiseRightOperable
+SupportsBitwiseOperations: TypeAlias = BitwiseOperable
+
+SupportsRand: TypeAlias = ReflectedBitwiseAndOperable
+SupportsRor: TypeAlias = ReflectedBitwiseOrOperable
+SupportsRxor: TypeAlias = ReflectedBitwiseXorOperable
+SupportsRlshift: TypeAlias = ReflectedBitwiseLeftOperable
+SupportsRrshift: TypeAlias = ReflectedBitwiseRightOperable
+SupportsReflectedBitwiseOperations: TypeAlias = ReflectedBitwiseOperable
+
+SupportsIand: TypeAlias = BitwiseAndReassignable
+SupportsIor: TypeAlias = BitwiseOrReassignable
+SupportsIxor: TypeAlias = BitwiseXorReassignable
+SupportsIlshift: TypeAlias = BitwiseLeftReassignable
+SupportsIrshift: TypeAlias = BitwiseRightReassignable
+SupportsReassignmentBitwiseOperations: TypeAlias = BitwiseReassignable
+
+SupportsBitwiseCollection: TypeAlias = BitwiseCollection
+SupportsUnaryOperations: TypeAlias = UnaryOperable
+
+SupportsCeil: TypeAlias = Ceilable
+SupportsFloor: TypeAlias = Floorable
+
+SupportsAdd: TypeAlias = AdditionOperable
+SupportsSub: TypeAlias = SubstractionOperable
+SupportsMul: TypeAlias = MultiplicationOperable
+SupprtsMatmul: TypeAlias = MatrixMultiplicationOperable
+SupportsTruediv: TypeAlias = TrueDivisionOperable
+SupportsFloordiv: TypeAlias = FloorDivisionOperable
+SupportsDivmod: TypeAlias = DivmodOperable
+SupportsMod: TypeAlias = ModuloOperable
+SupportsPow: TypeAlias = ExponentiationOperable
+
+SupportsRadd: TypeAlias = ReflectedAdditionOperable
+SupportsRsub: TypeAlias = ReflectedSubtractionOperable
+SupportsRmul: TypeAlias = ReflectedMultiplicationOperable
+SupportsRmatmul: TypeAlias = ReflectedMatrixMultiplicationOperable
+SupportsRtruediv: TypeAlias = ReflectedTrueDivisionOperable
+SupportsRfloordiv: TypeAlias = ReflectedFloorDivisionOperable
+SupportsRdivmod: TypeAlias = ReflectedDivmodOperable
+SupportsRmod: TypeAlias = ReflectedModuloOperable
+SuppportsRpow: TypeAlias = ReflectedExponentiationOperable
+
+SupportsIadd: TypeAlias = AdditionReassignable
+SupportsIsub: TypeAlias = SubtractionReassignable
+SupportsImul: TypeAlias = MultiplicationReassignable
+SupportsImatmul: TypeAlias = MatrixMultiplicationReassignable
+SupportsItruediv: TypeAlias = TrueDivisionReassingable
+SupportsIfloordiv: TypeAlias = FloorDivisionReassignable
+SupportsImod: TypeAlias = ModuloReassignable
+SupportsIpow: TypeAlias = ExponentiationReassignable
+
+SupportsReflectedArithmeticOperations: TypeAlias = ReflectedArithmeticOperable
+SupportsArithmeticOperations: TypeAlias = ArithmeticOperable
+SupportsReassignmentArithmeticOperations: TypeAlias = ArithmeticReassignable
+SupportsArithmeticCollection: TypeAlias = ArithmeticCollection
+
+SupportsFileno: TypeAlias = FilenoProvider
+SupportsCopy: TypeAlias = Copyable
+SupportsCopy2: TypeAlias = Copyable2
+SupportsDeepCopy: TypeAlias = DeepCopyable
+SupportsDeepCopy2: TypeAlias = DeepCopyable2
+
+class SupportsAlloc:
+    """
+    Availability: >= 0.3.81 (>= 0.3.27b3; `Allocator` before 0.3.81)
+    
+    The `__alloc__()` should return a number of bytes allocated. Reference to `bytearray.__alloc__()`
+    """
+    def __alloc__(self) -> int: ...
+    
+SupportsClear: TypeAlias = Clearable
+SupportsGetItemViewable: TypeAlias = ViewableItemGetter
+
 ### Internal Classes From typing.py ###
 # Use these with isinstance() to determine if these are desired special forms.
 # Not intended in any other use.
@@ -4504,6 +4714,25 @@ def str_removesuffix(
 # bytearray(<func>(bytes(<bytearray object>)))
 # -----
 # if they want to focus on 'bytearray' objects.
+
+@overload
+def bt_replace(b: bytes, old: ReadableBuffer, new: ReadableBuffer, /, count: Indexable = -1) -> bytes: ...
+@overload
+def bt_replace(b: bytearray, old: ReadableBuffer, new: ReadableBuffer, /, count: Indexable = -1) -> bytearray: ...
+def bt_replace(b, old, new, /, count = -1):
+    """
+    Availability: >= 0.3.81 \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.bt_replace
+    
+    `[bytes|bytearray].replace()`, just the `count` parameter is not positional-only (refer to `str.replace()`)
+    """
+    
+    if not isinstance(b, (bytes, bytearray)):
+        error = TypeError("expected a bytes or bytearray object")
+        raise error
+    
+    return b.replace(old, new, count)
+
 @overload
 def bt_removeprefix(b: bytes, prefix: ReadableBuffer, /) -> bytes: ...
 @overload
@@ -4527,7 +4756,6 @@ def bt_removeprefix(b, prefix, /):
             error = TypeError("expected 'prefix' parameter to have a string value")
             raise error
         return b[len(prefix):] if b.startswith(prefix) else b[:]
-    
     
 @overload
 def bt_removesuffix(b: bytes, suffix: ReadableBuffer, /) -> bytes: ...
@@ -4603,6 +4831,9 @@ def anext(i: AsyncNextOperable[T1], default: T2 = _Missing, /):
                     return default
                 return _re_anext(default)
             raise StopAsyncIteration
+        except AttributeError:
+            error = AttributeError(f"the '{type(i).__name__}' object has no method '__anext__()'")
+            raise error
     
 @overload
 def anext2(i: AsyncNextOperable[T], /) -> T: ...
@@ -4639,6 +4870,9 @@ def anext2(i: AsyncNextOperable[T1], default: T2 = _Missing, /):
                 if default is not _Missing:
                     return default
                 raise StopAsyncIteration
+            except AttributeError:
+                error = AttributeError(f"the '{type(i).__name__}' object has no method '__anext__()'")
+                raise error
     
     return asyncio.run(_re_anext(i, default))
         
@@ -4724,6 +4958,7 @@ def reduce(function, iterable, /, initial = _Missing):
         return functools.reduce(function, iterable, initial)
 
 __all__ = sorted([k for k in globals() if not k.startswith("_")])
+"Availability: >= 0.3.26rc1? All definitions written in `aveytense.extensions` module"
 
 if __name__ == "__main__":
     error = RuntimeError("Import-only module")

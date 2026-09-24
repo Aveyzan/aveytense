@@ -6,22 +6,21 @@ This module contains definitions accessible via `aveytense` module. Do NOT use i
 
 Instead consider:
 - `aveytense.constants` instead of `~._constants`
-- `aveytense` instead of `~._abroad` and `~._primal`
+- `aveytense` instead of `~._primal`
 - `aveytense.util` instead of `~._util`
 - `aveytense.extensions` instead of `~._extensions`
 """
 
 def _prevent_unused_definitions(*_): pass
 
-# >= 0.3.74
-_ReprStr = "<object of '{}' with id '{}'>"
 
-# >= 0.3.75
+_ReprStr = "<object of '{}' with id '{}'>" # >= 0.3.74
+
 # Used with object.__setattr__() for frozen dataclasses
-_mangle = lambda self, attr = "": "_{}".format(type(self).__name__) + attr
+_mangle = lambda self, attr = "": "_{}".format(type(self).__name__) + attr # >= 0.3.75
 
-# >= 0.3.76
-def _is_sequence_like(x):
+
+def _is_sequence_like(x): # >= 0.3.76
     
     import collections.abc
     return isinstance(x, (collections.abc.Sequence, collections.abc.Set, collections.abc.ValuesView)) and not isinstance(x, collections.abc.Mapping)
@@ -69,6 +68,10 @@ def _sentinel(name: str, /, module = ""): # >= 0.3.76
             return "<sentinel '{}'>".format(".".join([module, name]).lstrip("."))
         
         def __repr__(self):
+            return self.__str__()
+        
+        def repr(self):
+            """Availability: >= 0.3.81"""
             return "<sentinel '{}' id '{}'>".format(".".join([module, name]).lstrip("."), id(self))
     
     # safer to do this way instead of 'exec()'
