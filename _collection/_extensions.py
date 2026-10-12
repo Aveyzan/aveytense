@@ -362,7 +362,7 @@ class _typing_extensions_version_info:
                 if not _submicro_:
                     self.micro = int(_split_id_[0])
                 else:
-                    self.submicro = int(_submicro_[0])
+                    self.submicro = int(_split_components_[-1])
                 
                 if search == "a":
                     self.releaselevel = ("alpha", 1)
@@ -2806,7 +2806,7 @@ class Descriptor(
     """
     ...
 
-class KeysProvider(ItemGetter[KT_con, Any]):
+class KeysProvider(Protocol[KT_con]):
     """
     Availability: >= 0.3.26 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.KeysProvider
@@ -4158,13 +4158,19 @@ class ViewableItemGetter(Protocol[KT, VT_cov]):
 ### Array Typecode & Memoryview Format Types ###
 
 ArrayIntegerTypecodes: TypeAlias = Literal["b", "B", "h", "H", "i", "I", "l", "L", "q", "Q"] # >= 0.3.60
-ArrayFloatTypecodes: TypeAlias = Literal["f", "d"] # >= 0.3.60
+
+if _sys.version_info >= (3, 15):
+    ArrayFloatTypecodes: TypeAlias = Literal["f", "d", "e", "Zf", "Zd"] # >= 0.3.60
+else:
+    ArrayFloatTypecodes: TypeAlias = Literal["f", "d"] # >= 0.3.60
+    
 if _sys.version_info >= (3, 16): # >= 0.3.60 (all versions)
     ArrayUnicodeTypecodes: TypeAlias = Literal["w"]
 elif _sys.version_info >= (3, 13):
     ArrayUnicodeTypecodes: TypeAlias = Literal["u", "w"]
 else:
     ArrayUnicodeTypecodes: TypeAlias = Literal["u"]
+    
 ArrayTypecodes: TypeAlias = Union[ArrayIntegerTypecodes, ArrayFloatTypecodes, ArrayUnicodeTypecodes] # >= 0.3.60
 
 MemoryViewIntegerFormats: TypeAlias = Literal["b", "B", "@b", "@B", "h", "H", "@h", "@H", "i", "I", "@i", "@I", "l", "L", "@l", "@L", "q", "Q", "@q", "@Q", "P", "@P"] # >= 0.3.60
@@ -4217,45 +4223,54 @@ Unused: TypeAlias = object # >= 0.3.44 // _typeshed.Unused
 ### Supports-prefixed Types (Temporary Before 0.3.84) ###
 # from 'typing' import: SupportsAbs, SupportsInt, SupportsFloat, SupportsComplex, SupportsBytes, SupportsIndex (Py3.8+), SupportsRound
 
-SupportsAexit: TypeAlias = AsyncExitOperable
+SupportsAexit: TypeAlias = AsyncExitOperable[T_cov]
 """Availability: >= 0.3.81 (>= 0.3.26b3; `AsyncExitOperable` before 0.3.81)"""
-SupportsAenter: TypeAlias = AsyncEnterOperable
+SupportsAenter: TypeAlias = AsyncEnterOperable[T_cov]
 """Availability: >= 0.3.81 (>= 0.3.26b3; `AsyncEnterOperable` before 0.3.81)"""
-SupportsAnext: TypeAlias = AsyncNextOperable
+SupportsAnext: TypeAlias = AsyncNextOperable[T_cov]
 """Availability: >= 0.3.81 (>= 0.3.26b3; `AsyncNextOperable` before 0.3.81)"""
 SupportsExit: TypeAlias = ExitOperable
 """Availability: >= 0.3.81 (>= 0.3.26b3; `ExitOperable` before 0.3.81)"""
-SupportsEnter: TypeAlias = EnterOperable
+SupportsEnter: TypeAlias = EnterOperable[T_cov]
 """Availability: >= 0.3.81 (>= 0.3.26b3; `EnterOperable` before 0.3.81)"""
-SupportsNext: TypeAlias = NextOperable
+SupportsNext: TypeAlias = NextOperable[T_cov]
 """Availability: >= 0.3.81 (>= 0.3.26b3; `NextOperable` before 0.3.81)"""
 
-SupportsGetItem: TypeAlias = ItemGetter
+SupportsGetItem: TypeAlias = ItemGetter[T_con, T_cov]
 """Availability: >= 0.3.81 (>= 0.3.26rc3; `ItemGetter` before 0.3.81)"""
 if _sys.version_info >= (3, 9):
     SupportsClassGetItem: TypeAlias = ClassItemGetter
     """Availability: >= 0.3.81 (>= 0.3.26rc3; `ClassItemGetter` before 0.3.81)"""
 SupportsLenAndGetItem: TypeAlias = SizeableItemGetter[T_cov]
 """Availability: >= 0.3.81 (replacement for `SizeableItemGetter`: >= 0.3.27a3; < 0.3.84)"""
-SupportsSetItem: TypeAlias = ItemSetter
+SupportsSetItem: TypeAlias = ItemSetter[T_con, T_cov]
 """Availability: >= 0.3.81 (replacement for `ItemSetter`: >= 0.3.26rc3; < 0.3.84)"""
-SupportsDelItem: TypeAlias = ItemDeleter
+SupportsDelItem: TypeAlias = ItemDeleter[T_con]
 """Availability: >= 0.3.81 (replacement for `ItemDeleter`: >= 0.3.26rc3; < 0.3.84)"""
-SupportsItemOperations: TypeAlias = ItemManager
+SupportsItemOperations: TypeAlias = ItemManager[T_con, T_cov]
 """Availability: >= 0.3.81 (replacement for `ItemManager`: >= 0.3.26rc3; < 0.3.84)"""
 
-SupportsGet: TypeAlias = Getter
-SupportsSet: TypeAlias = Setter
+SupportsGet: TypeAlias = Getter[T_cov]
+SupportsSet: TypeAlias = Setter[T_con]
 SupportsDelete: TypeAlias = Deleter
 SupportsDescriptorOperations: TypeAlias = Descriptor
 
-SupportsKeys: TypeAlias = KeysProvider
-SupportsValues: TypeAlias = type
-SupportsItems: TypeAlias = ItemsProvider
+SupportsKeys: TypeAlias = KeysProvider[KT_con]
+
+class SupportsValues(Protocol[VT_cov]):
+    """Availability: >= 0.3.81 // In 0.3.81 type alias to `type`"""
+    def values(self) -> AVT_Iterable[VT_cov]: ...
+
+SupportsItems: TypeAlias = ItemsProvider[KT_con, VT_cov]
 
 SupportsReleaseBugger: TypeAlias = BufferReleaser
 SupportsSubclassHook: TypeAlias = SubclassHooker
 SupportsLengthHint: TypeAlias = LengthHintProvider
+
+class SupportsLenAndLengthHint(Protocol):
+    """Availability: >= 0.3.82"""
+    def __len__(self) -> int: ...
+    def __length_hint__(self) -> int: ...
 
 SupportsBytearray: TypeAlias = BytearrayConvertible
 
@@ -4264,70 +4279,70 @@ SupportsBool: TypeAlias = BooleanConvertible
 SupportsBin: TypeAlias = BinaryRepresentable
 SupportsOct: TypeAlias = OctalRepresentable
 SupportsHex: TypeAlias = HexadecimalRepresentable
-SupportsPos: TypeAlias = Positive
-SupportsNeg: TypeAlias = Negative
-SupportsInvert: TypeAlias = Invertible
+SupportsPos: TypeAlias = Positive[T_cov]
+SupportsNeg: TypeAlias = Negative[T_cov]
+SupportsInvert: TypeAlias = Invertible[T_cov]
 
-SupportsLt: TypeAlias = LeastComparable
-SupportsGt: TypeAlias = GreaterComparable
-SupportsLe: TypeAlias = LeastEqualComparable
-SupportsGe: TypeAlias = GreaterEqualComparable
+SupportsLt: TypeAlias = LeastComparable[T_con]
+SupportsGt: TypeAlias = GreaterComparable[T_con]
+SupportsLe: TypeAlias = LeastEqualComparable[T_con]
+SupportsGe: TypeAlias = GreaterEqualComparable[T_con]
 
-SupportsAnd: TypeAlias = BitwiseAndOperable
-SupportsOr: TypeAlias = BitwiseOrOperable
-SupportsXor: TypeAlias = BitwiseXorOperable
-SupportsLshift: TypeAlias = BitwiseLeftOperable
-SupportsRshift: TypeAlias = BitwiseRightOperable
+SupportsAnd: TypeAlias = BitwiseAndOperable[T_con, T_cov]
+SupportsOr: TypeAlias = BitwiseOrOperable[T_con, T_cov]
+SupportsXor: TypeAlias = BitwiseXorOperable[T_con, T_cov]
+SupportsLshift: TypeAlias = BitwiseLeftOperable[T_con, T_cov]
+SupportsRshift: TypeAlias = BitwiseRightOperable[T_con, T_cov]
 SupportsBitwiseOperations: TypeAlias = BitwiseOperable
 
-SupportsRand: TypeAlias = ReflectedBitwiseAndOperable
-SupportsRor: TypeAlias = ReflectedBitwiseOrOperable
-SupportsRxor: TypeAlias = ReflectedBitwiseXorOperable
-SupportsRlshift: TypeAlias = ReflectedBitwiseLeftOperable
-SupportsRrshift: TypeAlias = ReflectedBitwiseRightOperable
+SupportsRand: TypeAlias = ReflectedBitwiseAndOperable[T_con, T_cov]
+SupportsRor: TypeAlias = ReflectedBitwiseOrOperable[T_con, T_cov]
+SupportsRxor: TypeAlias = ReflectedBitwiseXorOperable[T_con, T_cov]
+SupportsRlshift: TypeAlias = ReflectedBitwiseLeftOperable[T_con, T_cov]
+SupportsRrshift: TypeAlias = ReflectedBitwiseRightOperable[T_con, T_cov]
 SupportsReflectedBitwiseOperations: TypeAlias = ReflectedBitwiseOperable
 
-SupportsIand: TypeAlias = BitwiseAndReassignable
-SupportsIor: TypeAlias = BitwiseOrReassignable
-SupportsIxor: TypeAlias = BitwiseXorReassignable
-SupportsIlshift: TypeAlias = BitwiseLeftReassignable
-SupportsIrshift: TypeAlias = BitwiseRightReassignable
+SupportsIand: TypeAlias = BitwiseAndReassignable[T_con, T_cov]
+SupportsIor: TypeAlias = BitwiseOrReassignable[T_con, T_cov]
+SupportsIxor: TypeAlias = BitwiseXorReassignable[T_con, T_cov]
+SupportsIlshift: TypeAlias = BitwiseLeftReassignable[T_con, T_cov]
+SupportsIrshift: TypeAlias = BitwiseRightReassignable[T_con, T_cov]
 SupportsReassignmentBitwiseOperations: TypeAlias = BitwiseReassignable
 
 SupportsBitwiseCollection: TypeAlias = BitwiseCollection
 SupportsUnaryOperations: TypeAlias = UnaryOperable
 
-SupportsCeil: TypeAlias = Ceilable
-SupportsFloor: TypeAlias = Floorable
+SupportsCeil: TypeAlias = Ceilable[T_cov]
+SupportsFloor: TypeAlias = Floorable[T_cov]
 
-SupportsAdd: TypeAlias = AdditionOperable
-SupportsSub: TypeAlias = SubstractionOperable
-SupportsMul: TypeAlias = MultiplicationOperable
-SupprtsMatmul: TypeAlias = MatrixMultiplicationOperable
-SupportsTruediv: TypeAlias = TrueDivisionOperable
-SupportsFloordiv: TypeAlias = FloorDivisionOperable
-SupportsDivmod: TypeAlias = DivmodOperable
-SupportsMod: TypeAlias = ModuloOperable
-SupportsPow: TypeAlias = ExponentiationOperable
+SupportsAdd: TypeAlias = AdditionOperable[T_con, T_cov]
+SupportsSub: TypeAlias = SubstractionOperable[T_con, T_cov]
+SupportsMul: TypeAlias = MultiplicationOperable[T_con, T_cov]
+SupprtsMatmul: TypeAlias = MatrixMultiplicationOperable[T_con, T_cov]
+SupportsTruediv: TypeAlias = TrueDivisionOperable[T_con, T_cov]
+SupportsFloordiv: TypeAlias = FloorDivisionOperable[T_con, T_cov]
+SupportsDivmod: TypeAlias = DivmodOperable[T_con, T_cov]
+SupportsMod: TypeAlias = ModuloOperable[T_con, T_cov]
+SupportsPow: TypeAlias = ExponentiationOperable[T_con, T_cov]
 
-SupportsRadd: TypeAlias = ReflectedAdditionOperable
-SupportsRsub: TypeAlias = ReflectedSubtractionOperable
-SupportsRmul: TypeAlias = ReflectedMultiplicationOperable
-SupportsRmatmul: TypeAlias = ReflectedMatrixMultiplicationOperable
-SupportsRtruediv: TypeAlias = ReflectedTrueDivisionOperable
-SupportsRfloordiv: TypeAlias = ReflectedFloorDivisionOperable
-SupportsRdivmod: TypeAlias = ReflectedDivmodOperable
-SupportsRmod: TypeAlias = ReflectedModuloOperable
-SuppportsRpow: TypeAlias = ReflectedExponentiationOperable
+SupportsRadd: TypeAlias = ReflectedAdditionOperable[T_con, T_cov]
+SupportsRsub: TypeAlias = ReflectedSubtractionOperable[T_con, T_cov]
+SupportsRmul: TypeAlias = ReflectedMultiplicationOperable[T_con, T_cov]
+SupportsRmatmul: TypeAlias = ReflectedMatrixMultiplicationOperable[T_con, T_cov]
+SupportsRtruediv: TypeAlias = ReflectedTrueDivisionOperable[T_con, T_cov]
+SupportsRfloordiv: TypeAlias = ReflectedFloorDivisionOperable[T_con, T_cov]
+SupportsRdivmod: TypeAlias = ReflectedDivmodOperable[T_con, T_cov]
+SupportsRmod: TypeAlias = ReflectedModuloOperable[T_con, T_cov]
+SuppportsRpow: TypeAlias = ReflectedExponentiationOperable[T_con, T_cov]
 
-SupportsIadd: TypeAlias = AdditionReassignable
-SupportsIsub: TypeAlias = SubtractionReassignable
-SupportsImul: TypeAlias = MultiplicationReassignable
-SupportsImatmul: TypeAlias = MatrixMultiplicationReassignable
-SupportsItruediv: TypeAlias = TrueDivisionReassingable
-SupportsIfloordiv: TypeAlias = FloorDivisionReassignable
-SupportsImod: TypeAlias = ModuloReassignable
-SupportsIpow: TypeAlias = ExponentiationReassignable
+SupportsIadd: TypeAlias = AdditionReassignable[T_con, T_cov]
+SupportsIsub: TypeAlias = SubtractionReassignable[T_con, T_cov]
+SupportsImul: TypeAlias = MultiplicationReassignable[T_con, T_cov]
+SupportsImatmul: TypeAlias = MatrixMultiplicationReassignable[T_con, T_cov]
+SupportsItruediv: TypeAlias = TrueDivisionReassingable[T_con, T_cov]
+SupportsIfloordiv: TypeAlias = FloorDivisionReassignable[T_con, T_cov]
+SupportsImod: TypeAlias = ModuloReassignable[T_con, T_cov]
+SupportsIpow: TypeAlias = ExponentiationReassignable[T_con, T_cov]
 
 SupportsReflectedArithmeticOperations: TypeAlias = ReflectedArithmeticOperable
 SupportsArithmeticOperations: TypeAlias = ArithmeticOperable
@@ -4350,6 +4365,8 @@ class SupportsAlloc:
     
 SupportsClear: TypeAlias = Clearable
 SupportsGetItemViewable: TypeAlias = ViewableItemGetter
+
+SupportsRichComparison: TypeAlias = Union[LeastComparable[Any], GreaterComparable[Any]]
 
 ### Internal Classes From typing.py ###
 # Use these with isinstance() to determine if these are desired special forms.

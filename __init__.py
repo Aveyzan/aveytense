@@ -649,6 +649,16 @@ def _used_mode(OR): # 0.3.71
         return any
     else:
         return all
+    
+class _classproperty(_extensions.Generic[_extensions.T_cov]): # 0.3.82
+    def __init__(self, fget: _extensions.AVT_Callable[[_extensions.Any], _extensions.T_cov]) -> None:
+        self.fget = fget
+
+    def __get__(self, instance: _extensions.Optional[_extensions.Any], owner: _extensions.AVT_Type[_extensions.Any]) -> _extensions.T_cov:
+        return self.fget(owner)
+
+    def __set__(self, instance: _extensions.Optional[_extensions.Any], value: _extensions.Any) -> None:
+        raise AttributeError('cannot set attribute')
 
 class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta): # 0.3.24
     """
@@ -677,9 +687,8 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     OR = _MODE_OR
     "Availability: >= 0.3.36"
     
-    @staticmethod
-    @property
-    def none():
+    @_classproperty
+    def none(cls):
         """
         Availability: >= 0.3.32
         
@@ -1515,96 +1524,10 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         return _inspect_many(*v, type = property, OR = OR)
     
     @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.71")
-    def isFinalProperty(cls, v: extensions.AVT_Tuple[type, str], /) -> bool: ...
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.71")
-    def isFinalProperty(cls, v: extensions.AVT_Tuple[type, str], /, *_: extensions.AVT_Tuple[type, str], mode: _Mode = _MODE_AND) -> bool: ...
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.71")
-    def isFinalProperty(cls, v: extensions.AVT_Tuple[type, str], /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.71")
-    def isFinalProperty(cls, v: _Any, /) -> extensions.TypeIs[_util.finalproperty[extensions.Any]]: ...
-        
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.71")
-    def isFinalProperty(cls, v: _Any, /, *_: extensions.AVT_Tuple[type, str], mode: _Mode = _MODE_AND) -> bool: ...
-    
-    @classmethod
-    @extensions.overload
-    @extensions.deprecated("Deprecated since 0.3.71")
-    def isFinalProperty(cls, v: _Any, /, *_: _Any, mode: _Mode = _MODE_AND) -> bool: ...
-    
-    @classmethod
-    def isFinalProperty(cls, v, /, *_, mode = _MODE_AND):
+    def isFinal(cls, *v: extensions.Any, OR: bool = False):
         """
         Availability: >= 0.3.41 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.isFinalProperty
-        
-        Returns `True`, if a property is final. It can be done only, if property is accessed via reference.
-        
-        See `~.util.finalproperty` decorator for more details.
-        
-        Deprecated since 0.3.71, this class method will no longer receive updates
-        """
-        
-        _many = (v,) + _
-        _placeholder = True    
-        
-        for one in _many:
-            
-            # If we referred to class member from a class instance directly, we would already obtain a value from final property,
-            # and this also works for accessing via class reference. That makes it practically impossible to check without the property's
-            # parent in separate parameter, hence we need a tuple with the class and its member as a string. This was troublesome before
-            # 0.3.43. However, this technique will be kept for backward-compatibility with 0.3.42.
-            # 29.03.2025
-            
-            if cls.isTuple2(one, (type, str)) and reckon(one) == 2 and isinstance(one[0], type) and isinstance(one[1], str):
-                
-                # Much simplier than 'not ~.isNone(one[0].__dict__.get(one[1], None))'
-                if one[1] in one[0].__dict__:
-                    
-                    t = one[0].__dict__[one[1]]
-                
-                    if mode in (_MODE_AND, "and"):
-                        _placeholder = _placeholder and bool(isinstance(t, _util.finalproperty) or (cls.isProperty(t) and (t.fset, t.fdel) == (None, None)))
-                        
-                    elif mode in (_MODE_OR, "or"):
-                        _placeholder = _placeholder or bool(isinstance(t, _util.finalproperty) or (cls.isProperty(t) and (t.fset, t.fdel) == (None, None)))
-                        
-                    else:
-                        return False
-                    
-                else:
-                    return False
-            
-            else:
-                
-                if mode in (_MODE_AND, "and"):
-                    _placeholder = _placeholder and bool(isinstance(one, _util.finalproperty) or (cls.isProperty(one) and (one.fset, one.fdel) == (None, None)))
-                    
-                elif mode in (_MODE_OR, "or"):
-                    _placeholder = _placeholder or bool(isinstance(one, _util.finalproperty) or (cls.isProperty(one) and (one.fset, one.fdel) == (None, None)))
-                    
-                else:
-                    return False
-            
-        return _placeholder
-    
-    @classmethod
-    def isFinalClass(cls, *v: extensions.Any, OR: bool = False):
-        """
-        Availability: >= 0.3.41 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.isFinalClass
+        https://aveyzan.xyz/aveytense#aveytense.Tense.isFinal
         
         Returns `True`, if provided class is final (cannot be subclassed).
         
@@ -1625,13 +1548,10 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
                     return True
                 
                 else:
-                    return (
-                        (_util.Final in value.__bases__) or
-                        ("__final__" in value.__dict__ and value.__final__ is True) or issubclass(value, _util.Final)
-                    )
-                
-            else:
-                return False
+                    return _util.Final in value.__bases__ or hasattr(value, "__final__") or issubclass(value, _util.Final)
+            
+            elif _inspect.ismethod(value):
+                return hasattr(value, "__final__")
         
         if reckon(v) == 0:
             return False
@@ -1642,77 +1562,6 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
                 return all([_check_if_final(e) for e in v])
             else:
                 return any([_check_if_final(e) for e in v])
-            
-    @classmethod
-    @extensions.deprecated("Deprecated since 0.3.69, up for removal in 0.3.78.")
-    def isUnbound(cls, f: extensions.AnyCallable, v: str, /):
-        """
-        Availability: >= 0.3.44 \\
-        https://aveyzan.xyz/aveytense#aveytense.Tense.isUnbound
-        
-        Returns `True`, if variable `v` in function `f` is unbound.
-        
-        It is `False` for nondescript variables. To return `True`, concerned
-        variable must be referenced in the function's code, and defined in a
-        statement (or more, and not outside) which won't be invoked at runtime.
-        Other way is referencing the variable before its definition.
-        
-        This method cannot be invoked in function, which was passed as a parameter
-        in this method, as this method may not return any value.
-        
-        It is `True` for the following example::
-        
-            from aveytense import Tense
-            
-            def test():
-            
-                if False:
-                    e = 62
-                    
-                e # if it was lacking, False would be returned
-                    
-            print(Tense.isUnbound(test, "e")) # True
-        """
-        
-        # 0.3.46
-        if _inspect.ismethod(f) and cls.test(str(f), r"<unbound method '{}'>".format(f.__qualname__)):
-            return True
-        
-        if not callable(f):
-            error = TypeError("first parameter must be a callable") # edit 0.3.46. previous ending: must be parameter-less callable
-            raise error
-        
-        try:
-            
-            if not cls.isString(v):
-                error = TypeError("second parameter must be a string")
-                raise error
-            
-        except RecursionError:
-            return False
-            
-        try:
-            f()
-            
-        except RecursionError:
-            return False
-        
-        except TypeError as exc: # >= 0.3.46
-            
-            if str(exc).startswith("unbound method"):
-                return True
-            
-        # don't permit custom messages
-        except UnboundLocalError as exc:
-            
-            from ._collection import _exceptions
-            
-            _exception_ = lambda v: [e.format(v) for e in _exceptions._unbound_local_messages]
-                
-            if str(exc) in _exception_(v):
-                return True
-            
-        return False
     
     @classmethod
     @extensions.overload
@@ -2205,7 +2054,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         
         - 0.3.45: The `m` parameter now can receive a set of positive integers, `range` objects and abroad object. This thing was meant to be provided in version 0.3.48
         - 0.3.66: The `m` parameter received support for any integer iterable objects, aside dictionaries/mapping objects
-        - 0.3.73: The `m` parameter receive restricted integer iterable object support to sequence-like objects only
+        - 0.3.73: The `m` parameter received restricted integer iterable object support to sequence-like objects only
         """
         
         if not _is_iterable(i):
@@ -2556,140 +2405,6 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         Returns system's architecture
         """
         return _architecture(executable, bits, linkage)
-    
-    if _sys.version_info >= (3, 14):
-        
-        @classmethod
-        @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use 'dis.dis()' instead")
-        def dis(
-            cls,
-            x: extensions.Union[extensions.HaveCodeType, str, bytes, bytearray, None] = None, # 0.3.62: missing type hint
-            /,
-            file: extensions.Optional[extensions.IO[str]] = None,
-            depth: extensions.Optional[int] = None,
-            showCaches = False,
-            adaptive = False,
-            showOffsets = False,
-            showPositions = False
-        ):
-            """
-            Availability: >= 0.3.26rc3 \\
-            Deprecated: >= 0.3.74 \\
-            https://aveyzan.xyz/aveytense#aveytense.Tense.dis
-            
-            See [`dis.dis()`](https://docs.python.org/3/library/dis.html#dis.dis)
-            
-            - 0.3.31: added missing parameter `showOffsets` (Python 3.13+)
-            - 0.3.74: added missing parameter `showPositions` (Python 3.14+)
-            """
-            _dis.dis(
-                x,
-                file = file,
-                depth = depth,
-                show_caches = showCaches,
-                adaptive = adaptive,
-                show_offsets = showOffsets,
-                show_positions = showPositions
-            )
-            return cls
-        
-    elif _sys.version_info >= (3, 13):
-        
-        @classmethod
-        @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use 'dis.dis()' instead")
-        def dis(
-            cls,
-            x: extensions.Union[extensions.HaveCodeType, str, bytes, bytearray, None] = None, # 0.3.62: missing type hint
-            /,
-            file: extensions.Optional[extensions.IO[str]] = None,
-            depth: extensions.Optional[int] = None,
-            showCaches = False,
-            adaptive = False,
-            showOffsets = False
-        ):
-            """
-            Availability: >= 0.3.26rc3 \\
-            Deprecated: >= 0.3.74 \\
-            https://aveyzan.xyz/aveytense#aveytense.Tense.dis
-            
-            See [`dis.dis()`](https://docs.python.org/3/library/dis.html#dis.dis)
-            
-            - 0.3.31: added missing parameter `showOffsets` (Python 3.13+)
-            - 0.3.74: added missing parameter `showPositions` (Python 3.14+)
-            """
-            _dis.dis(
-                x,
-                file = file,
-                depth = depth,
-                show_caches = showCaches,
-                adaptive = adaptive,
-                show_offsets = showOffsets
-            )
-            return cls
-        
-    elif _sys.version_info >= (3, 11):
-        
-        @classmethod
-        @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use 'dis.dis()' instead")
-        def dis(
-            cls,
-            x: extensions.Union[extensions.HaveCodeType, str, bytes, bytearray, None] = None, # 0.3.62: missing type hint
-            /,
-            file: extensions.Optional[extensions.IO[str]] = None,
-            depth: extensions.Optional[int] = None,
-            showCaches = False,
-            adaptive = False
-        ):
-            """
-            Availability: >= 0.3.26rc3 \\
-            Deprecated: >= 0.3.74 \\
-            https://aveyzan.xyz/aveytense#aveytense.Tense.dis
-            
-            Detach code of a class, type, function, methods and other compiled objects. \\
-            If argument `x` is `None` (by default is `None`), disassembled is last traceback. \\
-            See [`dis.dis()`](https://docs.python.org/3/library/dis.html#dis.dis)
-            
-            - 0.3.31: added missing parameter `showOffsets` (Python 3.13+)
-            - 0.3.74: added missing parameter `showPositions` (Python 3.14+)
-            """
-            _dis.dis(
-                x,
-                file = file,
-                depth = depth,
-                show_caches = showCaches,
-                adaptive = adaptive
-            )
-            return cls
-        
-    else:
-        
-        @classmethod
-        @extensions.deprecated("Deprecated since 0.3.74, up for removal in 0.3.78. Use 'dis.dis()' instead")
-        def dis(
-            cls,
-            x: extensions.Union[extensions.HaveCodeType, str, bytes, bytearray, None] = None, # 0.3.62: missing type hint
-            /,
-            file: extensions.Optional[extensions.IO[str]] = None,
-            depth: extensions.Optional[int] = None
-        ):
-            """
-            Availability: >= 0.3.26rc3 \\
-            Deprecated: >= 0.3.74 \\
-            https://aveyzan.xyz/aveytense#aveytense.Tense.dis
-            
-            Detach code of a class, type, function, methods and other compiled objects. \\
-            If argument `x` is `None` (by default is `None`), disassembled is last traceback. \\
-            See [`dis.dis()`](https://docs.python.org/3/library/dis.html#dis.dis)
-            
-            - 0.3.31: added missing parameter `showOffsets` (Python 3.13+)
-            - 0.3.74: added missing parameter `showPositions` (Python 3.14+)
-            """
-            _dis.dis(
-                x,
-                file = file,
-                depth = depth
-            )
-            return cls
     
     # changeover 0.3.42
     @classmethod
@@ -4049,6 +3764,51 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
             a.append(ord(c))
             
         return a
+    
+    if False: # projected, not really available in code; since 0.3.82
+        @classmethod
+        def move(cls, s: str, o: int, /, blacklist: extensions.SequenceLike[int] = _Missing): # 6th oct
+            """
+            Availability: >= 0.3.? \\
+            https://aveyzan.xyz/aveytense#aveytense.Tense.move
+            
+            Moves every character's Unicode number by specific ordinal.
+            """
+            
+            if not isinstance(s, str):
+                error = TypeError("expected a string")
+                raise error
+            
+            if not isinstance(o, int) or (isinstance(o, int) and o not in abroad(_sys.maxunicode)):
+                error = TypeError("expected an integer as the second argument, in range [0; sys.maxunicode]")
+                raise error
+            
+            # filter control codes by default
+            if blacklist is _Missing:
+                _bl = cls.exclude(list(abroad(0x20)) + [0x7F] + list(abroad(0x80, 0x100)), *cls.ord(constants.STRING_WHITESPACE + "\x20"))
+            else:
+                error = "expected integer-only sequence-like object"
+                _check_if_sequence_like_with_specific_item_type(blacklist, int, error)
+                _bl = list(blacklist)
+                
+            def _verify_and_return(initial: int, modifier: int):
+                
+                if initial + modifier > _sys.maxunicode:
+                    return initial + modifier - _sys.maxunicode
+                elif initial + modifier < 0:
+                    return _sys.maxunicode - abs(initial + modifier)
+                else:
+                    return initial + modifier
+                
+            _sign = -1 if o < 0 else 1
+            
+            s2 = ""
+            finalModifier = o
+            
+            for c in s:
+                if ord(c) in _bl:
+                    c2 = c
+                    while ord(c2) in _bl: ...
     
     @classmethod
     def hex(cls, i: extensions.SequenceLike[extensions.Union[int, extensions.SupportsIndex, extensions.SupportsHex]], /):
@@ -6237,91 +5997,93 @@ class ChangeVar(
 
 class FontStyle(_extensions.Enum):
     """
-    Availability: >= 0.3.76; < 0.3.78; >= 0.3.79
+    Availability: >= 0.3.76; < 0.3.78; >= 0.3.79 \\
+    https://aveyzan.xyz/aveytense#aveytense.FontStyle
     
     An enumeration used for providing ANSI font styles in methods in class `aveytense.Color`.
     """
     
-    NORMAL = 0
-    BOLD = 1
-    FAINT = 2
-    ITALIC = 3
-    UNDERLINE = 4
-    SLOW_BLINK = 5
-    RAPID_BLINK = 6
-    REVERSE = 7
-    HIDE = 8
-    STRIKE = 9
-    # PRIMARY_FONT = 10
+    normal = 0
+    bold = 1
+    faint = 2
+    italic = 3
+    underline = 4
+    slowBlink = 5
+    rapidBlink = 6
+    reverse = 7
+    hide = 8
+    strike = 9
+    # primaryFont = 10
     ## 11-19 alternative font
-    # GOTHIC = 20
-    DOUBLE_UNDERLINE = 21
-    # NORMAL_INTENSITY = 22
-    # NO_ITALIC = 23
-    # NO_UNDERLINE = 24
-    # NO_BLINK = 25
-    # PROPORTIONAL = 26 # corrected mistake! 0.3.26rc2
-    # NO_REVERSE = 27
-    # UNHIDE = 28
-    # NO_STRIKE = 29
+    # gothic = 20
+    doubleUnderline = 21
+    # normalIntensity = 22
+    # noItalic = 23
+    # noUnderline = 24
+    # noBlink = 25
+    # proportional = 26 # corrected mistake! 0.3.26rc2
+    # noReverse = 27
+    # unhide = 28
+    # noStrike = 29
     ## 30-37 foreground color, 3-bit
     # 38 foreground color, 3 4 8 24-bit
-    # FOREGROUND_DEFAULT = 39
+    # foregroundDefault = 39
     ## 40-47 background color, 3-bit
     ## 48 background color, 3 4 8 24-bit
-    # BACKGROUND_DEFAULT = 49
-    # NO_PROPORTIONAL = 50
-    FRAME = 51
-    ENCIRCLE = 52
-    OVERLINE = 53
-    # NO_FRAME = 54 # including "no encircle"
-    # NO_OVERLINE = 55
+    # backgroundDefault = 49
+    # noProportional = 50
+    frame = 51
+    encircle = 52
+    overline = 53
+    # noFrame = 54 # including "no encircle"
+    # noOverline = 55
     ## 56 and 57 undefined
     ## 58 underline color, 3 4 8 24-bit
-    # UNDERLINE_DEFAULT = 59
-    # IDEOGRAM_UNDERLINE = 60
-    # IDEOGRAM_DOUBLE_UNDERLINE = 61
-    # IDEOGRAM_OVERLINE = 62
-    # IDEOGRAM_DOUBLE_OVERLINE = 63
-    # IDEOGRAM_STRESS = 64
-    # NO_IDEOGRAM = 65
+    # underlineDefault = 59
+    # ideogramUnderline = 60
+    # ideogramDoubleUnderline = 61
+    # ideogramOverline = 62
+    # ideogramDoubleOverline = 63
+    # ideogramStress = 64
+    # noIdeogram = 65
     ## 66-72 undefined
-    SUPERSCRIPT = 73
-    SUBSCRIPT = 74
-    # NO_SUPERSCRIPT = 75 # also counts as no subscript
+    superscript = 73
+    subscript = 74
+    # noSuperscript = 75 # also counts as no subscript
     ## 76 undefined but recommended value: no subscript
     ## 77-89 undefined
     ## 90-97 bright foreground color, 4-bit
     ## 100-107 bright background color, 4-bit
 
     # 2x
-    BOLD_ITALIC = 1000
-    BOLD_UNDERLINE = 1001
-    BOLD_STRIKE = 1002
-    BOLD_OVERLINE = 1003
-    ITALIC_UNDERLINE = 1004
-    ITALIC_STRIKE = 1005
-    ITALIC_OVERLINE = 1006
-    UNDERLINE_STRIKE = 1007
-    UOLINE = 1008
-    STRIKE_OVERLINE = 1009
+    boldItalic = 1000
+    boldUnderline = 1001
+    boldStrike = 1002
+    boldOverline = 1003
+    italicUnderline = 1004
+    italicStrike = 1005
+    italicOverline = 1006
+    underlineStrike = 1007
+    uoline = 1008
+    strikOverline = 1009
     
     # 3x
-    BOLD_ITALIC_UNDERLINE = 1100
-    BOLD_ITALIC_STRIKE = 1101
-    BOLD_ITALIC_OVERLINE = 1102
-    BOLD_UNDERLINE_STRIKE = 1103
-    BOLD_UOLINE = 1104
-    ITALIC_UNDERLINE_STRIKE = 1105
-    ITALIC_UOLINE = 1106
-    ITALIC_STRIKE_OVERLINE = 1107
-    STRIKE_UOLINE = 1108
+    boldItalicUnderline = 1100
+    boldItalicStrike = 1101
+    boldItalicOverline = 1102
+    boldUnderlineStrike = 1103
+    boldUoline = 1104
+    italicUnderlineStrike = 1105
+    italicUoline = 1106
+    italicStrikeOverline = 1107
+    strikeUoline = 1108
     
     __all__ = [e for e in locals() if not e.startswith("_")]
 
 class Colors(_util.AbstractFinal, _collection._SelfInvoke):
     """
-    Availability: >= 0.3.41
+    Availability: >= 0.3.41 \\
+    https://aveyzan.xyz/aveytense#aveytense.Colors
     
     Provides colors accessible via names. \\
     All of them are instances of class `~.RGB`.
@@ -6778,114 +6540,114 @@ class Color:
     select = Colors
     """Availability: >= 0.3.41. Alias to `~.Colors` // Deprecated since 0.3.81, slated for removal in 0.3.84"""
 
-    NORMAL = FontStyle.NORMAL
+    NORMAL = FontStyle.normal
     "Availability: >= 0.3.26rc1. Mere text // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    BOLD = FontStyle.BOLD
+    BOLD = FontStyle.bold
     "Availability: >= 0.3.26rc1. Text becomes bold // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    FAINT = FontStyle.FAINT
+    FAINT = FontStyle.faint
     "Availability: >= 0.3.26rc1. Also works as 'decreased intensity' or 'dim' // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    ITALIC = FontStyle.ITALIC
+    ITALIC = FontStyle.italic
     "Availability: >= 0.3.26rc1. Text becomes oblique. Not widely supported // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    UNDERLINE = FontStyle.UNDERLINE
+    UNDERLINE = FontStyle.underline
     "Availability: >= 0.3.26rc1. Text becomes underlined. Marked *experimental* as experimenting with underline colors, but normally it is OK to use // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    SLOW_BLINK = FontStyle.SLOW_BLINK
+    SLOW_BLINK = FontStyle.slowBlink
     "Availability: >= 0.3.26rc1. Text will blink for less than 150 times per minute // Deprecated since 0.3.79"
     
-    RAPID_BLINK = FontStyle.RAPID_BLINK
+    RAPID_BLINK = FontStyle.rapidBlink
     "Availability: >= 0.3.26rc1. Text will blink for more than 150 times per minute. Not widely supported // Deprecated since 0.3.79"
     
-    REVERSE = FontStyle.REVERSE
+    REVERSE = FontStyle.reverse
     "Availability: >= 0.3.26rc2. Swap text and background colors // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    HIDE = FontStyle.HIDE
+    HIDE = FontStyle.hide
     "Availability: >= 0.3.26rc1. Text becomes transparent // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    STRIKE = FontStyle.STRIKE
+    STRIKE = FontStyle.strike
     "Availability: >= 0.3.26rc1. Text becomes crossed out // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    DOUBLE_UNDERLINE = FontStyle.DOUBLE_UNDERLINE
+    DOUBLE_UNDERLINE = FontStyle.doubleUnderline
     "Availability: >= 0.3.26rc2. Text becomes doubly underlined // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
     # PROPORTIONAL = _ColorStyling.PROPORTIONAL
     # "Availability: >= 0.3.26rc1; < 0.3.26rc2. Proportional spacing. *Experimental*"
     
-    FRAME = FontStyle.FRAME
+    FRAME = FontStyle.frame
     "Availability: >= 0.3.26rc1. Implemented in mintty as 'emoji variation selector' // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    ENCIRCLE = FontStyle.ENCIRCLE
+    ENCIRCLE = FontStyle.encircle
     "Availability: >= 0.3.26rc1. Implemented in mintty as 'emoji variation selector' // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    OVERLINE = FontStyle.OVERLINE
+    OVERLINE = FontStyle.overline
     "Availability: >= 0.3.26rc1. Text becomes overlined // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    SUPERSCRIPT = FontStyle.SUPERSCRIPT
+    SUPERSCRIPT = FontStyle.superscript
     "Availability: >= 0.3.26rc2. Text becomes superscripted (implemented in mintty only) // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    SUBSCRIPT = FontStyle.SUBSCRIPT
+    SUBSCRIPT = FontStyle.subscript
     "Availability: >= 0.3.26rc2. Text becomes subscripted (implemented in mintty only) // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
     # 2x
-    BOLD_ITALIC = FontStyle.BOLD_ITALIC
+    BOLD_ITALIC = FontStyle.boldItalic
     "Availability: >= 0.3.26rc2. Text becomes bold and oblique // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    BOLD_UNDERLINE = FontStyle.BOLD_UNDERLINE
+    BOLD_UNDERLINE = FontStyle.boldUnderline
     "Availability: >= 0.3.26rc2. Text becomes bold and underlined // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    BOLD_STRIKE = FontStyle.BOLD_STRIKE
+    BOLD_STRIKE = FontStyle.boldStrike
     "Availability: >= 0.3.26rc2. Text becomes bold and crossed out // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    BOLD_OVERLINE = FontStyle.BOLD_OVERLINE
+    BOLD_OVERLINE = FontStyle.boldOverline
     "Availability: >= 0.3.26rc2. Text becomes bold and overlined // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    ITALIC_UNDERLINE = FontStyle.ITALIC_UNDERLINE
+    ITALIC_UNDERLINE = FontStyle.italicUnderline
     "Availability: >= 0.3.26rc2. Text becomes oblique and underlined // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    ITALIC_STRIKE = FontStyle.ITALIC_STRIKE
+    ITALIC_STRIKE = FontStyle.italicStrike
     "Availability: >= 0.3.26rc2. Text becomes oblique and crossed out // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    ITALIC_OVERLINE = FontStyle.ITALIC_OVERLINE
+    ITALIC_OVERLINE = FontStyle.italicOverline
     "Availability: >= 0.3.26rc2. Text becomes oblique and overlined // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    UNDERLINE_STRIKE = FontStyle.UNDERLINE_STRIKE
+    UNDERLINE_STRIKE = FontStyle.underlineStrike
     "Availability: >= 0.3.26rc2. Text becomes underlined and crossed out // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    UOLINE = FontStyle.UOLINE
+    UOLINE = FontStyle.uoline
     "Availability: >= 0.3.26rc2. Alias to underline-overline. Text gets lines above and below // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    STRIKE_OVERLINE = FontStyle.STRIKE_OVERLINE
+    STRIKE_OVERLINE = FontStyle.strikOverline
     "Availability: >= 0.3.26rc2. Text becomes crossed out and overlined // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
     # 3x
-    BOLD_ITALIC_UNDERLINE = FontStyle.BOLD_ITALIC_UNDERLINE
+    BOLD_ITALIC_UNDERLINE = FontStyle.boldItalicUnderline
     "Availability: >= 0.3.26rc2. Text becomes bold, oblique and underlined // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    BOLD_ITALIC_STRIKE = FontStyle.BOLD_ITALIC_STRIKE
+    BOLD_ITALIC_STRIKE = FontStyle.boldItalicStrike
     "Availability: >= 0.3.26rc2 // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    BOLD_ITALIC_OVERLINE = FontStyle.BOLD_ITALIC_OVERLINE
+    BOLD_ITALIC_OVERLINE = FontStyle.boldItalicOverline
     "Availability: >= 0.3.26rc2 // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    BOLD_UNDERLINE_STRIKE = FontStyle.BOLD_UNDERLINE_STRIKE
+    BOLD_UNDERLINE_STRIKE = FontStyle.boldUnderlineStrike
     "Availability: >= 0.3.26rc2 // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    BOLD_UOLINE = FontStyle.BOLD_UOLINE
+    BOLD_UOLINE = FontStyle.boldUoline
     "Availability: >= 0.3.26rc2 // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    ITALIC_UNDERLINE_STRIKE = FontStyle.ITALIC_UNDERLINE_STRIKE
+    ITALIC_UNDERLINE_STRIKE = FontStyle.italicUnderlineStrike
     "Availability: >= 0.3.26rc2 // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    ITALIC_UOLINE = FontStyle.ITALIC_UOLINE
+    ITALIC_UOLINE = FontStyle.italicUoline
     "Availability: >= 0.3.26rc2 // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    ITALIC_STRIKE_OVERLINE = FontStyle.ITALIC_STRIKE_OVERLINE
+    ITALIC_STRIKE_OVERLINE = FontStyle.italicStrikeOverline
     "Availability: >= 0.3.26rc2 // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
     
-    STRIKE_UOLINE = FontStyle.STRIKE_UOLINE
+    STRIKE_UOLINE = FontStyle.strikeUoline
     "Availability: >= 0.3.26rc2 // Deprecated since 0.3.79, slated for removal in 0.3.84. Use `aveytense.FontStyle` instead"
         
     def __prepare_return(self):
@@ -7110,113 +6872,113 @@ class Color:
         Further styling. Use constant that is in `__constants__` attribute.
         """
         # below: since 0.3.26rc1
-        if other in (FontStyle.NORMAL,):
+        if other in (FontStyle.normal,):
             return self.__prepare_return()
         
-        elif other in (FontStyle.BOLD,):
+        elif other in (FontStyle.bold,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[1;", self.__itu), self.__prepare_return())
         
-        elif other in (FontStyle.FAINT,):
+        elif other in (FontStyle.faint,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[2;", self.__itu), self.__prepare_return())
         
-        elif other in (FontStyle.ITALIC,):
+        elif other in (FontStyle.italic,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[3;", self.__itu), self.__prepare_return())
         
-        elif other in (FontStyle.UNDERLINE,):
+        elif other in (FontStyle.underline,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[4;", self.__itu), self.__prepare_return())
         
-        elif other in (FontStyle.SLOW_BLINK,):
+        elif other in (FontStyle.slowBlink,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[5;", self.__itu), self.__prepare_return())
         
-        elif other in (FontStyle.RAPID_BLINK,):
+        elif other in (FontStyle.rapidBlink,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[6;", self.__itu), self.__prepare_return())
         
         # below: since 0.3.26rc2
-        elif other in (FontStyle.REVERSE,):
+        elif other in (FontStyle.reverse,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[7;", self.__itu), self.__prepare_return())
         
         # below: since 0.3.26rc1
-        elif other in (FontStyle.HIDE,):
+        elif other in (FontStyle.hide,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[8;", self.__itu), self.__prepare_return())
         
-        elif other in (FontStyle.STRIKE,):
+        elif other in (FontStyle.strike,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[9;", self.__itu), self.__prepare_return())
         
-        elif other in (FontStyle.DOUBLE_UNDERLINE,):
+        elif other in (FontStyle.doubleUnderline,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[21;", self.__itu), self.__prepare_return())
         
-        elif other in (FontStyle.FRAME,):
+        elif other in (FontStyle.frame,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[51;", self.__itu), self.__prepare_return())
         
-        elif other in (FontStyle.ENCIRCLE,):
+        elif other in (FontStyle.encircle,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[52;", self.__itu), self.__prepare_return())
         
-        elif other in (FontStyle.OVERLINE,):
+        elif other in (FontStyle.overline,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[53;", self.__itu), self.__prepare_return())
         
         # below: since 0.3.26rc2
-        elif other in (FontStyle.SUPERSCRIPT,):
+        elif other in (FontStyle.superscript,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[73;", self.__itu), self.__prepare_return())
         
-        elif other in (FontStyle.SUBSCRIPT,):
+        elif other in (FontStyle.subscript,):
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[74;", self.__itu), self.__prepare_return())
         # 2x; since 0.3.26rc2
-        elif other == FontStyle.BOLD_ITALIC:
+        elif other == FontStyle.boldItalic:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[1;3;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.BOLD_UNDERLINE:
+        elif other == FontStyle.boldUnderline:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[1;4;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.BOLD_STRIKE:
+        elif other == FontStyle.boldStrike:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[1;9;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.BOLD_OVERLINE:
+        elif other == FontStyle.boldOverline:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[1;53;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.ITALIC_UNDERLINE:
+        elif other == FontStyle.italicUnderline:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[3;4;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.ITALIC_STRIKE:
+        elif other == FontStyle.italicStrike:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[3;9;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.ITALIC_OVERLINE:
+        elif other == FontStyle.italicOverline:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[3;53;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.UNDERLINE_STRIKE:
+        elif other == FontStyle.underlineStrike:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[4;9;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.UOLINE:
+        elif other == FontStyle.uoline:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[4;53;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.STRIKE_OVERLINE:
+        elif other == FontStyle.strikOverline:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[9;53;", self.__itu), self.__prepare_return())
         
         # 3x; since 0.3.26rc2
-        elif other == FontStyle.BOLD_ITALIC_UNDERLINE:
+        elif other == FontStyle.boldItalicUnderline:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[1;3;4;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.BOLD_ITALIC_STRIKE:
+        elif other == FontStyle.boldItalicStrike:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[1;3;9;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.BOLD_ITALIC_OVERLINE:
+        elif other == FontStyle.boldItalicOverline:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[1;3;53;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.BOLD_UNDERLINE_STRIKE:
+        elif other == FontStyle.boldUnderlineStrike:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[1;4;9;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.BOLD_UOLINE:
+        elif other == FontStyle.boldUoline:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[1;4;53;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.ITALIC_UNDERLINE_STRIKE:
+        elif other == FontStyle.italicUnderlineStrike:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[3;4;9;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.ITALIC_UOLINE:
+        elif other == FontStyle.italicUoline:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[3;4;53;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.ITALIC_STRIKE_OVERLINE:
+        elif other == FontStyle.italicStrikeOverline:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[3;9;53;", self.__itu), self.__prepare_return())
         
-        elif other == FontStyle.STRIKE_UOLINE:
+        elif other == FontStyle.strikeUoline:
             return _re.sub(r"^\x1b\[", _itu_perform("\x1b[4;9;53;", self.__itu), self.__prepare_return())
         
         else:
@@ -7267,7 +7029,7 @@ class Color:
         
         foregroundColorIds = [(e if Tense.isInteger(e) else int(e)) for e in colorIds]
         result = ""
-        space = ["\x20"][0] # prevent 'typing.LiteralString'; U+0020 is keyword space character
+        space = "\x20"
         whitespacesCount = 0
         whitespaces = constants.STRING_WHITESPACE + space + "\xa0"
         
@@ -7286,7 +7048,6 @@ class Color:
                 
                     if _foreground_tmp % 2 == 0:
                         _foreground.extend(Tense.reverse(foregroundColorIds)[1:-1])
-                        
                     else:
                         _foreground.extend(foregroundColorIds)
                         
@@ -7305,13 +7066,13 @@ class Color:
         for i in abroad(text):
             
             if text[i] not in whitespaces:
-                result += extensions.str_removesuffix(Color(text[i], bits, _foreground[nextI], None, ituFormat) % (style if style is not None else Color.NORMAL), "\x1b[0m")
+                result += extensions.str_removesuffix(Color(text[i], bits, _foreground[nextI], None, ituFormat) % (style if style is not None else FontStyle.normal), "\x1b[0m")
                 nextI += 1
                 
             else:
-                result += space[0]
+                result += space
 
-        return result + "\x1b[0m"
+        return Tense.cast(result + "\x1b[0m", str)
     
     __all__ = [a for a in locals() if not a.startswith("_")]
     "Availability: >= 0.3.26rc2. Returns list of all non-underscore-preceded members of class `~.Color`"

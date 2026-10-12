@@ -657,65 +657,6 @@ def finalmethod(f: _T_func, /): # <- 0.3.41 slash
     else:
         error = TypeError("expected a method")
         raise error
-
-if False: # >= 0.3.43
-    
-    class finalstaticproperty(_extensions.Generic[_T]):
-        
-        def __init__(self, f: _extensions.Callable[[], _T], /):
-            
-            if isinstance(f, staticmethod):
-                f = f.__func__
-            
-            if not callable(f) or (f.__code_extensions.co_argcount != 0 or f.__code_extensions.co_kwonlyargcount != 0):
-                error = TypeError("expected callable with no parameters")
-                raise error
-            
-            self.func = f
-            self.__name__ = f.__name__
-            self.__doc__ = f.__doc__
-            
-        def __get__(self, instance, owner = None):
-            
-            if owner is not None and isinstance(owner, type(self)):
-                return owner.func.__func__()
-            
-            return self.func.__func__()
-        
-        def __set__(self, instance, value):
-            
-            v = self.func.__name__
-            _E(122, v)
-            
-        def __delete__(self, instance):
-            
-            v = self.func.__name__
-            _E(122, v)
-
-if False: # < 0.3.52
-    @final
-    class ClassLike(_extensions.Generic[_P, _T]):
-        """
-        Availability: >= 0.3.27a3
-        
-        To 0.3.35 this class was in `aveytense.types_collection`. \\
-        A class decorator for functions, transforming them to declarations \\
-        similar to classes. Example::
-        
-            @ClassLike
-            def test():
-                return 42
-
-            a = test() # returns 42
-
-        """
-        def __init__(self, f: _extensions.AVT_Callable[_P, _T]):
-            self.f = f
-            
-        def __call__(self, *args: _P.args, **kwds: _P.kwargs):
-            return self.f(*args, **kwds)
-        
-    classlike = ClassLike # since 0.3.27a3
         
 AbstractMeta = _abc.ABCMeta
 """
