@@ -18,6 +18,7 @@ Constants have been moved to separate submodule `aveytense.constants`.
 """
 
 from __future__ import annotations
+from ._collection import _extensions
 from ._collection._extensions import *
 from ._collection._extensions import __all__
 

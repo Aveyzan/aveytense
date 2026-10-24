@@ -3983,7 +3983,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
                     open(_name_, "w").close()
                 
                 # 0.3.42
-                elif isinstance(_v, extensions.Clearable) or (hasattr(_v, "clear") and callable(_v.clear)):
+                elif isinstance(_v, extensions.SupportsClear) or (hasattr(_v, "clear") and callable(_v.clear)):
                     
                     _clear = cls.cast(_v.clear, extensions.FunctionType)
                     p = util.ParamVar(_clear)
@@ -4062,7 +4062,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         
         Same as `copy.copy()`.
         """
-        if isinstance(x, extensions.Copyable):
+        if isinstance(x, extensions.SupportsCopy):
             return x.copy()
         else:
             return _copy.copy(x)
@@ -4074,7 +4074,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         
         Same as `copy.deepcopy()`.
         """
-        if isinstance(x, extensions.DeepCopyable):
+        if isinstance(x, extensions.SupportsDeepcopy):
             return x.deepcopy()
         else:
             return _copy.deepcopy(x, memo)

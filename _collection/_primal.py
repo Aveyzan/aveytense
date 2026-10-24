@@ -48,7 +48,7 @@ _FloatOrInteger = _extensions.FloatOrInteger
 _OptionalFloatOrInteger = _extensions.Union[_FloatOrInteger, _Ellipsis]
 _OptionalInteger = _extensions.Union[int, _Ellipsis]
 
-_ReckonNGT = (_extensions.IO, _extensions.Iterable, _extensions.ReckonOperable, _extensions.Sized)
+_ReckonNGT = (_extensions.IO, _extensions.Iterable, _extensions.SupportsReckon, _extensions.Sized)
 
 # >= 0.3.55
 class _FibGenerator(_extensions.AVT_Generator[_T1, _extensions.Any, _T2]): ...
@@ -149,7 +149,7 @@ def _reckon_init(*v: _ReckonType):
         elif isinstance(e, _extensions.Sized):
             i += len(e)
             
-        elif isinstance(e, _extensions.ReckonOperable):
+        elif isinstance(e, _extensions.SupportsReckon):
             i += e.__reckon__()
             
         else:
@@ -2153,7 +2153,7 @@ class Math(_SelfInvoke):
         return abs(abs(x))
 
     @classmethod
-    def trunc(self, x: _extensions.Truncable[int], /):
+    def trunc(self, x: _extensions.SupportsTrunc[int], /):
         """
         Availability: >= 0.3.25? \\
         (4th March 2025; no doc yet)
@@ -2162,7 +2162,7 @@ class Math(_SelfInvoke):
         This method is stricter version of `math.trunc()` inbuilt function.
         """
         
-        if not isinstance(x, _extensions.Truncable) or (isinstance(x, _extensions.Truncable) and type(_math.trunc(x)) is not int):
+        if not isinstance(x, _extensions.SupportsTrunc) or (isinstance(x, _extensions.SupportsTrunc) and type(_math.trunc(x)) is not int):
             error = TypeError("expected a number or object of class implementing __trunc__ returning an integer")
             raise error
         
