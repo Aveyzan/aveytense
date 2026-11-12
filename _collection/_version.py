@@ -26,7 +26,7 @@ _current_version_info_type5: __.TypeAlias = __.AVT_Tuple[__.Unpack[_current_vers
 
 _counter_version_type = 0
 
-version = "0.3.83"
+version = "0.3.84"
 """
 Availability: ≥ 0.3.26b3 \\
 https://aveyzan.xyz/aveytense#aveytense.Tense.version
@@ -34,7 +34,7 @@ https://aveyzan.xyz/aveytense#aveytense.Tense.version
 Returns currently used version of AveyTense
 """
 
-version_type: __.TypeAlias = __.Literal["0.3.83"]
+version_type: __.TypeAlias = __.Literal["0.3.84"]
 """
 Availability: ≥ 0.3.47
 """

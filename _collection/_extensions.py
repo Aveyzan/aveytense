@@ -93,14 +93,6 @@ from array import (
     array as array, 
     ArrayType as ArrayType
 )
-from ast import (
-    # 0.3.44
-    Expression as Expression, 
-    Module as Module,
-    Interactive as Interactive,
-    # 0.3.54
-    AST as AST
-)
 from collections import (
     # 0.3.37
     ChainMap as ChainMap, 
@@ -172,20 +164,6 @@ from importlib import (
     import_module as import_module,
     # 0.3.54
     import_module as importModule
-)
-from inspect import (
-    # 0.3.26rc3
-    ArgInfo as ArgInfo, 
-    Arguments as Arguments,
-    Attribute as Attribute,
-    BlockFinder as BlockFinder,
-    BoundArguments as BoundArguments,
-    ClosureVars as ClosureVars,
-    FrameInfo as FrameInfo,
-    FullArgSpec as FullArgSpec,
-    Parameter as Parameter,
-    Signature as Signature,
-    Traceback as Traceback,
 )
 from numbers import Rational as _Rational # 0.3.60
 from os import PathLike as PathLike # 0.3.52
@@ -1193,6 +1171,7 @@ if _sys.version_info >= (3, 14):
     
     from annotationlib import Format as Format # 0.3.54
     from io import (
+        # 0.3.57, existed before with different names
         Reader as Reader,
         Writer as Writer
     )
@@ -1772,22 +1751,6 @@ class DictItems(AVT_ItemsView[KT_cov, VT_cov]):
     if _sys.version_info >= (3, 10):
         @property
         def mapping(self) -> MappingProxyType[KT_cov, VT_cov]: ...
-
-if False: # < 0.3.57
-    class ProtocolMeta(Protocol):
-        """Availability: >= 0.3.52"""
-        __protocol_attrs__: ClassVar[AVT_Set[str]]
-        def __init__(cls, *args: Any, **kwargs: Any) -> None: ...
-        def __new__(
-            mcls: AVT_Type[Self],
-            name: str,
-            bases: AVT_Tuple[type, ...],
-            namespace: AVT_Dict[str, Any],
-            /,
-            **kwargs: Any
-        ) -> Self: ...
-        def __subclasscheck__(self, cls: type) -> bool: ...
-        def __instancecheck__(self, obj: object) -> bool: ...
     
 class SpecialForm(metaclass = _SpecialFormMeta):
     """
@@ -1796,11 +1759,6 @@ class SpecialForm(metaclass = _SpecialFormMeta):
     
     Use this class to find, if a type is actually a special form from `typing`
     """
-
-if False: # < 0.3.57
-    class TypedDictMeta(Protocol):
-        """Availability: >= 0.3.52"""
-        def __new__(cls, typename: str, fields: AVT_Dict[str, Any] = {}, /, *, total: bool = True) -> Self: ...
 
 class TypingNoDefaultType:
     """Availability: >= 0.3.53"""
@@ -2270,7 +2228,7 @@ else:
                 return _AVT_MemoryView(self.__memoryview.cast(format, shape))
             
         @overload
-        def __getitem__(self, key: Union[Indexable, AVT_Tuple[Indexable, ...]], /) -> _T_memoryview: ...
+        def __getitem__(self, key: Union[SupportsIndex, AVT_Tuple[SupportsIndex, ...]], /) -> _T_memoryview: ...
         @overload
         def __getitem__(self, key: slice, /) -> _AVT_MemoryView[_T_memoryview]: ...
         def __getitem__(self, key, /):
@@ -2294,7 +2252,7 @@ else:
         @overload
         def __setitem__(self, key: slice, value: ReadableBuffer, /) -> None: ...
         @overload
-        def __setitem__(self, key: Union[Indexable, AVT_Tuple[Indexable, ...]], value: _T_memoryview, /) -> None: ...
+        def __setitem__(self, key: Union[SupportsIndex, AVT_Tuple[SupportsIndex, ...]], value: _T_memoryview, /) -> None: ...
         def __setitem__(self, key, value, /):
             self.__memoryview.__setitem__(key, value)
         
@@ -2324,7 +2282,7 @@ else:
             """Release the underlying buffer exposed by the memoryview object."""
             return self.__memoryview.release()
         
-        def hex(self, sep: Union[str, bytes] = _Missing, bytes_per_sep: Indexable = 1):
+        def hex(self, sep: Union[str, bytes] = _Missing, bytes_per_sep: SupportsIndex = 1):
             """
             Return the data in the buffer as a str of hexadecimal numbers.
 
@@ -2346,7 +2304,7 @@ else:
                 self.__memoryview.__release_buffer__(self.__memoryview)
         
         # Python 3.14 backported methods
-        def index(self, value: object, start: Indexable = 0, stop: Indexable = _sys.maxsize, /):
+        def index(self, value: object, start: SupportsIndex = 0, stop: SupportsIndex = _sys.maxsize, /):
             """
             Return first index of value.
 
@@ -2440,7 +2398,7 @@ else:
             def __hash__(self):
                 return hash(self.__slice)
 
-        def indices(self, len: Indexable, /):
+        def indices(self, len: SupportsIndex, /):
             """
             S.indices(len) -> (start, stop, stride)
 
@@ -2910,16 +2868,9 @@ class SupportsLengthHint(Protocol):
     Availability: >= 0.3.81
     https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsLengthHint
 
-    A runtime protocol class with method `__length_hint__()`.
-
-    This method is invoked like in case of `list` built-in, just on behalf of specific class.
-    It should equal invoking `len(self)`, as seen for `list`: "Private method returning
-    an estimate of `len(list(it))`".
+    A runtime protocol class with method `__length_hint__()`. Just like `__len__()`, it must return an integer.
     """
     def __length_hint__(self) -> int: ...
-
-FSPathProvider = AVT_PathLike
-"""Availability: >= 0.3.27a3 // Deprecated since 0.3.81, will be removed in 0.3.84."""
 
 @runtime
 class SupportsBytearray(Protocol):
@@ -2977,57 +2928,6 @@ class SupportsTrunc(Protocol[T_cov]):
     def __trunc__(self) -> T_cov: ...
 
 @runtime
-class BooleanConvertible(Protocol):
-    """
-    Availability: >= 0.3.26rc1
-    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsBool
-
-    A runtime protocol class with one method `__bool__()`. Invoked with `bool(self)` (also performed in `if` and `elif` statements)
-    """
-    # >= ^; < 0.3.44; where ^ is version of this class definition, had additional method __nonzero__ (removed since it is for Python 2)
-    def __bool__(self) -> bool: ...
-
-@runtime
-class IntegerConvertible(Protocol): # imported from 'typing'
-    """
-    Availability: >= 0.3.26rc1
-    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsInt
-
-    A runtime protocol class with method `__int__()`. Invoked with `int(self)`
-    """
-    def __int__(self) -> int: ...
-
-@runtime
-class FloatConvertible(Protocol): # imported from 'typing'
-    """
-    Availability: >= 0.3.26rc1
-    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsFloat
-
-    A runtime protocol class with method `__float__()`. Invoked with `float(self)`
-    """
-    def __float__(self) -> float: ...
-
-@runtime
-class ComplexConvertible(Protocol): # imported from 'typing'
-    """
-    Availability: >= 0.3.26rc1
-    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsComplex
-
-    A runtime protocol class with method `__complex__()`. Invoked with `complex(self)`
-    """
-    def __complex__(self) -> complex: ...
-
-@runtime
-class BytesConvertible(Protocol): # imported from 'typing'
-    """
-    Availability: >= 0.3.26rc1
-    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsBytes
-
-    A runtime protocol class with method `__bytes__()`. Invoked with `bytes(self)`
-    """
-    def __bytes__(self) -> bytes: ...
-
-@runtime
 class SupportsBin(Protocol):
     """
     Availability: >= 0.3.81 (>= 0.3.26rc1; < 0.3.81 as `BinaryRepresentable`)
@@ -3056,38 +2956,6 @@ class SupportsHex(Protocol):
     A runtime protocol class with method `__hex__()`. Invoked with `aveytense.Tense.hex()`
     """
     def __hex__(self) -> str: ...
-
-@runtime
-@deprecated("Deprecated since 0.3.81, up for removal in 0.3.84; every object has __str__() method as inbuilt")
-class StringConvertible(Protocol):
-    """
-    Availability: >= 0.3.26rc1
-    https://aveyzan.xyz/aveytense#aveytense.extensions.StringConvertible
-
-    A runtime protocol class with method `__str__()`. Invoked with `str(self)`
-    """
-    def __str__(self) -> str: ...
-
-@runtime
-@deprecated("Deprecated since 0.3.81, up for removal in 0.3.84; every object has __repr__() method as inbuilt")
-class Representable(Protocol):
-    """
-    Availability: >= 0.3.26rc1
-    https://aveyzan.xyz/aveytense#aveytense.extensions.Representable
-
-    A runtime protocol class with method `__repr__()`. Invoked with `repr(self)`
-    """
-    def __repr__(self) -> str: ...
-
-@runtime
-class Indexable(Protocol): # imported from 'typing'
-    """
-    Availability: >= 0.3.26rc1
-    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsIndex
-
-    A runtime protocol class with method `__index__()`. 
-    """
-    def __index__(self) -> int: ...
 
 @runtime
 class SupportsPos(Protocol[T_cov]):
@@ -3121,9 +2989,6 @@ class SupportsInvert(Protocol[T_cov]):
     Returned type is addicted to covariant type parameter.
     """
     def __invert__(self) -> T_cov: ...
-
-BufferOperable = Buffer
-"Availability: >= 0.3.26rc1. *aveytense.extensions.Buffer* // Deprecated since 0.3.81 and will be removed in 0.3.84."
 
 @runtime
 class SupportsLt(Protocol[T_con]):
@@ -3165,36 +3030,11 @@ class SupportsGe(Protocol[T_con]):
     """
     def __ge__(self, other: T_con) -> bool: ...
 
-@runtime
-@deprecated("Deprecated since 0.3.81, up for removal in 0.3.84")
-class EqualComparable(Protocol[T_con]):
-    """
-    Availability: >= 0.3.26rc1 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.EqualComparable
-
-    A runtime protocol class with method `__eq__()`, called to be compared with `==`
-    """
-    def __eq__(self, other: T_con) -> bool: ...
-
-@runtime
-@deprecated("Deprecated since 0.3.81, up for removal in 0.3.84")
-class InequalComparable(Protocol[T_con]):
-    """
-    Availability: >= 0.3.26rc1 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.InequalComparable
-
-    A runtime protocol class with method `__ne__()`, called to be compared with `!=`
-    """
-    def __ne__(self, other: T_con) -> bool: ...
-
-
 class Comparable(
     SupportsLt[Any],
     SupportsGt[Any],
     SupportsLe[Any],
     SupportsGe[Any],
-    EqualComparable[Any],
-    InequalComparable[Any],
     AVT_Container[Any]
 ):
     """
@@ -3202,7 +3042,7 @@ class Comparable(
     https://aveyzan.xyz/aveytense#aveytense.extensions.Comparable
 
     A runtime protocol class supporting any form of comparison with operators \\
-    `>`, `<`, `>=`, `<=`, `==`, `!=`, `in` (last 3 missing before 0.3.26rc1)
+    `>`, `<`, `>=`, `<=`, `in` (last 3 missing before 0.3.26rc1)
     """
     ...
 
@@ -3210,8 +3050,7 @@ class Comparable2(
     SupportsLt[Any],
     SupportsGt[Any],
     SupportsLe[Any],
-    SupportsGe[Any],
-    EqualComparable[Any]
+    SupportsGe[Any]
 ):
     """
     Availability: >= 0.3.27a2
@@ -3289,8 +3128,8 @@ class SupportsBitwiseOperators(
 @runtime
 class SupportsRand(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.73 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.ReflectedBitwiseAndOperable
+    Availability: >= 0.3.73 (before 0.3.81 called `ReflectedBitwiseAndOperable`) \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsRand
     
     A runtime protocol class with method `__rand__()`. First type is contravariant (for value before the `&` operator), second type is covariant and it is the return type.
     """
@@ -3299,8 +3138,8 @@ class SupportsRand(Protocol[T_con, T_cov]):
 @runtime
 class SupportsRor(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.73 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.ReflectedBitwiseOrOperable
+    Availability: >= 0.3.73 (before 0.3.81 called `ReflectedBitwiseOrOperable`) \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsRor
     
     A runtime protocol class with method `__ror__()`. First type is contravariant (for value before the `|` operator), second type is covariant and it is the return type.
     """
@@ -3309,8 +3148,8 @@ class SupportsRor(Protocol[T_con, T_cov]):
 @runtime
 class SupportsRxor(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.73 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.ReflectedBitwiseXorOperable
+    Availability: >= 0.3.73 (before 0.3.81 called `ReflectedBitwiseXorOperable`) \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsRxor
     
     A runtime protocol class with method `__rxor__()`. First type is contravariant (for value before the `^` operator), second type is covariant and it is the return type.
     """
@@ -3319,8 +3158,8 @@ class SupportsRxor(Protocol[T_con, T_cov]):
 @runtime
 class SupportsRlshift(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.73 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.ReflectedBitwiseLeftOperable
+    Availability: >= 0.3.73 (before 0.3.81 called `ReflectedBitwiseXLeftOperable`) \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsRlshift
     
     A runtime protocol class with method `__rlshift__()`. First type is contravariant (for value before the `<<` operator), second type is covariant and it is the return type.
     """
@@ -3329,8 +3168,8 @@ class SupportsRlshift(Protocol[T_con, T_cov]):
 @runtime
 class SupportsRrshift(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.73 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.ReflectedBitwiseRightOperable
+    Availability: >= 0.3.73 (before 0.3.81 called `ReflectedBitwiseRightOperable`) \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsRrshift
     
     A runtime protocol class with method `__rrshift__()`. First type is contravariant (for value before the `>>` operator), second type is covariant and it is the return type.
     """
@@ -3344,8 +3183,8 @@ class SupportsReflectedBitwiseOperators(
     SupportsRrshift[Any, Any]
 ):
     """
-    Availability: >= 0.3.73 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.ReflectedBitwiseOperable
+    Availability: >= 0.3.73 (before 0.3.81 called `ReflectedBitwiseOperable`) \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsReflectedBitwiseOperators
 
     Can be used with `&`, `|`, `^`, `<<` and `>>` operators (with `other` being the left operand)
     """
@@ -3354,8 +3193,8 @@ class SupportsReflectedBitwiseOperators(
 @runtime
 class SupportsIand(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseAndReassignable
+    Availability: >= 0.3.26rc1 (before 0.3.81 called `BitwiseAndReassignable`) \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsIand
 
     A runtime protocol class with method `__iand__()`. First type is contravariant (for value after the `&=` operator), second type is covariant and it is the return type.
     """
@@ -3364,8 +3203,8 @@ class SupportsIand(Protocol[T_con, T_cov]):
 @runtime
 class SupportsIor(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseOrReassignable
+    Availability: >= 0.3.26rc1 (before 0.3.81 called `BitwiseOrReassignable`) \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsIor
 
     A runtime protocol class with method `__ior__()`. First type is contravariant (for value after the `|=` operator), second type is covariant and it is the return type.
     """
@@ -3374,8 +3213,8 @@ class SupportsIor(Protocol[T_con, T_cov]):
 @runtime
 class SupportsIxor(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseXorReassignable
+    Availability: >= 0.3.26rc1 (before 0.3.81 called `BitwiseXorReassignable`) \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsIxor
 
     A runtime protocol class with method `__ixor__()`. First type is contravariant (for value after the `^=` operator), second type is covariant and it is the return type.
     """
@@ -3384,8 +3223,8 @@ class SupportsIxor(Protocol[T_con, T_cov]):
 @runtime
 class SupportsIlshift(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseLeftReassignable
+    Availability: >= 0.3.26rc1 (before 0.3.81 called `BitwiseLeftReassignable`) \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsIlshift
 
     A runtime protocol class with method `__ilshift__()`. First type is contravariant (for value after the `<<=` operator), second type is covariant and it is the return type.
     """
@@ -3394,8 +3233,8 @@ class SupportsIlshift(Protocol[T_con, T_cov]):
 @runtime
 class SupportsIrshift(Protocol[T_con, T_cov]):
     """
-    Availability: >= 0.3.26rc1 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseRightReassignable
+    Availability: >= 0.3.26rc1 (before 0.3.81 called `BitwiseRightReassignable`) \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsIrshift
 
     A runtime protocol class with method `__irshift__()`. First type is contravariant (for value after the `>>=` operator), second type is covariant and it is the return type.
     """
@@ -3409,8 +3248,8 @@ class SupportsBitwiseReassignmentOperators(
     SupportsIrshift[Any, Any]
 ):
     """
-    Availability: >= 0.3.26rc1 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseReassignable
+    Availability: >= 0.3.26rc1 (before 0.3.81 called `BitwiseReassignable`) \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsBitwiseReassignmentOperators
 
     Can be used with `&=`, `|=`, `^=`, `<<=` and `>>=` operators
     """
@@ -3422,34 +3261,26 @@ class SupportsBitwiseCollection(
     SupportsReflectedBitwiseOperators
 ):
     """
-    Availability: >= 0.3.26rc1 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.BitwiseCollection
+    Availability: >= 0.3.26rc1 (before 0.3.81 called `BitwiseCollection`) \\
+    https://aveyzan.xyz/aveytense#aveytense.extensions.SupportsBitwiseCollection
 
     Can be used with `&`, `|` and `^` operators, including their \\
     augmented forms: `&=`, `|=` and `^=`, with `~` use following::
 
-        class Example(BitwiseCollection, Invertible[T]): ...
+        class Example(SupportsBitwiseCollection, Invertible[T]): ...
     """
     ...
 
-class SupportsUnaryOperators(SupportsPos[Any], SupportsNeg[Any], SupportsInvert[Any]):
+class SupportsUnaryOperators(
+    SupportsPos[Any],
+    SupportsNeg[Any],
+    SupportsInvert[Any]
+):
     """
     Availability: >= 0.3.26rc1 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.UnaryOperable
 
     Can be used with `+`, `-` and `~` operators preceding the type
-    """
-    ...
-
-@deprecated("Deprecated since 0.3.81, will be removed in 0.3.84")
-class Indexed(SupportsGetItem[T_con, T_cov]):
-    """
-    Availability: >= 0.3.26rc2 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.Indexed
-    
-    A runtime protocol class with method `__getitem__()` that equals `self[key]`. \\
-    Returned type is addicted to covariant type parameter as the second \\
-    type parameter; first is type for `key` parameter.
     """
     ...
 
@@ -3474,24 +3305,6 @@ class SupportsFloor(Protocol[T_cov]):
     Returned type is addicted to covariant type parameter.
     """
     def __floor__(self) -> T_cov: ...
-
-@runtime
-class Roundable(Protocol[T_cov]): # imported from 'typing'
-    """
-    Availability: >= 0.3.26b3 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.Roundable
-
-    A runtime protocol class with method `__round__()`.
-    Returned type is addicted to covariant type parameter.
-    """
-    def __round__(self, ndigits: Optional[int] = None) -> T_cov: ...
-
-CeilOperable = SupportsCeil
-"""Availability: >= 0.3.26b3 // Deprecated since 0.3.81, will be removed in 0.3.84"""
-FloorOperable = SupportsFloor
-"""Availability: >= 0.3.26b3 // Deprecated since 0.3.81, will be removed in 0.3.84"""
-RoundOperable = Roundable
-"""Availability: >= 0.3.26b3 // Deprecated since 0.3.81, will be removed in 0.3.84"""
 
 @runtime
 class SupportsAdd(Protocol[T_con, T_cov]):
@@ -3812,46 +3625,6 @@ class SupportsArithmeticCollection(
     """
     ...
 
-@deprecated("Deprecated since 0.3.81, will be removed in 0.3.84")
-class OperatorCollection(
-    SupportsArithmeticCollection,
-    SupportsBitwiseCollection,
-    SupportsUnaryOperators,
-    Comparable
-):
-    """
-    Availability: >= 0.3.26rc1
-
-    A protocol class supporting every kind of augmented/re-assigned, reflected and normal arithmetic operations \\
-    with following operators:
-    ```
-        + - * @ / // % ** divmod & | ^ += -= *= @= /= //= %= **= &= |= ^=
-    ```
-    unary assignment with `+`, `-` and `~`, and comparison with following operators:
-    ```
-        > < >= <= == != in
-    ```
-    """
-    ...
-
-class LenGetItemOperable(Sized, SupportsGetItem[int, T_cov]):
-    """
-    Availability: >= 0.3.26rc2 // `_typeshed.SupportsLenAndGetItem`
-    
-    A runtime protocol class with `__getitem__()` and `__len__()` methods. Those are typical in sequences.
-    """
-    ...
-
-@runtime
-@deprecated("Deprecated since 0.3.81, will be removed in 0.3.84")
-class Formattable(Protocol):
-    """
-    Availability: >= 0.3.26rc1
-
-    A runtime protocol class with method `__format__()`.
-    """
-    def __format__(self, format_spec: str = "") -> str: ...
-
 @runtime
 class Flusher(Protocol): # _typeshed.SupportsFlush
     """
@@ -4088,31 +3861,6 @@ class TimeClockInfo(Protocol):
     monotonic: bool
     resolution: float
     
-class Allocator:
-    """
-    Availability: >= 0.3.27b3 \\
-    https://aveyzan.xyz/aveytense#aveytense.extensions.Allocator
-
-    An allocator class. Classes extending this class have access to `__alloc__()` magic method, \\
-    but it is advisable to use it wisely.
-    """
-    __a = bytearray()
-
-    def __init__(self, b: Union[bytearray, SupportsBytearray], /):
-        
-        if isinstance(b, SupportsBytearray):
-            self.__a = b.__bytearray__()
-            
-        elif isinstance(b, bytearray):
-            self.__a = b
-            
-        else:
-            error = TypeError("Expected a bytearray object or object of class extending 'BytearrayConvertible' class")
-            raise error
-    
-    def __alloc__(self):
-        return self.__a.__alloc__()
-    
 class AwaitableGenerator(
     AVT_Awaitable[_T_return_noDefault_cov],
     AVT_Generator[_T_yield_cov, _T_send_noDefault_con, _T_return_noDefault_cov],
@@ -4165,7 +3913,7 @@ class Viewable(Protocol[T_cov]):
     def __iter__(self) -> AVT_Iterator[T_cov]: ...
 
 @runtime
-class ViewableItemGetter(Protocol[KT, VT_cov]):
+class SupportsGetItemViewable(Protocol[KT, VT_cov]):
     """
     Availability: >= 0.3.73 // `_typeshed.SupportsGetItemViewable` \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.ViewableItemGetter
@@ -4240,189 +3988,6 @@ Incomplete = Any # >= 0.3.60 // _typeshed.Incomplete
 MaybeNone = Any # >= 0.3.57 // _typeshed.MaybeNone
 Unused: TypeAlias = object # >= 0.3.44 // _typeshed.Unused
 
-### Supports-prefixed Types (Temporary Before 0.3.84) ###
-# from 'typing' import: SupportsAbs, SupportsInt, SupportsFloat, SupportsComplex, SupportsBytes, SupportsIndex (Py3.8+), SupportsRound
-
-AsyncExitOperable: TypeAlias = SupportsAexit[T_cov]
-"""
-Availability: >= 0.3.26b3 // Deprecated since 0.3.81, will be removed in 0.3.84 //
-https://aveyzan.xyz/aveytense#aveytense.extensions.AsyncExitOperable
-"""
-AsyncEnterOperable: TypeAlias = SupportsAenter[T_cov]
-"""
-Availability: >= 0.3.26b3 // Deprecated since 0.3.81, will be removed in 0.3.84 //
-https://aveyzan.xyz/aveytense#aveytense.extensions.AsyncEnterOperable
-"""
-AsyncNextOperable: TypeAlias = SupportsAnext[T_cov]
-"""
-Availability: >= 0.3.26b3 // Deprecated since 0.3.81, will be removed in 0.3.84 // `_typeshed.SupportsAnext`
-https://aveyzan.xyz/aveytense#aveytense.extensions.AsyncNextOperable
-"""
-ExitOperable: TypeAlias = SupportsExit
-"""
-Availability: >= 0.3.26b3 // Deprecated since 0.3.81, will be removed in 0.3.84 //
-https://aveyzan.xyz/aveytense#aveytense.extensions.ExitOperable
-"""
-EnterOperable: TypeAlias = SupportsEnter[T_cov]
-"""
-Availability: >= 0.3.26b3 // Deprecated since 0.3.81, will be removed in 0.3.84 //
-https://aveyzan.xyz/aveytense#aveytense.extensions.EnterOperable
-"""
-NextOperable: TypeAlias = SupportsNext[T_cov]
-"""
-Availability: >= 0.3.26b3 // Deprecated since 0.3.81, will be removed in 0.3.84 // `_typeshed.SupportsNext`
-https://aveyzan.xyz/aveytense#aveytense.extensions.NextOperable
-"""
-
-ItemGetter: TypeAlias = SupportsGetItem[T_con, T_cov]
-"""
-Availability: >= 0.3.26rc3 // Deprecated since 0.3.81, will be removed in 0.3.84 // `_typeshed.SupportsGetItem`
-https://aveyzan.xyz/aveytense#aveytense.extensions.ItemGetter
-"""
-if _sys.version_info >= (3, 9):
-    ClassItemGetter: TypeAlias = SupportsClassGetItem
-    """
-    Availability: >= 0.3.26rc3 // Deprecated since 0.3.81, will be removed in 0.3.84 //
-    https://aveyzan.xyz/aveytense#aveytense.extensions.ClassItemGetter
-    """
-SizeableItemGetter: TypeAlias = SupportsLenAndGetItem[T_cov]
-"""
-Availability: >= 0.3.27a3 // Deprecated since 0.3.81, will be removed in 0.3.84 // `_typeshed.SupportsLenAndGetItem`
-https://aveyzan.xyz/aveytense#aveytense.extensions.SizeableItemGetter
-"""
-ItemSetter: TypeAlias = SupportsSetItem[T_con, T_cov]
-"""
-Availability: >= 0.3.26rc3 // Deprecated since 0.3.81, will be removed in 0.3.84 //
-https://aveyzan.xyz/aveytense#aveytense.extensions.ItemSetter
-"""
-ItemDeleter: TypeAlias = SupportsDelItem[T_con]
-"""
-Availability: >= 0.3.26rc3 // Deprecated since 0.3.81, will be removed in 0.3.84 //
-https://aveyzan.xyz/aveytense#aveytense.extensions.ItemDeleter
-"""
-ItemManager: TypeAlias = SupportsItemOperations[T_con, T_cov]
-"""
-Availability: >= 0.3.26rc3 // Deprecated since 0.3.81, will be removed in 0.3.84 //
-https://aveyzan.xyz/aveytense#aveytense.extensions.ItemManager
-"""
-
-Getter: TypeAlias = SupportsGet[T_cov]
-Setter: TypeAlias = SupportsSet[T_con]
-Deleter: TypeAlias = SupportsDelete
-Descriptor: TypeAlias = SupportsDescriptorOperations
-
-KeysProvider: TypeAlias = SupportsKeys[KT_con]
-"""
-Availability: >= 0.3.26 // Deprecated since 0.3.81, will be removed in 0.3.84 //
-https://aveyzan.xyz/aveytense#aveytense.extensions.KeysProvider
-"""
-ItemsProvider: TypeAlias = SupportsItems[KT_con, VT_cov]
-"""
-Availability: >= 0.3.26 // Deprecated since 0.3.81, will be removed in 0.3.84 //
-https://aveyzan.xyz/aveytense#aveytense.extensions.ItemsProvider
-"""
-
-BufferReleaser: TypeAlias = SupportsReleaseBuffer
-"""
-Availability: >= 0.3.26 // Deprecated since 0.3.81, will be removed in 0.3.84 //
-https://aveyzan.xyz/aveytense#aveytense.extensions.BufferReleaser
-"""
-
-SubclassHooker: TypeAlias = SupportsSubclassHook
-"""
-Availability: >= 0.3.26 // Deprecated since 0.3.81, will be removed in 0.3.84 //
-https://aveyzan.xyz/aveytense#aveytense.extensions.SubclassHooker
-"""
-
-LengthHintProvider: TypeAlias = SupportsLengthHint
-"""
-Availability: >= 0.3.26rc3 // Deprecated since 0.3.81, will be removed in 0.3.84 //
-"""
-
-
-BytearratConvertible: TypeAlias = SupportsBytearray
-
-Truncable: TypeAlias = SupportsTrunc
-SupportsBool: TypeAlias = BooleanConvertible
-BinaryRepresentable: TypeAlias = SupportsBin
-OctalRepresentable: TypeAlias = SupportsOct
-HexadecimalRepresentable: TypeAlias = SupportsHex
-Positive: TypeAlias = SupportsPos[T_cov]
-Negative: TypeAlias = SupportsNeg[T_cov]
-Invertible: TypeAlias = SupportsInvert[T_cov]
-
-LeastComparable: TypeAlias = SupportsLt[T_con]
-GreaterComparable: TypeAlias = SupportsGt[T_con]
-LeastEqualComparable: TypeAlias = SupportsLe[T_con]
-GreaterEqualComparable: TypeAlias = SupportsGe[T_con]
-
-BitwiseAndOperable: TypeAlias = SupportsAnd[T_con, T_cov]
-BitwiseOrOperable: TypeAlias = SupportsOr[T_con, T_cov]
-BitwiseXorOperable: TypeAlias = SupportsXor[T_con, T_cov]
-BitwiseLeftOperable: TypeAlias = SupportsLshift[T_con, T_cov]
-BitwiseRightOperable: TypeAlias = SupportRshift[T_con, T_cov]
-BitwiseOperable: TypeAlias = SupportsBitwiseOperators
-
-ReflectedBitwiseAndOperable: TypeAlias = SupportsRand[T_con, T_cov]
-ReflectedBitwiseOrOperable: TypeAlias = SupportsRor[T_con, T_cov]
-ReflectedBitwiseXorOperable: TypeAlias = SupportsRxor[T_con, T_cov]
-ReflectedBitwiseLeftOperable: TypeAlias = SupportsRlshift[T_con, T_cov]
-ReflectedBitwiseRightOperable: TypeAlias = SupportsRrshift[T_con, T_cov]
-ReflectedBitwiseOperable: TypeAlias = SupportsReflectedBitwiseOperators
-
-BitwiseAndReassignable: TypeAlias = SupportsIand[T_con, T_cov]
-BitwiseOrReassignable: TypeAlias = SupportsIor[T_con, T_cov]
-BitwiseXorReassignable: TypeAlias = SupportsIxor[T_con, T_cov]
-BitwiseLeftReassignable: TypeAlias = SupportsIlshift[T_con, T_cov]
-BitwiseRightReassignable: TypeAlias = SupportsIrshift[T_con, T_cov]
-BitwiseReassignable: TypeAlias = SupportsBitwiseReassignmentOperators
-
-BitwiseCollection: TypeAlias = SupportsBitwiseCollection
-UnaryOperable: TypeAlias = SupportsUnaryOperators
-
-Ceilable: TypeAlias = SupportsCeil[T_cov]
-Floorable: TypeAlias = SupportsFloor[T_cov]
-
-AdditionOperable: TypeAlias = SupportsAdd[T_con, T_cov]
-SubstractionOperable: TypeAlias = SupportsSub[T_con, T_cov]
-MultiplicationOperable: TypeAlias = SupportsMul[T_con, T_cov]
-MatrixMultiplicationOperable: TypeAlias = SupportsMatmul[T_con, T_cov]
-TrueDivisionOperable: TypeAlias = SupportsTruediv[T_con, T_cov]
-FloorDivisionOperable: TypeAlias = SupportsFloordiv[T_con, T_cov]
-DivmodOperable: TypeAlias = SupportsDivmod[T_con, T_cov]
-ModuloOperable: TypeAlias = SupportsMod[T_con, T_cov]
-ExponentationOperable: TypeAlias = SupportsPow[T_con, T_cov]
-
-ReflectedAdditionOperable: TypeAlias = SupportsRadd[T_con, T_cov]
-ReflectedSubstractionOperable: TypeAlias = SupportsRsub[T_con, T_cov]
-ReflectedMultiplicationOperable: TypeAlias = SupportsRmul[T_con, T_cov]
-ReflectedMatrixMultiplicationOperable: TypeAlias = SupportsRmatmul[T_con, T_cov]
-ReflectedTrueDivisionOperable: TypeAlias = SupportsRtruediv[T_con, T_cov]
-ReflectedFloorDivisionOperable: TypeAlias = SupportsRfloordiv[T_con, T_cov]
-ReflectedDivmodOperable: TypeAlias = SupportsRdivmod[T_con, T_cov]
-ReflectedModuloOperable: TypeAlias = SupportsRmod[T_con, T_cov]
-ReflectedExponentationOperable: TypeAlias = SupportsRpow[T_con, T_cov]
-
-AdditionReassignable: TypeAlias = SupportsIadd[T_con, T_cov]
-SubstractionReassignable: TypeAlias = SupportsIsub[T_con, T_cov]
-MultiplicationReassignable: TypeAlias = SupportsImul[T_con, T_cov]
-MatrixMultiplicationReassignable: TypeAlias = SupportsImatmul[T_con, T_cov]
-TrueDivisionReassignable: TypeAlias = SupportsItruediv[T_con, T_cov]
-FloorDivisionReassignable: TypeAlias = SupportsIfloordiv[T_con, T_cov]
-ModuloReassignable: TypeAlias = SupportsImod[T_con, T_cov]
-ExponentationReassignable: TypeAlias = SupportsIpow[T_con, T_cov]
-
-ReflectedArithmeticOperable: TypeAlias = SupportsReflectedArithmeticOperators
-ArithmeticOperable: TypeAlias = SupportsArithmeticOperators
-ArithmeticReassignable: TypeAlias = SupportsArithmeticReassignmentOperators
-ArithmeticCollection: TypeAlias = SupportsArithmeticCollection
-
-FilenoProvider: TypeAlias = SupportsFileno
-Copyable: TypeAlias = SupportsCopy
-Copyable2: TypeAlias = SupportsCopy2
-DeepCopyable: TypeAlias = SupportsDeepcopy
-DeepCopyable2: TypeAlias = SupportsDeepcopy2
-
 class SupportsAlloc:
     """
     Availability: >= 0.3.81 (>= 0.3.27b3; `Allocator` before 0.3.81)
@@ -4430,9 +3995,6 @@ class SupportsAlloc:
     The `__alloc__()` should return a number of bytes allocated. Reference to `bytearray.__alloc__()`
     """
     def __alloc__(self) -> int: ...
-    
-Clearable: TypeAlias = SupportsClear
-SupportsGetItemViewable: TypeAlias = ViewableItemGetter
 
 SupportsRichComparison: TypeAlias = Union[SupportsLt[Any], SupportsGt[Any]]
 
@@ -4643,7 +4205,7 @@ dict_values = type({}.values()) # >= 0.3.73
 # Private types, not for export.
 if TYPE_CHECKING:
     _ReckonType: TypeAlias = Union[IO[Any], AVT_Iterable[Any], SupportsReckon, Sized] # >= 0.3.74
-    _AbroadStep: TypeAlias = Union[int, float, IntegerConvertible, FloatConvertible, SupportsIndex] # >= 0.3.74
+    _AbroadStep: TypeAlias = Union[int, float, SupportsInt, SupportsFloat, SupportsIndex] # >= 0.3.74
     _AbroadStop: TypeAlias = Union[_AbroadStep, _ReckonType] # >= 0.3.74
     _AbroadStart: TypeAlias = _AbroadStop # >= 0.3.74
     _AbroadConvectType: TypeAlias = _AbroadStop # >= 0.3.74
@@ -4702,7 +4264,7 @@ def int_to_bytes(
 def int_from_bytes(
     i: int,
     /,
-    bytes: Union[AVT_Iterable[Indexable], SupportsBytes, ReadableBuffer],
+    bytes: Union[AVT_Iterable[SupportsIndex], SupportsBytes, ReadableBuffer],
     byteorder: Literal["little", "big"] = "big",
     *,
     signed: bool = False
@@ -4727,7 +4289,7 @@ def str_replace(
     old: str,
     new: str,
     /,
-    count: Indexable = -1
+    count: SupportsIndex = -1
 ): # -> str
     """
     Availability: >= 0.3.60 \\
@@ -4882,11 +4444,11 @@ def aiter(i: _AsyncIterOperable[_T_anext_cov], /):
         return i.__aiter__()
 
 @overload
-def anext(i: AsyncNextOperable[T], /) -> AVT_Awaitable[T]: ...
+def anext(i: SupportsAnext[T], /) -> AVT_Awaitable[T]: ...
 @overload
-async def anext(i: AsyncNextOperable[T1], default: T2, /) -> Union[T1, T2]: ...
+async def anext(i: SupportsAnext[T1], default: T2, /) -> Union[T1, T2]: ...
 
-def anext(i: AsyncNextOperable[T1], default: T2 = _Missing, /):
+def anext(i: SupportsAnext[T1], default: T2 = _Missing, /):
     """
     Availability: >= 0.3.60 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.anext
@@ -4921,11 +4483,11 @@ def anext(i: AsyncNextOperable[T1], default: T2 = _Missing, /):
             raise error
     
 @overload
-def anext2(i: AsyncNextOperable[T], /) -> T: ...
+def anext2(i: SupportsAnext[T], /) -> T: ...
 @overload
-def anext2(i: AsyncNextOperable[T1], default: T2, /) -> Union[T1, T2]: ...
+def anext2(i: SupportsAnext[T1], default: T2, /) -> Union[T1, T2]: ...
     
-def anext2(i: AsyncNextOperable[T1], default: T2 = _Missing, /):
+def anext2(i: SupportsAnext[T1], default: T2 = _Missing, /):
     """
     Availability: >= 0.3.73 \\
     https://aveyzan.xyz/aveytense#aveytense.extensions.anext2
@@ -4937,7 +4499,7 @@ def anext2(i: AsyncNextOperable[T1], default: T2 = _Missing, /):
     
     import asyncio # for asyncio.run() >= Py3.7
     
-    async def _re_anext(i: AsyncNextOperable[T1], default: T2, /):
+    async def _re_anext(i: SupportsAnext[T1], default: T2, /):
         
         if _sys.version_info >= (3, 10):
             

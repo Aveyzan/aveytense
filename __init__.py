@@ -50,7 +50,6 @@ util = _util # 0.3.41
 
 __author__ = "Aveyzan <aveyzan@gmail.com>" # >= 0.3.26rc3
 __license__ = "MIT" # >= 0.3.26rc3
-__version__ = _version.version # >= 0.3.26rc3
 
 version = _version.version # >= 0.3.81
 version_info = _version.version_info # >= 0.3.81
@@ -78,7 +77,6 @@ if extensions.TYPE_CHECKING:
     )
     _Clearable: extensions.TypeAlias = extensions.Union[SupportsClear, Color, util.MutableString] # 0.3.42
     _Color: extensions.TypeAlias = extensions.Union[extensions.ColorType, RGB]
-    _Mode: extensions.TypeAlias = extensions.Union[bool, _cl.ModeSelection, extensions.Literal["and", "or"]] # 0.3.36, deprecated
     if _sys.version_info >= (3, 15):
         _Slice: extensions.TypeAlias = extensions.Union[
             slice[_T_start_cov, _T_stop_cov, _T_step_cov],
@@ -676,11 +674,6 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     extensions = _extensions # 0.3.42; renamed 0.3.57 from 'types'
     util = _util # 0.3.42
     
-    version = _version.version
-    """deprecated since 0.3.81, use `aveytense.version` instead"""
-    versionInfo = _version.version_info
-    """deprecated since 0.3.81, use `aveytense.version_info` instead"""
-    
     AND = _MODE_AND
     "Availability: >= 0.3.36"
     
@@ -738,7 +731,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isType(cls, v: extensions.Any, t: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any, /) -> extensions.TypeIs[extensions.AVT_Type[extensions.T]]: ...
+    def isType(cls, v: extensions.Any, t: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any, /) -> extensions.AVT_TypeIs[extensions.AVT_Type[extensions.T]]: ...
     
     @classmethod
     @extensions.overload
@@ -783,7 +776,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isAbroad(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[abroad]: ...
+    def isAbroad(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[abroad]: ...
     
     @classmethod
     @extensions.overload
@@ -803,7 +796,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isNone(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[None]: ...
+    def isNone(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[None]: ...
     
     @classmethod
     @extensions.overload
@@ -824,7 +817,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isEllipsis(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.EllipsisType]: ...
+    def isEllipsis(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[extensions.EllipsisType]: ...
     
     @classmethod
     @extensions.overload
@@ -845,7 +838,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isBool(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[bool]: ...
+    def isBool(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[bool]: ...
     
     @classmethod
     @extensions.overload
@@ -866,7 +859,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isBoolean(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[bool]: ...
+    def isBoolean(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[bool]: ...
     
     @classmethod
     @extensions.overload
@@ -889,7 +882,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isInt(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[int]: ...
+    def isInt(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[int]: ...
     
     @classmethod
     @extensions.overload
@@ -910,7 +903,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isInteger(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[int]: ...
+    def isInteger(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[int]: ...
     
     @classmethod
     @extensions.overload
@@ -933,7 +926,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isFloat(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[float]: ...
+    def isFloat(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[float]: ...
     
     @classmethod
     @extensions.overload
@@ -954,7 +947,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isComplex(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[complex]: ...
+    def isComplex(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[complex]: ...
     
     @classmethod
     @extensions.overload
@@ -975,7 +968,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isStr(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[str]: ...
+    def isStr(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[str]: ...
     
     @classmethod
     @extensions.overload
@@ -996,7 +989,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isString(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[str]: ...
+    def isString(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[str]: ...
     
     @classmethod
     @extensions.overload
@@ -1019,11 +1012,11 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isTuple(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.T, ...]]: ...
+    def isTuple(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any) -> extensions.AVT_TypeIs[extensions.AVT_Tuple[extensions.T, ...]]: ...
     
     @classmethod
     @extensions.overload
-    def isTuple(cls, v: extensions.Any, /, type: extensions.AVT_Tuple[()]) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.Any, ...]]: ...
+    def isTuple(cls, v: extensions.Any, /, type: extensions.AVT_Tuple[()]) -> extensions.AVT_TypeIs[extensions.AVT_Tuple[extensions.Any, ...]]: ...
     
     @classmethod
     def isTuple(cls, v, /, type = _Any):
@@ -1043,7 +1036,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isTuple2(cls, v1: extensions.AVT_Tuple[extensions.Any, ...], v2: extensions.AVT_Tuple[extensions.Unpack[extensions.Ts]], /) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.Unpack[extensions.Ts]]]: ...
+    def isTuple2(cls, v1: extensions.AVT_Tuple[extensions.Any, ...], v2: extensions.AVT_Tuple[extensions.Unpack[extensions.Ts]], /) -> extensions.AVT_TypeIs[extensions.AVT_Tuple[extensions.Unpack[extensions.Ts]]]: ...
     
     @classmethod
     @extensions.overload
@@ -1052,11 +1045,11 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         v1: extensions.AVT_Tuple[extensions.Any, ...],
         v2: extensions.SequenceLike[extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.Union[extensions.AVT_Type[extensions.T]]]]],
         /
-    ) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.T, ...]]: ...
+    ) -> extensions.AVT_TypeIs[extensions.AVT_Tuple[extensions.T, ...]]: ...
     
     @classmethod
     @extensions.overload
-    def isTuple2(cls, v1: extensions.AVT_Tuple[extensions.Any, ...], v2: extensions.Union[extensions.AVT_Tuple[extensions.AVT_Tuple[()]], extensions.AVT_Tuple[()]], /) -> extensions.TypeIs[extensions.AVT_Tuple[extensions.Any, ...]]: ...
+    def isTuple2(cls, v1: extensions.AVT_Tuple[extensions.Any, ...], v2: extensions.Union[extensions.AVT_Tuple[extensions.AVT_Tuple[()]], extensions.AVT_Tuple[()]], /) -> extensions.AVT_TypeIs[extensions.AVT_Tuple[extensions.Any, ...]]: ...
     
     @classmethod
     def isTuple2(cls, v1, v2, /):
@@ -1123,11 +1116,11 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isList(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any) -> extensions.TypeIs[extensions.AVT_List[extensions.T]]: ...
+    def isList(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any) -> extensions.AVT_TypeIs[extensions.AVT_List[extensions.T]]: ...
     
     @classmethod
     @extensions.overload
-    def isList(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Tuple[()]]) -> extensions.TypeIs[extensions.AVT_List[extensions.Any]]: ...
+    def isList(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Tuple[()]]) -> extensions.AVT_TypeIs[extensions.AVT_List[extensions.Any]]: ...
             
     @classmethod
     def isList(cls, v, /, type = _Any):
@@ -1152,7 +1145,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         /,
         ktype: extensions.Union[extensions.AVT_Type[extensions.KT], extensions.SequenceLike[extensions.AVT_Type[extensions.KT]]] = _Any,
         vtype: extensions.Union[extensions.AVT_Type[extensions.VT], extensions.SequenceLike[extensions.AVT_Type[extensions.VT]]] = _Any
-    ) -> extensions.TypeIs[extensions.AVT_Dict[extensions.KT, extensions.VT]]: ...
+    ) -> extensions.AVT_TypeIs[extensions.AVT_Dict[extensions.KT, extensions.VT]]: ...
     
     @classmethod
     @extensions.overload
@@ -1162,7 +1155,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         /,
         ktype: extensions.AVT_Tuple[()],
         vtype: extensions.Union[extensions.AVT_Type[extensions.VT], extensions.SequenceLike[extensions.AVT_Type[extensions.VT]]] = _Any
-    ) -> extensions.TypeIs[extensions.AVT_Dict[extensions.Any, extensions.VT]]: ...
+    ) -> extensions.AVT_TypeIs[extensions.AVT_Dict[extensions.Any, extensions.VT]]: ...
     
     @classmethod
     @extensions.overload
@@ -1172,7 +1165,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         /,
         ktype: extensions.Union[extensions.AVT_Type[extensions.KT], extensions.SequenceLike[extensions.AVT_Type[extensions.KT]]],
         vtype: extensions.AVT_Tuple[()]
-    ) -> extensions.TypeIs[extensions.AVT_Dict[extensions.KT, extensions.Any]]: ...
+    ) -> extensions.AVT_TypeIs[extensions.AVT_Dict[extensions.KT, extensions.Any]]: ...
     
     @classmethod
     @extensions.overload
@@ -1182,7 +1175,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         /,
         ktype: extensions.AVT_Tuple[()],
         vtype: extensions.AVT_Tuple[()]
-    ) -> extensions.TypeIs[extensions.AVT_Dict[extensions.Any, extensions.Any]]: ...
+    ) -> extensions.AVT_TypeIs[extensions.AVT_Dict[extensions.Any, extensions.Any]]: ...
         
     @classmethod
     def isDict(
@@ -1214,11 +1207,11 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isSet(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any) -> extensions.TypeIs[extensions.AVT_Set[extensions.T]]: ...
+    def isSet(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any) -> extensions.AVT_TypeIs[extensions.AVT_Set[extensions.T]]: ...
     
     @classmethod
     @extensions.overload
-    def isSet(cls, v: extensions.Any, /, type: extensions.AVT_Tuple[()]) -> extensions.TypeIs[extensions.AVT_Set[extensions.Any]]: ...
+    def isSet(cls, v: extensions.Any, /, type: extensions.AVT_Tuple[()]) -> extensions.AVT_TypeIs[extensions.AVT_Set[extensions.Any]]: ...
     
     @classmethod
     def isSet(cls, v, /, type = _Any):
@@ -1260,11 +1253,11 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isDeque(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any) -> extensions.TypeIs[extensions.AVT_Deque[extensions.T]]: ...
+    def isDeque(cls, v: extensions.Any, /, type: extensions.Union[extensions.AVT_Type[extensions.T], extensions.SequenceLike[extensions.AVT_Type[extensions.T]]] = _Any) -> extensions.AVT_TypeIs[extensions.AVT_Deque[extensions.T]]: ...
     
     @classmethod
     @extensions.overload
-    def isDeque(cls, v: extensions.Any, /, type: extensions.AVT_Tuple[()]) -> extensions.TypeIs[extensions.AVT_Deque[extensions.Any]]: ...
+    def isDeque(cls, v: extensions.Any, /, type: extensions.AVT_Tuple[()]) -> extensions.AVT_TypeIs[extensions.AVT_Deque[extensions.Any]]: ...
     
     @classmethod
     def isDeque(cls, v, /, type = _Any):
@@ -1282,7 +1275,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isBytes(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[bytes]: ... # not generic
+    def isBytes(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[bytes]: ... # not generic
     
     @classmethod
     @extensions.overload
@@ -1303,7 +1296,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isByteArray(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[bytearray]: ... # not generic
+    def isByteArray(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[bytearray]: ... # not generic
     
     @classmethod
     @extensions.overload
@@ -1323,7 +1316,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         return _inspect_many(*v, type = bytearray, OR = OR)
     
     @classmethod
-    def isMemoryView(cls, v: _Any, /, type: extensions.AVT_Type[extensions.T] = int) -> extensions.TypeIs[extensions.AVT_MemoryView[extensions.T]]:
+    def isMemoryView(cls, v: _Any, /, type: extensions.AVT_Type[extensions.T] = int) -> extensions.AVT_TypeIs[extensions.AVT_MemoryView[extensions.T]]:
         """
         Availability: >= 0.3.35 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isMemoryView
@@ -1354,7 +1347,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         return False
     
     @classmethod
-    def isArray(cls, v: _Any, /, type: extensions.AVT_Type[extensions.T] = int) -> extensions.TypeIs[extensions.AVT_Array[extensions.T]]:
+    def isArray(cls, v: _Any, /, type: extensions.AVT_Type[extensions.T] = int) -> extensions.AVT_TypeIs[extensions.AVT_Array[extensions.T]]:
         """
         Availability: >= 0.3.37 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isArray
@@ -1385,7 +1378,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isClass(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_Type[_Any]]: ... # >= 0.3.43
+    def isClass(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[extensions.AVT_Type[_Any]]: ... # >= 0.3.43
         
     @classmethod
     @extensions.overload
@@ -1406,7 +1399,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isFunction(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[_types.FunctionType]: ... # >= 0.3.43
+    def isFunction(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[_types.FunctionType]: ... # >= 0.3.43
         
     @classmethod
     @extensions.overload
@@ -1487,7 +1480,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
         startType: extensions.Union[extensions.AVT_Type[_T_start_cov], extensions.SequenceLike[extensions.AVT_Type[_T_start_cov]], None] = None,
         stopType: extensions.Union[extensions.AVT_Type[_T_stop_cov], extensions.SequenceLike[extensions.AVT_Type[_T_stop_cov]], None] = None,
         stepType: extensions.Union[extensions.AVT_Type[_T_step_cov], extensions.SequenceLike[extensions.AVT_Type[_T_step_cov]], None] = None
-    ) -> extensions.TypeIs[_Slice[_T_start_cov, _T_stop_cov, _T_step_cov]]: 
+    ) -> extensions.AVT_TypeIs[_Slice[_T_start_cov, _T_stop_cov, _T_step_cov]]: 
         """
         Availability: >= 0.3.41 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.isSlice
@@ -1505,7 +1498,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isProperty(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[property]: ...
+    def isProperty(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[property]: ...
     
     @classmethod
     @extensions.overload
@@ -1565,7 +1558,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isLambda(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.FunctionType]: ...
+    def isLambda(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[extensions.FunctionType]: ...
     
     @classmethod
     @extensions.overload
@@ -1586,7 +1579,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isIterable(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_Iterable[_Any]]: ...
+    def isIterable(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[extensions.AVT_Iterable[_Any]]: ...
     
     @classmethod
     @extensions.overload
@@ -1607,7 +1600,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isIterator(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_Iterator[_Any]]: ...
+    def isIterator(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[extensions.AVT_Iterator[_Any]]: ...
     
     @classmethod
     @extensions.overload
@@ -1628,7 +1621,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isAwaitable(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_Awaitable[_Any]]: ...
+    def isAwaitable(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[extensions.AVT_Awaitable[_Any]]: ...
     
     @classmethod
     @extensions.overload
@@ -1649,7 +1642,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isGenerator(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_Generator[_Any, _Any, _Any]]: ...
+    def isGenerator(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[extensions.AVT_Generator[_Any, _Any, _Any]]: ...
     
     @classmethod
     @extensions.overload
@@ -1670,7 +1663,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isGenExpr(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_Generator[_Any, None, None]]: ...
+    def isGenExpr(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[extensions.AVT_Generator[_Any, None, None]]: ...
     
     @classmethod
     @extensions.overload
@@ -1691,7 +1684,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isCoroutine(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_Coroutine[_Any, _Any, _Any]]: ...
+    def isCoroutine(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[extensions.AVT_Coroutine[_Any, _Any, _Any]]: ...
     
     @classmethod
     @extensions.overload
@@ -1712,7 +1705,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     
     @classmethod
     @extensions.overload
-    def isAsyncGenerator(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_AsyncGenerator[_Any, _Any]]: ...
+    def isAsyncGenerator(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[extensions.AVT_AsyncGenerator[_Any, _Any]]: ...
     
     @classmethod
     @extensions.overload
@@ -1795,15 +1788,15 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
     if _sys.version_info >= (3, 14):
         @classmethod
         @extensions.overload
-        def isUnion(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.AVT_UnionType]: ...
+        def isUnion(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[extensions.AVT_UnionType]: ...
     elif _sys.version_info >= (3, 10):
         @classmethod
         @extensions.overload
-        def isUnion(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.Union[extensions.TypingUnionType, extensions.UnionType]]: ...
+        def isUnion(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[extensions.Union[extensions.TypingUnionType, extensions.UnionType]]: ...
     else:
         @classmethod
         @extensions.overload
-        def isUnion(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.TypeIs[extensions.TypingUnionType]: ...
+        def isUnion(cls, *v: extensions.Any, OR: extensions.Literal[False] = False) -> extensions.AVT_TypeIs[extensions.TypingUnionType]: ...
         
     @classmethod
     @extensions.overload
@@ -5235,7 +5228,7 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
             return asyncio.sleep(seconds)
     
     @classmethod
-    def improvedBogoSort(cls, i: extensions.AVT_Iterable[extensions.T], /, key: extensions.AVT_Callable[[extensions.T], extensions.RichComparable] = ...):
+    def improvedBogoSort(cls, i: extensions.AVT_Iterable[extensions.T], /, key: extensions.AVT_Callable[[extensions.T], extensions.SupportsRichComparison] = ...):
         """
         Availability: >= 0.3.42 \\
         https://aveyzan.xyz/aveytense#aveytense.Tense.improvedBogoSort
@@ -5838,7 +5831,7 @@ class _ChangeVarState(extensions.Enum):
 
 @extensions.deprecated("Deprecated since 0.3.80. Removal not currently planned, but it is discouraged to use this class")
 class ChangeVar(
-    extensions.SupportsUnaryOperations,
+    extensions.SupportsUnaryOperators,
     extensions.Comparable,
     extensions.SupportsIadd,
     extensions.SupportsIsub

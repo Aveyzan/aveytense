@@ -404,47 +404,6 @@ class abroad:
     def __getitem__(self, key): # 0.3.29
         return self.__list.__getitem__(key)
     
-    @_extensions.deprecated(
-        "Pending deprecation since 0.3.78, up for removal in 0.3.84. Consider using the 'abroad.list' property instead.",
-        category = PendingDeprecationWarning
-    )
-    def __pos__(self):
-        """
-        Availability: >= 0.3.28 \\
-        Deprecated: >= 0.3.78
-        
-        Returns abroad object as a list object. The plus sign means that items can be changed.
-        """
-        return self.__list
-    
-    @_extensions.deprecated(
-        "Pending deprecation since 0.3.78, up for removal in 0.3.84. Consider using the 'abroad.tuple' property instead.",
-        category = PendingDeprecationWarning
-    )
-    def __neg__(self):
-        """
-        Availability: >= 0.3.28 \\
-        Deprecated: >= 0.3.78
-        
-        Returns abroad object as a tuple object. The minus sign means that items can be changed.
-        """
-        return tuple(self.__list)
-    
-    @_extensions.deprecated(
-        "Deprecated since 0.3.74 due to the modified item order of 'set' objects. " +
-        "Use of 'reversed(self)' is more encouraged in this case. Moreover, the abroad object content " +
-        "is always unique. Up for removal in 0.3.78."
-    )
-    def __invert__(self):
-        """
-        Availability: >= 0.3.28 \\
-        Deprecated: >= 0.3.74
-        
-        Returns abroad object as a set object. The bitwise inversion means that all items are unique.
-        """
-        
-        return set(self.__list)
-    
     def __mod__(self, other: str): # 0.3.75
         
         if isinstance(other, str):
@@ -583,14 +542,14 @@ class abroad:
         
         for e in v:
             
-            if not isinstance(e, (*_ReckonNGT, int, float, _extensions.SupportsInt, _extensions.SupportsInt, _extensions.SupportsIndex)):
+            if not isinstance(e, (*_ReckonNGT, int, float, _extensions.SupportsInt, _extensions.SupportsFloat, _extensions.SupportsIndex)):
                 error = TypeError("at least one argument from parameter 'v' represents unsupported type")
                 raise error
             
             elif isinstance(e, _ReckonNGT):
                 i += reckon(e)
             
-            elif isinstance(e, (float, _extensions.SupportsInt)):
+            elif isinstance(e, (float, _extensions.SupportsFloat)):
                 
                 if isinstance(e, float):
                     i += _math.trunc(e)
@@ -849,7 +808,6 @@ class Math(_SelfInvoke):
             
             _r = [e for e in y if e < 0]
             return reckon(_r) == reckon(x)
-                
     
     @classmethod
     def isPositive(self, x: _extensions.Union[_FloatOrInteger, _extensions.SequenceLike[_FloatOrInteger]], /):
@@ -2137,14 +2095,14 @@ class Math(_SelfInvoke):
         return _math.pow(x, y)
     
     @classmethod
-    def abs(self, x: _extensions.Absolute[_T_fi], /) -> _T_fi:
+    def abs(self, x: _extensions.SupportsAbs[_T_fi], /) -> _T_fi:
         """
         https://aveyzan.xyz/aveytense#aveytense.Math.abs
         
         Returns absolute value of a number. \\
         This method is stricter version of `abs()` inbuilt function.
         """
-        if not isinstance(x, _extensions.Absolute) or (isinstance(x, _extensions.Absolute) and type(abs(x)) not in (int, float)):
+        if not isinstance(x, _extensions.SupportsAbs) or (isinstance(x, _extensions.SupportsAbs) and type(abs(x)) not in (int, float)):
             error = TypeError("expected a number or object of class implementing __abs__ returning either integer or floating-point number")
             raise error
         

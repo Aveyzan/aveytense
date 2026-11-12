@@ -892,16 +892,13 @@ def all(name: str = "all", mode: _extensions.Union[_AllMode, _extensions.AVT_Cal
     
 _builtin_classes = (int, float, complex, filter, memoryview, bytearray, bytes, str, slice, map, range, bool, list, tuple, set, frozenset, dict, object, reversed, enumerate, zip)
 
-class ParamNoDefault(Abstract, _SelfInvoke):
-    """
-    Availability: >= 0.3.51 \\
-    https://aveyzan.xyz/aveytense#aveytense.util.ParamNoDefault
-    
-    Used to denote parameters without default value with final
-    properties ending with `withDefaults` suffix, in `aveytense.util.ParamVar`.
-    
-    Public since 0.3.74 to allow inspections. This class is abstract and empty
-    """
+Empty = _extensions.sentinel("Empty")
+"""
+Availability: >= 0.3.51 (public since 0.3.74, before 0.3.84 `ParamNoDefault`) \\
+https://aveyzan.xyz/aveytense#aveytense.util.Empty
+
+This sentinel is used to denote parameters without default values and since 0.3.84 to deduce return annotation missing.
+"""
     
 class _BuiltinParamVar:
     """
@@ -921,7 +918,7 @@ class _BuiltinParamVar:
             _extensions.MethodWrapperType,
             _extensions.WrapperDescriptorType 
         )):
-            error = TypeError("provided object is not a builtin")
+            error = TypeError("provided object is not a builtin function")
             raise error
         
         # 0.3.51
@@ -971,7 +968,7 @@ class _BuiltinParamVar:
     @property
     def allDefaults(self): # 0.3.51
         
-        _return_ = [("", StopIteration.value)]
+        _return_ = [("", _AnyObjectHinter)]
         _return_.clear()
         _return_.extend([(_param_sanitize(p), p[_reckon(_param_sanitize(p, True)):]) for p in self.__gleaned_params if _param_sanitize(p, True).endswith("=")])
         return tuple(_return_)
@@ -979,7 +976,7 @@ class _BuiltinParamVar:
     @property
     def allWithDefaults(self): # 0.3.51
         
-        return tuple([(p, ParamNoDefault if p not in dict(self.allDefaults) else dict(self.allDefaults)[p]) for p in self.all])
+        return tuple([(p, Empty if p not in dict(self.allDefaults) else dict(self.allDefaults)[p]) for p in self.all])
     
     @property
     def allNoDefaults(self): # 0.3.51
@@ -1010,7 +1007,7 @@ class _BuiltinParamVar:
     @property
     def positionalWithDefaults(self): # 0.3.51
         
-        return tuple([(p, ParamNoDefault if p not in dict(self.positionalDefaults) else dict(self.positionalDefaults)[p]) for p in self.positional])
+        return tuple([(p, Empty if p not in dict(self.positionalDefaults) else dict(self.positionalDefaults)[p]) for p in self.positional])
     
     @property
     def positionalNoDefaults(self): # 0.3.51
@@ -1040,7 +1037,7 @@ class _BuiltinParamVar:
     @property
     def keywordWithDefaults(self): # 0.3.51
         
-        return tuple([(p, ParamNoDefault if p not in dict(self.keywordDefaults) else dict(self.keywordDefaults)[p]) for p in self.keyword])
+        return tuple([(p, Empty if p not in dict(self.keywordDefaults) else dict(self.keywordDefaults)[p]) for p in self.keyword])
     
     @property
     def keywordNoDefaults(self): # 0.3.51
@@ -1060,7 +1057,7 @@ class _BuiltinParamVar:
     @property
     def universalWithDefaults(self): # 0.3.51
         
-        return tuple([(p, ParamNoDefault if p not in dict(self.universalDefaults) else dict(self.universalDefaults)[p]) for p in self.universal])
+        return tuple([(p, Empty if p not in dict(self.universalDefaults) else dict(self.universalDefaults)[p]) for p in self.universal])
     
     @property
     def universalNoDefaults(self): # 0.3.51
@@ -1241,7 +1238,7 @@ class ParamVar:
         Availability: >= 0.3.42 \\
         https://aveyzan.xyz/aveytense#aveytense.util.ParamVar.signature
         
-        Returns function's signature
+        Returns the function's signature
         """
             
         # 0.3.51
@@ -1337,7 +1334,8 @@ class ParamVar:
         _return_ = dict(self.annotations).get("return", False)
         
         # if not that, 'None' would be excluded too
-        if _return_ is not False:
+        # 0.3.84: include the 'Empty' sentinel
+        if _return_ is not False and _return_ is not Empty:
             _signature_ += " -> {}".format(_return_)
             
         return _signature_
@@ -1353,6 +1351,8 @@ class ParamVar:
         
         if self.__no_first == 1:
             return self.func.__code__.co_varnames[0]
+        else: # 0.3.84
+            return ""
         
     @property
     def all(self): # 0.3.42
@@ -1441,8 +1441,7 @@ class ParamVar:
         Convertible to `dict`
         """
         
-        return tuple([(p, ParamNoDefault if p not in dict(self.allDefaults) else dict(self.allDefaults)[p]) for p in self.all])
-        
+        return tuple([(p, Empty if p not in dict(self.allDefaults) else dict(self.allDefaults)[p]) for p in self.all])  
     
     @property
     def allNoDefaults(self): # 0.3.44
@@ -1594,7 +1593,7 @@ class ParamVar:
         Convertible to `dict`
         """
         
-        return tuple([(p, ParamNoDefault if p not in dict(self.positionalDefaults) else dict(self.positionalDefaults)[p]) for p in self.positional])
+        return tuple([(p, Empty if p not in dict(self.positionalDefaults) else dict(self.positionalDefaults)[p]) for p in self.positional])
     
     @property
     def positionalNoDefaults(self): # 0.3.44
@@ -1686,7 +1685,7 @@ class ParamVar:
             
         Convertible to `dict`
         """
-        return tuple([(p, ParamNoDefault if p not in dict(self.keywordDefaults) else dict(self.keywordDefaults)[p]) for p in self.keyword]) # >= 0.3.52: missing return statement
+        return tuple([(p, Empty if p not in dict(self.keywordDefaults) else dict(self.keywordDefaults)[p]) for p in self.keyword]) # >= 0.3.52: missing return statement
         
     
     @property
@@ -1796,7 +1795,7 @@ class ParamVar:
         Convertible to `dict`
         """
         
-        return tuple([(p, ParamNoDefault if p not in dict(self.universalDefaults) else dict(self.universalDefaults)[p]) for p in self.universal])
+        return tuple([(p, Empty if p not in dict(self.universalDefaults) else dict(self.universalDefaults)[p]) for p in self.universal])
                 
     @property
     def universalNoDefaults(self): # 0.3.44
@@ -1892,7 +1891,7 @@ class ParamVar:
         Convertible to `dict`
         """
         
-        return tuple([(p, ParamNoDefault if p not in dict(self.annotatedDefaults) else dict(self.annotatedDefaults)[p]) for p in self.annotated])
+        return tuple([(p, Empty if p not in dict(self.annotatedDefaults) else dict(self.annotatedDefaults)[p]) for p in self.annotated])
     
     @property
     def annotatedNoDefaults(self): # 0.3.44
@@ -1938,6 +1937,9 @@ class ParamVar:
         for e in _annotated_:
             if e in self.func.__annotations__:
                 _list_.append((_return_param(self.func, e), _extensions.eval(self.func.__annotations__[e], globals = self.func.__globals__)))
+                
+        if "return" not in self.func.__annotations__: # 0.3.84
+            _list_.append(("return", Empty))
                 
         return tuple(_list_)
         
@@ -2558,12 +2560,13 @@ def uniquebytes(bytes: bytes, /):
     return _builtin_classes[6](uniquelist(bytes))
     
 
-def indexeddict(i: _extensions.Iterable[_T], /, negative = False):
+def indexeddict(i: _extensions.Iterable[_T], /, negative: bool = False):
     """
     Availability: >= 0.3.74 \\
     https://aveyzan.xyz/aveytense#aveytense.util.indexeddict
     
-    Returns a new dictionary object with every item indexes being keys, and every item from an iterable object being values
+    Returns a new dictionary object with every item indexes being keys,
+    and every item from an iterable object being values
     """
     
     d: _extensions.AVT_Dict[int, _T] = {}
@@ -2577,6 +2580,41 @@ def indexeddict(i: _extensions.Iterable[_T], /, negative = False):
             d.update({index: item})
         
     return d
+
+def dictdistribute(i: _extensions.SequenceLike[_extensions.T1], /, last: _extensions.T2 = None) -> _extensions.AVT_Dict[_extensions.T1, _extensions.Union[_extensions.T1, _extensions.T2]]:
+    """
+    Availability: >= 0.3.84 \\
+    https://aveyzan.xyz/aveytense#aveytense.util.dictdistribute
+    
+    Creates 2-item tuples to be later used in the constructor of `dict`.
+    Every element with the even index is the subsequent *key* (and hereby
+    has to be hashable), and every element with the odd index is subsequent
+    *value* applied to the *key*.
+    
+    `last` parameter takes place when the amount of items is not even. Its
+    argument is added to the last key and serves as its value
+    """
+    
+    if not isinstance(i, (_extensions.Sequence, _extensions.AbstractSet, _extensions.ValuesView)):
+        error = TypeError("expected a sequence-like object")
+        raise error
+    
+    if len(i) == 0:
+        return {}
+    
+    b = _extensions.batched(i, 2)
+    
+    if len(i) % 2 == 0:
+        return dict(b)
+    else:
+        c = []
+        d = tuple(b)
+        for e in d:
+            if len(e) == 2:
+                c.append(e)
+            else:
+                c.append(e + (last,))
+        return dict(c)
 
 @_extensions.overload
 def flexiblelist(o: _extensions.Iterable[_T], /) -> _extensions.AVT_List[_T]: ...
@@ -2650,6 +2688,7 @@ def flexiblefrozenset(o: object, /):
     """
     
     return frozenset(flexiblelist(o))
+    
 
 @_extensions.dataclass(init = False, eq = False, frozen = True)
 class pair(_extensions.Generic[_KT, _VT]):

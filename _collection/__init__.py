@@ -13,12 +13,10 @@ Instead consider:
 
 def _prevent_unused_definitions(*_): pass
 
-
 _ReprStr = "<object of '{}' with id '{}'>" # >= 0.3.74
 
 # Used with object.__setattr__() for frozen dataclasses
 _mangle = lambda self, attr = "": "_{}".format(type(self).__name__) + attr # >= 0.3.75
-
 
 def _is_sequence_like(x): # >= 0.3.76
     
@@ -62,7 +60,7 @@ class _Final: # >= 0.3.75
         
 def _sentinel(name: str, /, module = ""): # >= 0.3.76
     
-    class _(type):
+    class _Metaclass(type):
         
         def __str__(self):
             return "<sentinel '{}'>".format(".".join([module, name]).lstrip("."))
@@ -76,13 +74,13 @@ def _sentinel(name: str, /, module = ""): # >= 0.3.76
     
     # safer to do this way instead of 'exec()'
     # for the 'type' constructor with 3 parameters it does NOT work with metaclasses.
-    class Sentinel(_Final, _SelfInvoke, metaclass=_):
+    class _(_Final, _SelfInvoke, metaclass=_Metaclass):
         
         __name__ = name
         __module__ = module if module else "__main__"
         __qualname__ = ".".join([module if module else "__main__", name]).lstrip(".")
     
-    return Sentinel
+    return _
 
 # make it more human-readable for 0.3.76
 _Missing = _sentinel("_Missing") # >= 0.3.75
