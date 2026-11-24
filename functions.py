@@ -227,6 +227,7 @@ isTuple = Tense.isTuple
 isTuple2 = Tense.isTuple2
 isType = Tense.isType
 isUnion = Tense.isUnion
+isUntitle = Tense.isUntitle # 0.3.85
 last = Tense.last
 license = Tense.license
 occurrences = Tense.occurrences
@@ -250,8 +251,9 @@ test = Tense.test
 timeit = Tense.timeit
 tryOrPass = Tense.tryOrPass
 tryOrReturn = Tense.tryOrReturn
-until = Tense.until
 union = Tense.union
+until = Tense.until
+untitle = Tense.untitle # 0.3.85
 
 del Math, Tense
 

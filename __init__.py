@@ -3886,6 +3886,46 @@ class Tense(Time, Math, _collection._SelfInvoke, metaclass = _TenseImmutableMeta
             raise error
         
         return [_re_bin(nextI) for nextI in i]
+    
+    @classmethod
+    @extensions.overload
+    def untitle(cls, v: str, /) -> str: ...
+    
+    @classmethod
+    @extensions.overload
+    def untitle(cls, v: bytearray, /) -> bytearray: ...
+    
+    @classmethod
+    @extensions.overload
+    def untitle(cls, v: bytes, /) -> bytes: ...
+    
+    def untitle(cls, v, /):
+        """
+        Availability: >= 0.3.85
+        https://aveyzan.xyz/aveytense#aveytense.Tense.untitle
+        
+        Returns untitled text (inversion of `[str|bytes|bytearray].title()`).
+        Previously defined as `Tense08.untitled()` and operated only on strings.
+        """
+        
+        if not isinstance(v, (str, bytes, bytearray)):
+            error = TypeError("expected str, bytes or bytearray")
+            raise error
+        
+        return v.title().swapcase()
+    
+    def isUntitle(cls, o: object, /):
+        """
+        Availability: >= 0.3.85
+        https://aveyzan.xyz/aveytense#aveytense.Tense.isUntitle
+        
+        Returns `True` if the object is `str`, `bytes` or `bytearray` and the sequence
+        of characters is untitled (first letter lowercase and the rest uppercase).
+        
+        Previously defined as `Tense08.isUntitled()`
+        """
+        
+        return o == cls.untitle(o) if isinstance(o, (str, bytes, bytearray)) else False
 
     @classmethod # below: append 'typing.IO[Any]' when tests are done on 0.3.48
     def clear(cls, *v: _Clearable): # 0.3.27a4

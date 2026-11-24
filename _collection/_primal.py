@@ -15,6 +15,9 @@ import fractions as _fractions
 import math as _math
 import numbers as _numbers
 
+if _sys.version_info >= (3, 15):
+    from math import integer as _math_i
+
 from . import _Missing, _SelfInvoke, _is_sequence_like
 from . import _constants as _lc
 from .. import constants as _constants
@@ -1279,7 +1282,7 @@ class Math(_SelfInvoke):
     def fact(self, n: int, /):
         """
         Availability: >= 0.3.26rc3 \\
-        https://aveyzan.xyz/aveytense#aveytense.Math.?miscellaneous_functions
+        https://aveyzan.xyz/aveytense#aveytense.Math.fact
         ```
         # created 20.08.2024
         ```
@@ -1292,28 +1295,17 @@ class Math(_SelfInvoke):
             raise error
         
         # math.factorial(): since Python 2.6
-        if hasattr(_math, "factorial"): 
-            return _math.factorial(n)
         
-        else:
-            
-            if n in (0, 1):
-                return 1
-            
-            m, i = 2, 3
-            
-            # 0.3.41: Do not use 'for' loop in order to bypass limit of 'sys.maxsize'
-            while i <= n: 
-                m *= i
-                i += 1
-                
-            return m
+        if _sys.version_info >= (3, 15): # 0.3.85
+            return _math_i.factorial(n)
+        else: 
+            return _math.factorial(n)
         
     @classmethod
     def factFalling(self, x: int, n: int, /):
         """
         Availability: >= 0.3.51 \\
-        https://aveyzan.xyz/aveytense#aveytense.Math.?miscellaneous_functions
+        https://aveyzan.xyz/aveytense#aveytense.Math.factFalling
         
         Returns falling factorial of `x` at index `n`
         """
@@ -1340,7 +1332,7 @@ class Math(_SelfInvoke):
     def factRising(self, x: int, n: int, /):
         """
         Availability: >= 0.3.51 \\
-        https://aveyzan.xyz/aveytense#aveytense.Math.?miscellaneous_functions
+        https://aveyzan.xyz/aveytense#aveytense.Math.factRising
         
         Returns rising factorial of `x` at index `n`
         """
@@ -1351,20 +1343,11 @@ class Math(_SelfInvoke):
         
         return int(self.pow(-1, n)) * self.factFalling(-x, n)
     
-    if False: # < 0.3.49
-        @classmethod
-        @_extensions.deprecated("deprecated since 0.3.39, will be removed on 0.3.48")
-        def outOfRoot(self, number: int, rootScale: int, /):
-            """Since 0.3.?"""
-            i = number
-            while not isinstance(pow(number, 1/rootScale), int): i -= 1
-            return [int(pow(i, 1/rootScale)), number - i]
-    
     @classmethod
     def asin(self, x: _FloatOrInteger, /):
         """
         Availability: >= 0.3.25 (04.07.2024) \\
-        https://aveyzan.xyz/aveytense#aveytense.Math.?inverse_trigonometric_functions
+        https://aveyzan.xyz/aveytense#aveytense.Math.asin
         
         Returns arc sine of `x` 
         """
@@ -2076,7 +2059,7 @@ class Math(_SelfInvoke):
         if _sys.version_info >= (3, 11):
             return _math.cbrt(x)
         else:
-            return _math.pow(x, (1/3))
+            return _math.pow(x, 1/3)
         
     @classmethod
     def pow(self, x: _FloatOrInteger, y: _FloatOrInteger, /):
@@ -2481,7 +2464,7 @@ class Math(_SelfInvoke):
             error = TypeError("expected a positive integer")
             raise error
         
-        return n if n == 0 else (2 * n - 1) * ((n - 1) ** 2 + n)
+        return n if n == 0 else self.cube(n) + self.cube(n + 1)
     
     @classmethod
     def pentatope(self, n: int, /):
@@ -2641,7 +2624,10 @@ class Math(_SelfInvoke):
             error = ValueError("expected at least 2 non-negative integers")
             raise error
         
-        if _sys.version_info >= (3, 9):
+        if _sys.version_info >= (3, 15): # 0.3.85
+            return _math_i.lcm(*i)
+        
+        elif _sys.version_info >= (3, 9):
             return _math.lcm(*i)
         
         else:
@@ -2670,7 +2656,10 @@ class Math(_SelfInvoke):
             error = ValueError("expected at least 2 non-negative integers")
             raise error
         
-        if _sys.version_info >= (3, 9):
+        if _sys.version_info >= (3, 15): # 0.3.85
+            return _math_i.gcd(*i)
+        
+        elif _sys.version_info >= (3, 9):
             return _math.gcd(*i)
         
         else:

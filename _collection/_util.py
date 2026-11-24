@@ -1262,10 +1262,8 @@ class ParamVar:
         
         if _sys.version_info < (3, 9):
             
-            from collections.abc import Sequence
-            
             try:
-                _e_ = Sequence[str] # type: ignore
+                _e_ = _extensions.AVT_Sequence[str] # type: ignore
                 _e_ = _e_
                 
             except:

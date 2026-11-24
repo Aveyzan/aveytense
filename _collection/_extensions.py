@@ -1323,6 +1323,18 @@ else:
             
         def get(self, key: KT, default: T = None): # >= 0.3.75
             return self.__dict.get(key, default)
+        
+        @classmethod
+        @overload
+        def fromkeys(cls, iterable: AVT_Iterable[T], value: None = None, /) -> frozendict[T, Union[Any, None]]: ...
+        
+        @classmethod
+        @overload
+        def fromkeys(cls, iterable: AVT_Iterable[T], value: VT, /) -> frozendict[T, VT]: ...
+        
+        @classmethod
+        def fromkeys(cls, iterable: AVT_Iterable[T], value = None, /): # >= 0.3.85
+            return frozendict(dict.fromkeys(iterable, value))
             
         def keys(self): # >= 0.3.75
             return self.__dict.keys()
